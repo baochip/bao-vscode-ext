@@ -1,0 +1,76 @@
+{
+  "name": "bao-vscode-ext",
+  "displayName": "Baochip",
+  "description": "Baochip tools integration.",
+  "publisher": "baochip",
+  "version": "0.0.1",
+  "license": "MIT",
+  "engines": { "vscode": "^1.92.0" },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onView:bao.view",
+    "onCommand:baochip.setMonitorPort",
+    "onCommand:baochip.openMonitor"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "baochip.setMonitorPort", "title": "Baochip: Set Monitor Port" },
+      { "command": "baochip.openMonitor", "title": "Baochip: Monitor" }
+    ],
+    "configuration": {
+      "title": "Baochip",
+      "properties": {
+        "baochip.baoPath": {
+          "type": "string",
+          "default": "bao.py",
+          "description": "Path to bao.py (absolute or on PATH)."
+        },
+        "baochip.pythonCommand": {
+          "type": "string",
+          "default": "python",
+          "description": "Python command to run (e.g. 'python' on Windows, 'python3' on macOS/Linux)."
+        },
+        "baochip.defaultBaud": {
+          "type": "number",
+          "default": 115200,
+          "description": "Default baud for monitor."
+        },
+        "baochip.defaultPort": {
+          "type": "string",
+          "default": "",
+          "description": "Default serial port (e.g., COM5 or /dev/ttyUSB0)."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bao-container",
+          "title": "Baochip",
+          "icon": "media/bao-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "bao-container": [
+        {
+          "id": "bao-view",
+          "name": "Baochip"
+        }
+      ]
+    }
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "vscode:prepublish": "npm run compile",
+    "package": "npx vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.92.0",
+    "typescript": "^5.5.0",
+    "vsce": "^2.15.0"
+  }
+}
