@@ -24,5 +24,4 @@ This extension adds a Baochip sidebar with the following actions:
 npm install
 npm run compile
 ```
-
-Press F5 to launch Extension Development Host
+Then, press F5 to launch Extension Development Host

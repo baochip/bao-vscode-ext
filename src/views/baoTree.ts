@@ -8,8 +8,10 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
   getChildren() {
     const setPort = new TreeItem('Set monitor port', 'baochip.setMonitorPort', 'plug');
     const setFlash = new TreeItem('Set flash port', 'baochip.setFlashPort', 'plug');
+    const flashMeth = new TreeItem('Select flash method','baochip.setFlashMethod', 'star');
+    const target   = new TreeItem('Select build target', 'baochip.selectBuildTarget', 'target');
     const monitor = new TreeItem('Monitor', 'baochip.openMonitor', 'vm');
-    return Promise.resolve([setPort, setFlash, monitor]);
+    return Promise.resolve([setPort, setFlash, flashMeth, target, monitor]);
   }
 }
 

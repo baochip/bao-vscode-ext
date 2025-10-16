@@ -14,6 +14,8 @@
   "activationEvents": [
     "onView:bao.view",
     "onCommand:baochip.setMonitorPort",
+    "onCommand:baochip.setFlashPort",
+    "onCommand:baochip.selectBuildTarget",
     "onCommand:baochip.openMonitor"
   ],
   "contributes": {
@@ -25,6 +27,18 @@
       {
         "command": "baochip.openMonitor",
         "title": "Baochip: Monitor"
+      },
+      {
+        "command": "baochip.setFlashPort",
+        "title": "Baochip: Set Flash Port"
+      },
+      {
+        "command": "baochip.selectBuildTarget",
+        "title": "Baochip: Select Build Target"
+      },
+      {
+        "command": "baochip.setFlashMethod",
+        "title": "Baochip: Select Flash Method"
       }
     ],
     "configuration": {
@@ -55,6 +69,28 @@
           "default": "",
           "description": "Default serial port for flashing.",
           "scope": "workspace"
+        },
+        "baochip.buildTarget": {
+          "type": "string",
+          "default": "",
+          "description": "Currently selected build target (e.g., dabao, baosec)."
+        },
+        "baochip.buildTargets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["dabao", "baosec"],
+          "description": "Fallback list if bao.py cannot list targets."
+        },
+        "baochip.flashMethod": {
+          "type": "string",
+          "default": "",
+          "description": "Current flashing method (e.g. UART or JTAG)."
+        },
+        "baochip.flashMethods": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["UART", "JTAG"],
+          "description": "Available flash methods (overrideable)."
         }
       }
     },
