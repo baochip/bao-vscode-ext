@@ -5,8 +5,12 @@
   "publisher": "baochip",
   "version": "0.0.1",
   "license": "MIT",
-  "engines": { "vscode": "^1.92.0" },
-  "categories": ["Other"],
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Other"
+  ],
   "activationEvents": [
     "onView:bao.view",
     "onCommand:baochip.setMonitorPort",
@@ -14,8 +18,14 @@
   ],
   "contributes": {
     "commands": [
-      { "command": "baochip.setMonitorPort", "title": "Baochip: Set Monitor Port" },
-      { "command": "baochip.openMonitor", "title": "Baochip: Monitor" }
+      {
+        "command": "baochip.setMonitorPort",
+        "title": "Baochip: Set Monitor Port"
+      },
+      {
+        "command": "baochip.openMonitor",
+        "title": "Baochip: Monitor"
+      }
     ],
     "configuration": {
       "title": "Baochip",
@@ -35,10 +45,16 @@
           "default": 115200,
           "description": "Default baud for monitor."
         },
-        "baochip.defaultPort": {
+        "baochip.monitorPort": {
           "type": "string",
           "default": "",
           "description": "Default serial port (e.g., COM5 or /dev/ttyUSB0)."
+        },
+        "baochip.flashPort": {
+          "type": "string",
+          "default": "",
+          "description": "Default serial port for flashing.",
+          "scope": "workspace"
         }
       }
     },
@@ -62,7 +78,7 @@
   },
   "main": "./out/extension.js",
   "scripts": {
-    "compile": "tsc -p .",
+    "compile": "tsc -p . && tsc-alias -p tsconfig.json",
     "watch": "tsc -w -p .",
     "vscode:prepublish": "npm run compile",
     "package": "npx vsce package"
@@ -70,6 +86,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.92.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.5.0",
     "vsce": "^2.15.0"
   }
