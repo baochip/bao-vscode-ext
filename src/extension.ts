@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { BaoTreeProvider } from '@views/baoTree';
-import { registerCommands } from '@commands/index';
+import { BaoTreeProvider } from '@tree/baoTree';
+import { registerCommands } from './index';
 import {
   getDefaultBaud,
   getMonitorPort,
@@ -8,6 +8,9 @@ import {
   getBuildTarget,
   getFlashMethod
 } from '@services/configService';
+
+const shouldShowWelcome = () =>
+  vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
 export function activate(context: vscode.ExtensionContext) {
   // Sidebar tree
@@ -67,11 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
     targetItem.tooltip = 'Click to select build target';
     targetItem.show();
 
-    // Refresh tree view (labels/icons don’t change, but good if you add dynamic labels later)
     tree.refresh();
   };
 
-  // Initial paint
   refreshUI();
 
   // If settings change outside commands (e.g., user edits Settings UI), auto-update status bar
@@ -87,8 +88,12 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(cfgWatcher);
 
-  // Register commands; they’ll call refreshUI() after changing settings
   registerCommands(context, refreshUI);
+
+  if (shouldShowWelcome()) {
+    vscode.commands.executeCommand('baochip.openWelcome');
+  }
+
 }
 
 export function deactivate() {}

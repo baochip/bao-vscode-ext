@@ -13,6 +13,8 @@
   ],
   "activationEvents": [
     "onView:bao.view",
+    "onStartupFinished",
+    "onCommand:baochip.openWelcome",
     "onCommand:baochip.setMonitorPort",
     "onCommand:baochip.setFlashPort",
     "onCommand:baochip.selectBuildTarget",
@@ -20,6 +22,10 @@
   ],
   "contributes": {
     "commands": [
+      {
+        "command": "baochip.openWelcome",
+        "title": "Baochip: Open Welcome"
+      },
       {
         "command": "baochip.setMonitorPort",
         "title": "Baochip: Set Monitor Port"
@@ -41,9 +47,15 @@
         "title": "Baochip: Select Flash Method"
       }
     ],
+    "menus": {},
     "configuration": {
       "title": "Baochip",
       "properties": {
+        "baochip.showWelcomeOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open the Baochip Welcome page when the extension activates."
+        },
         "baochip.baoPath": {
           "type": "string",
           "default": "bao.py",
@@ -77,8 +89,13 @@
         },
         "baochip.buildTargets": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["dabao", "baosec"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "dabao",
+            "baosec"
+          ],
           "description": "Fallback list if bao.py cannot list targets."
         },
         "baochip.flashMethod": {
@@ -88,8 +105,13 @@
         },
         "baochip.flashMethods": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["UART", "JTAG"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "UART",
+            "JTAG"
+          ],
           "description": "Available flash methods (overrideable)."
         }
       }
@@ -125,5 +147,8 @@
     "tsc-alias": "^1.8.16",
     "typescript": "^5.5.0",
     "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.41"
   }
 }

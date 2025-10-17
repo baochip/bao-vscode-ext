@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { ensureBaoPath } from '@services/pathService';
 import { getMonitorPort, getDefaultBaud, getPythonCmd } from '@services/configService';
-import { MonitorPanel } from '@panels/monitorPanel';
-
+import { MonitorPanel } from '@webviews/monitor/monitorPanel';
 export function registerOpenMonitor(context: vscode.ExtensionContext) {
   return vscode.commands.registerCommand('baochip.openMonitor', async () => {
     const port = getMonitorPort();

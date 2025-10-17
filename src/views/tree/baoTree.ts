@@ -6,6 +6,7 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
   refresh() { this._onDidChangeTreeData.fire(undefined); }
   getTreeItem(el: TreeItem) { return el; }
   getChildren() {
+    const welcome = new TreeItem('Welcome', 'baochip.openWelcome', 'home');
     const setPort = new TreeItem('Set monitor port', 'baochip.setMonitorPort', 'plug');
     const setFlash = new TreeItem('Set flash port', 'baochip.setFlashPort', 'plug');
     const flashMeth = new TreeItem('Select flash method','baochip.setFlashMethod', 'star');
