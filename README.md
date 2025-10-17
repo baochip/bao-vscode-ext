@@ -1,8 +1,10 @@
 # Baochip VSCode Extension
 
-This extension adds a Baochip sidebar with the following actions:
+This extension adds a Baochip sidebar with a welcome screen and the following commands:
 - **Set monitor port** (QuickPick list from `bao.py ports`)
 - **Set flash port** (QuickPick list from `bao.py ports`)
+- **Select flash method** (Quickpick list)
+- **Select build target** (Quickpick list from `bao.py targets`)
 - **Monitor** (opens an in-editor webview showing serial output)
 
 ## Requirements
@@ -10,13 +12,6 @@ This extension adds a Baochip sidebar with the following actions:
 - [`bao-devkit`](https://github.com/baochip/bao-devkit) with `bao.py` working:
   - `python bao.py ports`
   - `python bao.py monitor -p <PORT>`
-
-## Settings
-- `baochip.pythonCommand` (default `python`)
-- `baochip.baoPath` (path to `bao.py`)
-- `baochip.monitorPort` (leave empty to be prompted)
-- `baochip.defaultBaud` (default 115200)
-- `baochip.flashPort` (leave empty to be prompted)
 
 ## Dev
 
