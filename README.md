@@ -11,6 +11,7 @@ This extension adds a Baochip sidebar with a welcome screen and the following co
 - Python 3
 - [`bao-devkit`](https://github.com/baochip/bao-devkit) with `bao.py` working:
   - `python bao.py ports`
+  - `python bao.py targets`
   - `python bao.py monitor -p <PORT>`
 
 ## Dev
