@@ -1,18 +1,21 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 
+interface MonitorOpts {
+  pythonCmd: string;
+  baoPath: string;
+  port: string;
+  baud: number;
+  cwd?: string;
+}
+
 export class MonitorPanel {
   public static current: MonitorPanel | undefined;
   private panel: vscode.WebviewPanel;
   private process: ChildProcessWithoutNullStreams | undefined;
   private disposables: vscode.Disposable[] = [];
 
-  static show(context: vscode.ExtensionContext, opts: {
-    pythonCmd: string;
-    baoPath: string;
-    port: string;
-    baud: number;
-  }) {
+  static show(context: vscode.ExtensionContext, opts: MonitorOpts) {
     if (MonitorPanel.current) {
       MonitorPanel.current.panel.reveal(vscode.ViewColumn.Active);
       return;
@@ -35,7 +38,7 @@ export class MonitorPanel {
   private constructor(
     panel: vscode.WebviewPanel,
     private readonly ctx: vscode.ExtensionContext,
-    private readonly opts: { pythonCmd: string; baoPath: string; port: string; baud: number; }
+    private readonly opts: MonitorOpts
   ) {
     this.panel = panel;
     this.panel.webview.html = this.getHtml();
@@ -53,10 +56,14 @@ export class MonitorPanel {
   private spawnMonitor(baud: number) {
     const args = [this.opts.baoPath, 'monitor', '-p', this.opts.port, '-b', String(baud), '--ts'];
     const env = { ...process.env, PYTHONIOENCODING: 'utf-8' };
+
     // kill previous
     try { if (this.process && !this.process.killed) this.process.kill(); } catch {}
 
-    this.process = spawn(this.opts.pythonCmd, args, { env });
+    this.process = spawn(this.opts.pythonCmd, args, {
+      env,
+      cwd: this.opts.cwd, 
+    });
 
     const post = (type: string, text: string) =>
       this.panel.webview.postMessage({ type, text });

@@ -1,15 +1,17 @@
-import { runPython } from './pythonRunner';
+import { spawn } from 'child_process';
 
-export async function listPorts(pythonCmd: string, baoPath: string): Promise<string[]> {
-  return new Promise((resolve) => {
-    const child = runPython(pythonCmd, [baoPath, 'ports']);
-    let out = '';
+export async function listPorts(pythonCmd: string, baoPath: string, cwd?: string): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonCmd, [baoPath, 'ports'], { cwd });
+    let out = '', err = '';
     child.stdout.on('data', d => out += d.toString());
+    child.stderr.on('data', d => err += d.toString());
     child.on('close', code => {
       if (code === 0) {
-        resolve(out.split(/\r?\n/).map(l => l.split('\t')[0]).filter(Boolean));
+        const ports = out.split(/\r?\n/).map(l => l.split('\t')[0]).filter(Boolean);
+        resolve(ports);
       } else {
-        resolve([]); // treat non-zero as "no ports"
+        reject(new Error(err || `Exited ${code}`));
       }
     });
   });

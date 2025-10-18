@@ -4,13 +4,14 @@
 
   const actions = {
     configure: () => vscode.postMessage({ type: 'run', cmd: 'configure' }),
-    newProject: () => vscode.postMessage({ type: 'run', cmd: 'newProject' }),
+    selectApp: () => vscode.postMessage({ type: 'run', cmd: 'selectApp' }),
+    createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
     examples: () => vscode.postMessage({ type: 'run', cmd: 'examples' }),
     devkit: () => vscode.postMessage({ type: 'openDevkit' }),
     toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
   };
 
-  ['configure','newProject','examples','devkit'].forEach(id => {
+  ['configure', 'devkit', 'selectApp', 'createApp'].forEach(id => {
     const el = byId('btn-' + id);
     if (el) el.addEventListener('click', actions[id]);
   });

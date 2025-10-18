@@ -14,6 +14,7 @@
   "activationEvents": [
     "onView:bao.view",
     "onStartupFinished",
+    "onCommand:baochip.build",
     "onCommand:baochip.openWelcome",
     "onCommand:baochip.setMonitorPort",
     "onCommand:baochip.setFlashPort",
@@ -45,6 +46,17 @@
       {
         "command": "baochip.setFlashMethod",
         "title": "Baochip: Select Flash Method"
+      },
+      {
+        "command": "baochip.build",
+        "title": "Baochip: Build Project"
+      },
+      { 
+        "command": "baochip.selectApp", 
+        "title": "Baochip: Select App" 
+      },
+      { "command": "baochip.createApp",
+        "title": "Baochip: New App"
       }
     ],
     "menus": {},
@@ -56,10 +68,10 @@
           "default": true,
           "description": "Automatically open the Baochip Welcome page when the extension activates."
         },
-        "baochip.baoPath": {
+        "baochip.xousCorePath": {
           "type": "string",
-          "default": "bao.py",
-          "description": "Path to bao.py (absolute or on PATH)."
+          "default": "",
+          "description": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it."
         },
         "baochip.pythonCommand": {
           "type": "string",
@@ -113,6 +125,16 @@
             "JTAG"
           ],
           "description": "Available flash methods (overrideable)."
+        },
+        "baochip.build.cwd": {
+          "type": "string",
+          "default": "${workspaceFolder}",
+          "description": "Working directory for the build. Change if the build should run in xous-core or another repo."
+        },
+        "baochip.xousAppName": {
+          "type": "string",
+          "default": "",
+          "description": "Name of the Bao app workspace under xous-core/apps-dabao/ (e.g., 'helloworld')."
         }
       }
     },
@@ -132,7 +154,14 @@
           "name": "Baochip"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "baochip.build",
+        "key": "ctrl+alt+b",
+        "when": "editorTextFocus"
+      }
+    ]
   },
   "main": "./out/extension.js",
   "scripts": {

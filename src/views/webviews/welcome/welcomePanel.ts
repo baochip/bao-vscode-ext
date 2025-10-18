@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getBaoPath, getDefaultBaud, getBuildTarget, getFlashPort, getMonitorPort } from '@services/configService';
+import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashPort, getMonitorPort } from '@services/configService';
 
 export class WelcomePanel {
   public static current: WelcomePanel | undefined;
@@ -58,13 +58,11 @@ export class WelcomePanel {
             // Open Settings focused on Baochip
             vscode.commands.executeCommand('workbench.action.openSettings', 'Baochip');
             break;
-          case 'newProject':
-            // Stub for now
-            vscode.window.showInformationMessage('New Project wizard coming soon.');
+          case 'selectApp':
+            vscode.commands.executeCommand('baochip.selectApp');
             break;
-          case 'examples':
-            // Stub for now
-            vscode.window.showInformationMessage('Examples browser coming soon.');
+          case 'createApp':
+            vscode.commands.executeCommand('baochip.createApp');
             break;
         }
         return;
@@ -77,7 +75,7 @@ export class WelcomePanel {
   private refreshState() {
     const cfg = vscode.workspace.getConfiguration();
     const state = {
-      baoPath: getBaoPath(),
+      xousCorePath: getXousCorePath(),
       monitorPort: getMonitorPort(),
       baud: getDefaultBaud(),
       flashPort: getFlashPort(),
@@ -154,16 +152,16 @@ export class WelcomePanel {
               <div class="subtitle">Paths, ports, defaults</div>
             </button>
 
-            <button id="btn-newProject" class="btn">
+            <button id="btn-createApp" class="btn">
               <span class="icon codicon codicon-add"></span>
-              <div class="title">New project</div>
-              <div class="subtitle">Create a starter template</div>
+              <div class="title">Create new app</div>
+              <div class="subtitle">Scaffold in apps-dabao/</div>
             </button>
 
-            <button id="btn-examples" class="btn">
-              <span class="icon codicon codicon-book"></span>
-              <div class="title">Show examples</div>
-              <div class="subtitle">Browse sample apps</div>
+            <button id="btn-selectApp" class="btn">
+              <span class="icon codicon codicon-folder"></span>
+              <div class="title">Select app</div>
+              <div class="subtitle">Choose from apps-dabao/</div>
             </button>
           </div>
 

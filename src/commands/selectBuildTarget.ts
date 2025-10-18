@@ -1,22 +1,21 @@
 import * as vscode from 'vscode';
-import { ensureBaoPath } from '@services/pathService';
+import { resolveBaoPy, ensureXousCorePath } from '@services/pathService';
 import { listBuildTargets } from '@services/targetsService';
 import { getPythonCmd, getBuildTarget, setBuildTarget, getBuildTargetsFallback } from '@services/configService';
 
 export function registerSelectBuildTarget(context: vscode.ExtensionContext, refreshUI: () => void) {
   return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
-    let baoPath: string;
-    try { baoPath = await ensureBaoPath(context); }
-    catch (e: any) { vscode.window.showWarningMessage(e?.message || 'bao.py not set'); return; }
+    let baoPath: string, cwd: string;
+    try {
+      baoPath = await resolveBaoPy();
+      cwd = await ensureXousCorePath();
+    } catch (e: any) {
+      vscode.window.showWarningMessage(e?.message || 'xous-core path not set'); return;
+    }
 
-    let targets = await listBuildTargets(getPythonCmd(), baoPath);
-    if (targets.length === 0) {
-      targets = getBuildTargetsFallback();
-    }
-    if (targets.length === 0) {
-      vscode.window.showWarningMessage('No build targets available.');
-      return;
-    }
+    let targets = await listBuildTargets(getPythonCmd(), baoPath, cwd).catch(() => []);
+    if (targets.length === 0) targets = getBuildTargetsFallback();
+    if (targets.length === 0) { vscode.window.showWarningMessage('No build targets available.'); return; }
 
     const current = getBuildTarget();
     const picked = await vscode.window.showQuickPick(
