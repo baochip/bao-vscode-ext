@@ -2,7 +2,13 @@ import * as vscode from 'vscode';
 
 export const cfg = () => vscode.workspace.getConfiguration(''); // root
 
-export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
+async function updateSetting(key: string, value: any, target?: vscode.ConfigurationTarget) {
+  // If target provided, use it. Otherwise pick Workspace if open, else Global.
+  const hasWorkspace = !!vscode.workspace.workspaceFolders?.length;
+  const t = target ?? (hasWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+  await cfg().update(key, value, t);
+}
+
 export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || 'python';
 export const getDefaultBaud = () => cfg().get<number>('baochip.defaultBaud') || 115200;
 export const getMonitorPort = () => cfg().get<string>('baochip.monitorPort') || '';
@@ -20,6 +26,9 @@ export const getFlashMethodsFallback = () => cfg().get<string[]>('baochip.flashM
 
 export const getXousAppName    = () => cfg().get<string>('baochip.xousAppName') || '';
 export const setXousAppName    = (n: string) => cfg().update('baochip.xousAppName', n, vscode.ConfigurationTarget.Workspace);
+
+export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
+export const setXousCorePath = (p: string, target?: vscode.ConfigurationTarget) => updateSetting('baochip.xousCorePath', p, target);
 
 export const updateTarget = (): vscode.ConfigurationTarget =>
   vscode.workspace.workspaceFolders?.length

@@ -6,7 +6,8 @@ import {
   getMonitorPort,
   getFlashPort,
   getBuildTarget,
-  getFlashMethod
+  getFlashMethod,
+  getXousAppName,
 } from '@services/configService';
 
 const shouldShowWelcome = () =>
@@ -24,14 +25,21 @@ export function activate(context: vscode.ExtensionContext) {
   const methodItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
   const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
   const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
+  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
+  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
+  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
+
 
   portItem.command   = 'baochip.setMonitorPort';
   monitorBtn.command = 'baochip.openMonitor';
   flashItem.command  = 'baochip.setFlashPort';
   targetItem.command = 'baochip.selectBuildTarget';
   methodItem.command = 'baochip.setFlashMethod';
+  cleanItem.command = 'baochip.clean';
+  buildItem.command = 'baochip.build';
+  appItem.command   = 'baochip.selectApp';
 
-  context.subscriptions.push(portItem, monitorBtn, flashItem, targetItem, methodItem);
+  context.subscriptions.push(portItem, monitorBtn, flashItem, targetItem, methodItem, cleanItem, buildItem, appItem);
 
   // Single UI refresher
   const refreshUI = () => {
@@ -40,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     const flPort  = getFlashPort();
     const target  = getBuildTarget();
     const fMethod  = getFlashMethod();
+    const app      = getXousAppName();
 
     // Monitor port item
     portItem.text = monPort ? `$(plug) Monitor Port: ${monPort}` : '$(plug) Monitor Port: (not set)';
@@ -69,6 +78,21 @@ export function activate(context: vscode.ExtensionContext) {
     targetItem.text = target ? `$(target) Target: ${target}` : '$(target) Target: (not set)';
     targetItem.tooltip = 'Click to select build target';
     targetItem.show();
+
+    // App name
+    appItem.text = app ? `$(package) App: ${app}` : '$(package) App: (not set)';
+    appItem.tooltip = 'Click to select xous-core app';
+    appItem.show();
+
+    // Status bar: Full Clean
+    cleanItem.text = '$(trash) Clean';
+    cleanItem.tooltip = 'Full clean (cargo clean)';
+    cleanItem.show();
+
+    // Status bar: Build
+    buildItem.text = '$(tools) Build';
+    buildItem.tooltip = 'Build (cargo xtask)';
+    buildItem.show();
 
     tree.refresh();
   };

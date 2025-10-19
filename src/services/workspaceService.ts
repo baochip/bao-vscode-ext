@@ -1,24 +1,41 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { setXousCorePath } from '@services/configService';
 
-export async function openAppFolder(appDir: string) {
-  const choice = await vscode.window.showInformationMessage(
-    `Open app folder "${path.basename(appDir)}"?`,
-    'Open Here',
-    'Open in New Window',
-    'Just Add to Workspace'
-  );
-  if (!choice) return;
+export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean> {
+  const folders = vscode.workspace.workspaceFolders;
+  const currentRoot = folders?.[0]?.uri.fsPath;
 
-  const uri = vscode.Uri.file(appDir);
-
-  if (choice === 'Open Here') {
-    await vscode.commands.executeCommand('vscode.openFolder', uri, false);
-  } else if (choice === 'Open in New Window') {
-    await vscode.commands.executeCommand('vscode.openFolder', uri, true);
-  } else {
-    // Add as an additional workspace folder without closing the current one
-    const existing = vscode.workspace.workspaceFolders ?? [];
-    vscode.workspace.updateWorkspaceFolders(existing.length, 0, { uri, name: path.basename(appDir) });
+  if (currentRoot && samePath(currentRoot, xousRoot)) {
+    // Already on xous-core; make sure the setting is saved (in case it wasn't yet)
+    await setXousCorePath(xousRoot); // workspace-scoped now that we have one
+    return true;
   }
+
+  const choice = await vscode.window.showInformationMessage(
+    'No xous-core workspace is open. Open xous-core to continue?',
+    { modal: true },
+    'Open',
+    'Cancel'
+  );
+  if (!choice || choice === 'Cancel') return false;
+
+  // Persist the path *before* we reload/open the folder so future lookups won't prompt.
+  await setXousCorePath(xousRoot, vscode.ConfigurationTarget.Global);
+
+  const uri = vscode.Uri.file(xousRoot);
+  await vscode.commands.executeCommand('vscode.openFolder', uri, false);
+  // Window reloads; nothing after this line will run in this session.
+  return false;
+}
+
+export async function revealAppFolder(xousRoot: string, appName: string) {
+  await vscode.commands.executeCommand('workbench.view.explorer');
+  const appDir = path.join(xousRoot, 'apps-bao', appName);
+  await vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
+  await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.file(appDir));
+}
+
+function samePath(a: string, b: string): boolean {
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }

@@ -8,6 +8,7 @@ import { registerSetFlashMethod } from '@commands/setFlashMethod';
 import { registerBuildCommand } from '@commands/build';
 import { registerSelectApp } from '@commands/selectApp';
 import { registerCreateApp } from '@commands/createApp';
+import { registerCleanCommand } from '@commands/clean';
 
 export function registerCommands(context: vscode.ExtensionContext, refreshUI: () => void) {
   context.subscriptions.push(
@@ -19,6 +20,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
     registerBuildCommand(context),
     registerSelectApp(context),
     registerCreateApp(context),
+    registerCleanCommand(context),
     vscode.commands.registerCommand('baochip.openWelcome', () => WelcomePanel.show(context)),
   );
 }

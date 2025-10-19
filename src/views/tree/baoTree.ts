@@ -13,9 +13,10 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
     const target   = new TreeItem('Select build target', 'baochip.selectBuildTarget', 'target');
     const newApp   = new TreeItem('New app', 'baochip.createApp', 'add');
     const selectApp = new TreeItem('Select app', 'baochip.selectApp', 'search');
+    const clean    = new TreeItem('Clean (cargo clean)', 'baochip.clean', 'trash');
     const build    = new TreeItem('Build (cargo xtask)', 'baochip.build', 'tools');
     const monitor = new TreeItem('Monitor', 'baochip.openMonitor', 'vm');
-    return Promise.resolve([setPort, setFlash, flashMeth, target, newApp, selectApp, build, monitor]);
+    return Promise.resolve([setPort, setFlash, flashMeth, target, newApp, selectApp, clean, build, monitor]);
   }
 }
 

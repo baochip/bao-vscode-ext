@@ -19,7 +19,10 @@
     "onCommand:baochip.setMonitorPort",
     "onCommand:baochip.setFlashPort",
     "onCommand:baochip.selectBuildTarget",
-    "onCommand:baochip.openMonitor"
+    "onCommand:baochip.openMonitor",
+    "onCommand:baochip.clean",
+    "onCommand:baochip.selectApp",
+    "onCommand:baochip.createApp"
   ],
   "contributes": {
     "commands": [
@@ -46,6 +49,10 @@
       {
         "command": "baochip.setFlashMethod",
         "title": "Baochip: Select Flash Method"
+      },
+      {
+        "command": "baochip.clean",
+        "title": "Baochip: Full Clean"
       },
       {
         "command": "baochip.build",
