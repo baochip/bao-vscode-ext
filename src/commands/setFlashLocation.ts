@@ -1,0 +1,30 @@
+import * as vscode from 'vscode';
+import { setFlashLocation } from '@services/configService';
+
+export function registerSetFlashLocation(_context: vscode.ExtensionContext, refreshUI: () => void) {
+  return vscode.commands.registerCommand('baochip.setFlashLocation', async () => {
+      const ok = await vscode.window.showInformationMessage(
+        'You need to select the drive where your baochip is mounted.',
+        { modal: true },
+        'Select Folder'
+      );
+      if (ok !== 'Select Folder') {
+        throw new Error('baochip location not set');
+      }
+
+    const pick = await vscode.window.showOpenDialog({
+      title: 'Select mounted baochip drive',
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: 'Use this location',
+    });
+
+    if (!pick || pick.length === 0) return;
+    const folder = pick[0].fsPath;
+
+    await setFlashLocation(folder);
+    vscode.window.showInformationMessage(`Baochip location set to: ${folder}`);
+    refreshUI();
+  });
+}

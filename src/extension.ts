@@ -4,10 +4,9 @@ import { registerCommands } from './index';
 import {
   getDefaultBaud,
   getMonitorPort,
-  getFlashPort,
+  getFlashLocation,
   getBuildTarget,
-  getFlashMethod,
-  getXousAppName,
+  getXousAppName
 } from '@services/configService';
 
 const shouldShowWelcome = () =>
@@ -20,79 +19,77 @@ export function activate(context: vscode.ExtensionContext) {
 
   // --- Status bar items (left side) ---
   // Higher priority number = appears more to the left
-  const portItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  const flashItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
-  const methodItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
-  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
-  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
-  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
-  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
-  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
+  const monitorPortItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  const flashLocationItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
+  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
+  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
+  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
+  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
+  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
+  const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
 
-
-  portItem.command   = 'baochip.setMonitorPort';
+  monitorPortItem.command   = 'baochip.setMonitorPort';
   monitorBtn.command = 'baochip.openMonitor';
-  flashItem.command  = 'baochip.setFlashPort';
+  flashLocationItem.command  = 'baochip.setFlashLocation';
   targetItem.command = 'baochip.selectBuildTarget';
-  methodItem.command = 'baochip.setFlashMethod';
   cleanItem.command = 'baochip.clean';
   buildItem.command = 'baochip.build';
   appItem.command   = 'baochip.selectApp';
+  flashItem.command = 'baochip.flash';
 
-  context.subscriptions.push(portItem, monitorBtn, flashItem, targetItem, methodItem, cleanItem, buildItem, appItem);
+  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem);
 
   // Single UI refresher
   const refreshUI = () => {
     const monPort = getMonitorPort();
     const baud    = getDefaultBaud();
-    const flPort  = getFlashPort();
+    const flLoc   = getFlashLocation();
     const target  = getBuildTarget();
-    const fMethod  = getFlashMethod();
     const app      = getXousAppName();
 
     // Monitor port item
-    portItem.text = monPort ? `$(plug) Monitor Port: ${monPort}` : '$(plug) Monitor Port: (not set)';
-    portItem.tooltip = monPort
+    monitorPortItem.text = monPort ? `$(plug) ${monPort}` : '$(plug) Monitor Port: (not set)';
+    monitorPortItem.tooltip = monPort
       ? `Current monitor port @ ${baud}`
       : 'Click to set monitor port';
-    portItem.show();
+    monitorPortItem.show();
 
     // Monitor button 
-    monitorBtn.text = '$(vm) Monitor';
+    monitorBtn.text = '$(vm)';
     monitorBtn.tooltip = monPort
       ? `Open monitor on ${monPort} @ ${baud}`
       : 'Open monitor (will ask you to set a port first)';
     monitorBtn.show();
 
-    // Flash port
-    flashItem.text = flPort ? `$(plug) Flash Port: ${flPort}` : '$(plug) Flash Port: (not set)';
-    flashItem.tooltip = 'Click to set flash port';
-    flashItem.show();
-
-    // Flash method
-    methodItem.text = fMethod ? `$(star) Flash: ${fMethod}` : '$(star) Flash: (not set)';
-    methodItem.tooltip = 'Click to select flash method';
-    methodItem.show();
+    // Flash location
+    flashLocationItem.text = flLoc ? `$(chip) ${flLoc}` : '$(chip) Baochip Location: (not set)';
+    flashLocationItem.tooltip = 'Click to set baochip location';
+    flashLocationItem.show();
 
     // Build target
-    targetItem.text = target ? `$(target) Target: ${target}` : '$(target) Target: (not set)';
+    targetItem.text = target ? `$(target) ${target}` : '$(target) Target: (not set)';
     targetItem.tooltip = 'Click to select build target';
     targetItem.show();
 
     // App name
-    appItem.text = app ? `$(package) App: ${app}` : '$(package) App: (not set)';
+    appItem.text = app ? `$(package) ${app}` : '$(package) App: (not set)';
     appItem.tooltip = 'Click to select xous-core app';
     appItem.show();
 
     // Status bar: Full Clean
-    cleanItem.text = '$(trash) Clean';
+    cleanItem.text = '$(trash)';
     cleanItem.tooltip = 'Full clean (cargo clean)';
     cleanItem.show();
 
     // Status bar: Build
-    buildItem.text = '$(tools) Build';
+    buildItem.text = '$(tools)';
     buildItem.tooltip = 'Build (cargo xtask)';
     buildItem.show();
+
+    // Status bar: Flash
+    flashItem.text = '$(rocket)';
+    flashItem.tooltip = 'Flash to device';
+    flashItem.show();
 
     tree.refresh();
   };
@@ -105,7 +102,8 @@ export function activate(context: vscode.ExtensionContext) {
       e.affectsConfiguration('baochip.monitorPort')  ||
       e.affectsConfiguration('baochip.defaultBaud')  ||
       e.affectsConfiguration('baochip.flashPort')    ||
-      e.affectsConfiguration('baochip.buildTarget')
+      e.affectsConfiguration('baochip.buildTarget')  ||
+      e.affectsConfiguration('baochip.xousAppName')  
     ) {
       refreshUI();
     }

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashPort, getMonitorPort } from '@services/configService';
+import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashLocation, getMonitorPort } from '@services/configService';
 
 export class WelcomePanel {
   public static current: WelcomePanel | undefined;
@@ -78,7 +78,7 @@ export class WelcomePanel {
       xousCorePath: getXousCorePath(),
       monitorPort: getMonitorPort(),
       baud: getDefaultBaud(),
-      flashPort: getFlashPort(),
+      flashLocation: getFlashLocation(),
       target: getBuildTarget(),
       showOnStartup: cfg.get<boolean>('baochip.showWelcomeOnStartup', true),
     };

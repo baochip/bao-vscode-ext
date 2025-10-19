@@ -2,7 +2,7 @@
 
 This extension adds a Baochip sidebar with a welcome screen and the following commands:
 - **Set monitor port** (QuickPick list from `bao.py ports`)
-- **Set flash port** (QuickPick list from `bao.py ports`)
+- **Set flash location**
 - **Select flash method** (Quickpick list)
 - **Select build target** (Quickpick list from `bao.py targets`)
 - **Monitor** (opens an in-editor webview showing serial output)

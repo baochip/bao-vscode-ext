@@ -8,15 +8,16 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
   getChildren() {
     const welcome = new TreeItem('Welcome', 'baochip.openWelcome', 'home');
     const setPort = new TreeItem('Set monitor port', 'baochip.setMonitorPort', 'plug');
-    const setFlash = new TreeItem('Set flash port', 'baochip.setFlashPort', 'plug');
-    const flashMeth = new TreeItem('Select flash method','baochip.setFlashMethod', 'star');
+    const setFlashLoc = new TreeItem('Set baochip location', 'baochip.setFlashLocation', 'chip');
     const target   = new TreeItem('Select build target', 'baochip.selectBuildTarget', 'target');
     const newApp   = new TreeItem('New app', 'baochip.createApp', 'add');
     const selectApp = new TreeItem('Select app', 'baochip.selectApp', 'search');
     const clean    = new TreeItem('Clean (cargo clean)', 'baochip.clean', 'trash');
     const build    = new TreeItem('Build (cargo xtask)', 'baochip.build', 'tools');
+    const flash     = new TreeItem('Flash device', 'baochip.flash', 'rocket');
+    const flashForceAll = new TreeItem('Flash device (force all)', 'baochip.flashForceAll', 'rocket');
     const monitor = new TreeItem('Monitor', 'baochip.openMonitor', 'vm');
-    return Promise.resolve([setPort, setFlash, flashMeth, target, newApp, selectApp, clean, build, monitor]);
+    return Promise.resolve([setPort, setFlashLoc, target, newApp, selectApp, clean, build, flash, flashForceAll, monitor]);
   }
 }
 

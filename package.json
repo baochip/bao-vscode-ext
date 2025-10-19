@@ -17,12 +17,15 @@
     "onCommand:baochip.build",
     "onCommand:baochip.openWelcome",
     "onCommand:baochip.setMonitorPort",
-    "onCommand:baochip.setFlashPort",
+    "onCommand:baochip.setFlashLocation",
     "onCommand:baochip.selectBuildTarget",
     "onCommand:baochip.openMonitor",
     "onCommand:baochip.clean",
     "onCommand:baochip.selectApp",
-    "onCommand:baochip.createApp"
+    "onCommand:baochip.createApp",
+    "onCommand:baochip.flash",
+    "onCommand:baochip.selectBuildChannel",
+    "onCommand:baochip.flashForceAll"
   ],
   "contributes": {
     "commands": [
@@ -39,16 +42,12 @@
         "title": "Baochip: Monitor"
       },
       {
-        "command": "baochip.setFlashPort",
-        "title": "Baochip: Set Flash Port"
+        "command": "baochip.setFlashLocation",
+        "title": "Baochip: Set Flash Location"
       },
       {
         "command": "baochip.selectBuildTarget",
         "title": "Baochip: Select Build Target"
-      },
-      {
-        "command": "baochip.setFlashMethod",
-        "title": "Baochip: Select Flash Method"
       },
       {
         "command": "baochip.clean",
@@ -64,6 +63,14 @@
       },
       { "command": "baochip.createApp",
         "title": "Baochip: New App"
+      },
+      {
+        "command": "baochip.flash",
+        "title": "Baochip: Flash Device"
+      },
+      { 
+        "command": "baochip.flashForceAll", 
+        "title": "Baochip: Flash device (force all)" 
       }
     ],
     "menus": {},
@@ -95,11 +102,10 @@
           "default": "",
           "description": "Default serial port (e.g., COM5 or /dev/ttyUSB0)."
         },
-        "baochip.flashPort": {
+        "baochip.flashLocation": {
           "type": "string",
           "default": "",
-          "description": "Default serial port for flashing.",
-          "scope": "workspace"
+          "description": "Location of the mounted Baochip UF2 drive (e.g., D:\\\\ on Windows or /Volumes/BAOBOOT on macOS/Linux)."
         },
         "baochip.buildTarget": {
           "type": "string",
@@ -116,22 +122,6 @@
             "baosec"
           ],
           "description": "Fallback list if bao.py cannot list targets."
-        },
-        "baochip.flashMethod": {
-          "type": "string",
-          "default": "",
-          "description": "Current flashing method (e.g. UART or JTAG)."
-        },
-        "baochip.flashMethods": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "UART",
-            "JTAG"
-          ],
-          "description": "Available flash methods (overrideable)."
         },
         "baochip.build.cwd": {
           "type": "string",
