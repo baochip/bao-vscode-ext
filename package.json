@@ -14,18 +14,7 @@
   "activationEvents": [
     "onView:bao.view",
     "onStartupFinished",
-    "onCommand:baochip.build",
-    "onCommand:baochip.openWelcome",
-    "onCommand:baochip.setMonitorPort",
-    "onCommand:baochip.setFlashLocation",
-    "onCommand:baochip.selectBuildTarget",
-    "onCommand:baochip.openMonitor",
-    "onCommand:baochip.clean",
-    "onCommand:baochip.selectApp",
-    "onCommand:baochip.createApp",
-    "onCommand:baochip.flash",
-    "onCommand:baochip.selectBuildChannel",
-    "onCommand:baochip.flashForceAll"
+    "onCommand:baochip.selectBuildChannel"
   ],
   "contributes": {
     "commands": [
@@ -71,6 +60,10 @@
       { 
         "command": "baochip.flashForceAll", 
         "title": "Baochip: Flash device (force all)" 
+      },
+      {
+        "command": "baochip.buildFlashMonitor",
+        "title": "Baochip: Build • Flash • Monitor"
       }
     ],
     "menus": {},

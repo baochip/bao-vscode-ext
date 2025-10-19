@@ -21,12 +21,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Higher priority number = appears more to the left
   const monitorPortItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   const flashLocationItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
-  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
-  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
-  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
-  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
-  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
-  const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
+  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
+  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
+  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
+  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
+  const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
+  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
+  const bfmItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 92);
+
 
   monitorPortItem.command   = 'baochip.setMonitorPort';
   monitorBtn.command = 'baochip.openMonitor';
@@ -36,8 +38,9 @@ export function activate(context: vscode.ExtensionContext) {
   buildItem.command = 'baochip.build';
   appItem.command   = 'baochip.selectApp';
   flashItem.command = 'baochip.flash';
+  bfmItem.command   = 'baochip.buildFlashMonitor';
 
-  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem);
+  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem);
 
   // Single UI refresher
   const refreshUI = () => {
@@ -90,6 +93,11 @@ export function activate(context: vscode.ExtensionContext) {
     flashItem.text = '$(rocket)';
     flashItem.tooltip = 'Flash to device';
     flashItem.show();
+
+    // Status bar: B•F•M
+    bfmItem.text = '$(rocket) B•F•M';
+    bfmItem.tooltip = 'Build • Flash • Monitor';
+    bfmItem.show();
 
     tree.refresh();
   };
