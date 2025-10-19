@@ -47,8 +47,8 @@ export class WelcomePanel {
         return;
       }
 
-      if (msg?.type === 'openDevkit') {
-        vscode.env.openExternal(vscode.Uri.parse('https://github.com/baochip/bao-devkit'));
+      if (msg?.type === 'xousSite') {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
         return;
       }
 
@@ -135,9 +135,9 @@ export class WelcomePanel {
                 <div class="spacer"></div>   <!-- NEW: occupies middle column -->
 
                 <div class="links">
-                  <a class="link" href="javascript:void(0)" id="btn-devkit" title="Open baochip/bao-devkit on GitHub">
+                  <a class="link" href="javascript:void(0)" id="btn-xousSite" title="Open xous-core on GitHub">
                     <span class="icon codicon codicon-github-inverted"></span>
-                    baochip/bao-devkit
+                    betrusted-io/xous-core
                   </a>
                 </div>
               </div>

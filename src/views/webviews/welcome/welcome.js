@@ -7,11 +7,11 @@
     selectApp: () => vscode.postMessage({ type: 'run', cmd: 'selectApp' }),
     createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
     examples: () => vscode.postMessage({ type: 'run', cmd: 'examples' }),
-    devkit: () => vscode.postMessage({ type: 'openDevkit' }),
+    xousSite: () => vscode.postMessage({ type: 'xousSite' }),
     toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
   };
 
-  ['configure', 'devkit', 'selectApp', 'createApp'].forEach(id => {
+  ['configure', 'xousSite', 'selectApp', 'createApp'].forEach(id => {
     const el = byId('btn-' + id);
     if (el) el.addEventListener('click', actions[id]);
   });
