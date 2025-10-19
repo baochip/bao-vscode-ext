@@ -1,11 +1,8 @@
 # Baochip VSCode Extension
 
-This extension adds a Baochip sidebar with a welcome screen and the following commands:
-- **Set monitor port** (QuickPick list from `bao.py ports`)
-- **Set flash location**
-- **Select flash method** (Quickpick list)
-- **Select build target** (Quickpick list from `bao.py targets`)
-- **Monitor** (opens an in-editor webview showing serial output)
+This extension adds a Baochip sidebar, a welcome screen with buttons, and buttons in a toolbar:
+
+<img width="948" height="562" alt="baochip preview image" src="https://github.com/user-attachments/assets/52ddd93d-f59b-44fe-9d49-5fd8d31b14fa" />
 
 ## Requirements
 - Python 3
