@@ -15,12 +15,13 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     try { await ensureXousCorePath(); bao = await resolveBaoPy(); py = getPythonCmd(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core / bao.py not set'); return; }
 
-    // 1) Build (wait)
+    // 1) Build
     const code = await runBuildAndWait(pre.root, pre.target, pre.app);
     if (code !== 0) { vscode.window.showErrorMessage('Build failed.'); return; }
 
     // 2) Flash (decide all vs app-only)
-    await decideAndFlash(py, bao, pre.root);
+    const flashed = await decideAndFlash(py, bao, pre.root);
+    if (!flashed) return; 
 
     // 3) Monitor
     await openMonitor(context);

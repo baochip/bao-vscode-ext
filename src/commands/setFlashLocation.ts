@@ -4,7 +4,7 @@ import { setFlashLocation } from '@services/configService';
 export function registerSetFlashLocation(_context: vscode.ExtensionContext, refreshUI: () => void) {
   return vscode.commands.registerCommand('baochip.setFlashLocation', async () => {
       const ok = await vscode.window.showInformationMessage(
-        'You need to select the drive where your baochip is mounted.',
+        'You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) Hold down the PROGRAM button to enable selecting the drive.',
         { modal: true },
         'Select Folder'
       );

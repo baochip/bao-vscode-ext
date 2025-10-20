@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { ensureXousCorePath } from '@services/pathService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { listBaoApps } from '@services/appService';
+import { checkRustToolchain } from '@services/rustCheckService';
 
 export type BuildPrereqs = {
   root: string;
@@ -10,9 +11,12 @@ export type BuildPrereqs = {
   app: string;
 };
 
-/** Reuse: validate root/target; prompt for app if not set; returns all. */
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
-  // 1) Ensure repo path
+  // ensure Rust
+  const ok = await checkRustToolchain();
+  if (!ok) return;
+
+  // Ensure repo path
   let root: string;
   try { root = await ensureXousCorePath(); }
   catch (e: any) {
@@ -20,7 +24,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
     return;
   }
 
-  // 2) Require TARGET
+  // Require TARGET
   const target = getBuildTarget();
   if (!target) {
     const action = await vscode.window.showWarningMessage(
@@ -33,7 +37,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
     return;
   }
 
-  // 3) Require APP (prompt from apps-bao/ if unset)
+  // Require APP (prompt from apps-bao/ if unset)
   let app = getXousAppName();
   if (!app) {
     const apps = await listBaoApps(root);
