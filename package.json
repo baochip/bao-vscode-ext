@@ -1,15 +1,30 @@
 {
   "name": "bao-vscode-ext",
   "displayName": "Baochip",
-  "description": "Baochip tools integration.",
+  "description": "Develop applications for Baochip.",
   "publisher": "baochip",
+  "website": "https://baochip.com",
   "version": "0.0.1",
+  "icon": "media/baochip-128x128-logo-only.png",
   "license": "Apache-2.0",
+  "preview": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baochip/bao-vscode-ext.git"
+  },
   "engines": {
     "vscode": "^1.92.0"
   },
   "categories": [
+    "Programming Languages",
+    "Debuggers",
     "Other"
+  ],
+  "keywords": [
+    "baochip",
+    "precursor",
+    "xous",
+    "xous-core"
   ],
   "activationEvents": [
     "onView:bao.view",
