@@ -8,10 +8,11 @@
     createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
     examples: () => vscode.postMessage({ type: 'run', cmd: 'examples' }),
     xousSite: () => vscode.postMessage({ type: 'xousSite' }),
+    extRepo: () => vscode.postMessage({ type: 'extRepo' }),
     toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
   };
 
-  ['configure', 'xousSite', 'selectApp', 'createApp'].forEach(id => {
+  ['configure', 'xousSite', 'selectApp', 'createApp', 'extRepo'].forEach(id => {
     const el = byId('btn-' + id);
     if (el) el.addEventListener('click', actions[id]);
   });

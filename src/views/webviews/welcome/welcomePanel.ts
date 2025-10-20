@@ -51,6 +51,10 @@ export class WelcomePanel {
         vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
         return;
       }
+      if (msg?.type === 'extRepo') {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'));
+        return;
+      }
 
       if (msg?.type === 'run') {
         switch (msg.cmd) {
@@ -164,7 +168,15 @@ export class WelcomePanel {
               <div class="subtitle">Choose from apps-dabao/</div>
             </button>
           </div>
-
+          <footer class="muted" style="margin-top: 1rem; text-align: center;">
+          <p>
+            Found a bug or have a feature request for the extension?  
+            <br>
+            <a class="link" href="javascript:void(0)" id="btn-extRepo">
+              <span class="icon codicon codicon-feedback"></span> Open an issue on GitHub
+            </a>
+          </p>
+        </footer>
         <script src="${jsUri}"></script>
       </body>
       </html>`;
