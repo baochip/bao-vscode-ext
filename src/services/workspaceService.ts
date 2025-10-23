@@ -15,10 +15,9 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   const choice = await vscode.window.showInformationMessage(
     'No xous-core workspace is open. Open xous-core to continue?',
     { modal: true },
-    'Open',
-    'Cancel'
+    'Open'
   );
-  if (!choice || choice === 'Cancel') return false;
+  if (choice !== 'Open') return false;
 
   // Persist the path *before* we reload/open the folder so future lookups won't prompt.
   await setXousCorePath(xousRoot, vscode.ConfigurationTarget.Global);
