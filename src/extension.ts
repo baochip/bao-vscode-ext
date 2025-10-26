@@ -28,6 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
   const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
   const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
   const bfmItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 92);
+  const settingsItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 91);
 
 
   monitorPortItem.command   = 'baochip.setMonitorPort';
@@ -39,8 +40,9 @@ export function activate(context: vscode.ExtensionContext) {
   appItem.command   = 'baochip.selectApp';
   flashItem.command = 'baochip.flash';
   bfmItem.command   = 'baochip.buildFlashMonitor';
+  settingsItem.command = 'baochip.openSettings';
 
-  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem);
+  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem, settingsItem);
 
   // Single UI refresher
   const refreshUI = () => {
@@ -98,6 +100,11 @@ export function activate(context: vscode.ExtensionContext) {
     bfmItem.text = '$(rocket) B•F•M';
     bfmItem.tooltip = 'Build • Flash • Monitor';
     bfmItem.show();
+
+    // Status bar: Settings
+    settingsItem.text = '$(gear)';
+    settingsItem.tooltip = 'Open Baochip Settings';
+    settingsItem.show();
 
     tree.refresh();
   };

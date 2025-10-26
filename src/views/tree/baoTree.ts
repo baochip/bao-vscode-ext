@@ -18,7 +18,8 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
     const flashForceAll = new TreeItem('Flash device (force all)', 'baochip.flashForceAll', 'rocket');
     const monitor = new TreeItem('Monitor', 'baochip.openMonitor', 'vm');
     const bfm = new TreeItem('Build • Flash • Monitor', 'baochip.buildFlashMonitor', 'rocket');
-    return Promise.resolve([setPort, setFlashLoc, target, newApp, selectApp, clean, build, flash, flashForceAll, monitor, bfm]);
+    const settings = new TreeItem('Open Settings', 'baochip.openSettings', 'gear');
+    return Promise.resolve([setPort, setFlashLoc, target, newApp, selectApp, clean, build, flash, flashForceAll, monitor, bfm, settings]);
   }
 }
 

@@ -11,6 +11,7 @@ import { registerCleanCommand } from '@commands/clean';
 import { registerFlashCommand } from '@commands/flash';
 import { registerFlashForceAll } from '@commands/flashForceAll';
 import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
+import { registerOpenSettings } from '@commands/openSettings';
 
 export function registerCommands(context: vscode.ExtensionContext, refreshUI: () => void) {
   context.subscriptions.push(
@@ -25,6 +26,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
     registerFlashCommand(context),
     registerFlashForceAll(context),
     registerBuildFlashMonitor(context),
+    registerOpenSettings(context),
     vscode.commands.registerCommand('baochip.openWelcome', () => WelcomePanel.show(context)),
   );
 }

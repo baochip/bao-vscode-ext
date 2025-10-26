@@ -38,6 +38,10 @@
         "title": "Baochip: Open Welcome"
       },
       {
+        "command": "baochip.openSettings",
+        "title": "Baochip: Open Settings"
+      },
+      {
         "command": "baochip.setMonitorPort",
         "title": "Baochip: Set Monitor Port"
       },
