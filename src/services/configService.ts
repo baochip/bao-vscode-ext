@@ -11,7 +11,7 @@ async function updateSetting(key: string, value: any, target?: vscode.Configurat
 
 export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || 'python';
 
-export const getDefaultBaud = () => cfg().get<number>('baochip.defaultBaud') || 115200;
+export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 115200;
 export const getMonitorPort = () => cfg().get<string>('baochip.monitorPort') || '';
 export const setMonitorPort = (p: string) => cfg().update('baochip.monitorPort', p, updateTarget());
 

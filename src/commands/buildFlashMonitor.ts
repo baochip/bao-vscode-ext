@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ensureXousCorePath, resolveBaoPy, getPythonCmd } from '@services/pathService';
 import { ensureBuildPrereqs, runBuildAndWait } from '@services/buildService';
 import { decideAndFlash } from '@services/flashService';
-import { openMonitor } from '@services/monitorService';
+import { openMonitorTTY } from '@services/monitorService';
 
 export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
   return vscode.commands.registerCommand('baochip.buildFlashMonitor', async () => {
@@ -24,6 +24,6 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     if (!flashed) return; 
 
     // 3) Monitor
-    await openMonitor(context);
+    await openMonitorTTY();
   });
 }

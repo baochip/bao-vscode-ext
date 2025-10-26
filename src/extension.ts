@@ -108,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
   const cfgWatcher = vscode.workspace.onDidChangeConfiguration(e => {
     if (
       e.affectsConfiguration('baochip.monitorPort')  ||
-      e.affectsConfiguration('baochip.defaultBaud')  ||
+      e.affectsConfiguration('baochip.monitor.defaultBaud')  ||
       e.affectsConfiguration('baochip.flashPort')    ||
       e.affectsConfiguration('baochip.buildTarget')  ||
       e.affectsConfiguration('baochip.xousAppName')  
