@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { resolveBaoPy, ensureXousCorePath } from '@services/pathService';
+import { resolveBaoPy, ensureXousCorePath, ensurePythonCmd } from '@services/pathService';
 import { listPorts } from '@services/portsService';
-import { getPythonCmd, setMonitorPort } from '@services/configService';
+import { setMonitorPort } from '@services/configService';
 
 export function registerSetMonitorPort(context: vscode.ExtensionContext, refreshUI: () => void) {
   return vscode.commands.registerCommand('baochip.setMonitorPort', async () => {
@@ -13,7 +13,8 @@ export function registerSetMonitorPort(context: vscode.ExtensionContext, refresh
       vscode.window.showWarningMessage(e?.message || 'xous-core path not set'); return;
     }
 
-    const ports = await listPorts(getPythonCmd(), baoPath, cwd).catch(err => {
+    const py = await ensurePythonCmd();
+    const ports = await listPorts(py, baoPath, cwd).catch(err => {
       vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
       return [] as string[];
     });

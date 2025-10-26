@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { ensureXousCorePath, resolveBaoPy } from "@services/pathService";
-import { getMonitorPort, getDefaultBaud, getPythonCmd } from "@services/configService";
+import { ensureXousCorePath, ensurePythonCmd, resolveBaoPy } from "@services/pathService";
+import { getMonitorPort, getDefaultBaud } from "@services/configService";
 
 let monitorTerm: vscode.Terminal | undefined;
 
@@ -39,7 +39,7 @@ export async function openMonitorTTY(context?: vscode.ExtensionContext) {
   if (cfg.get<boolean>("xonxoff")) flags.push("--xonxoff");
   if (cfg.get<boolean>("dsrdtr")) flags.push("--dsrdtr");
 
-  const py = getPythonCmd();
+  const py = await ensurePythonCmd();
   const cmd = [
     q(py),
     q(bao),

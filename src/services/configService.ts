@@ -9,7 +9,7 @@ async function updateSetting(key: string, value: any, target?: vscode.Configurat
   await cfg().update(key, value, t);
 }
 
-export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || 'python';
+export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || '';
 
 export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 115200;
 export const getMonitorPort = () => cfg().get<string>('baochip.monitorPort') || '';
@@ -23,7 +23,7 @@ export const setBuildTarget = (t: string) => cfg().update('baochip.buildTarget',
 export const getBuildTargetsFallback = () => (cfg().get<string[]>('baochip.buildTargets') || []);
 
 export const getXousAppName    = () => cfg().get<string>('baochip.xousAppName') || '';
-export const setXousAppName    = (n: string) => cfg().update('baochip.xousAppName', n, vscode.ConfigurationTarget.Workspace);
+export const setXousAppName    = (n: string) => cfg().update('baochip.xousAppName', n);
 
 export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
 export const setXousCorePath = (p: string, target?: vscode.ConfigurationTarget) => updateSetting('baochip.xousCorePath', p, target);

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ensureXousCorePath, resolveBaoPy, getPythonCmd } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from '@services/pathService';
 import { ensureBuildPrereqs, runBuildAndWait } from '@services/buildService';
 import { decideAndFlash } from '@services/flashService';
 import { openMonitorTTY } from '@services/monitorService';
@@ -12,7 +12,7 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
 
     // Also resolve bao.py & python
     let bao: string, py: string;
-    try { await ensureXousCorePath(); bao = await resolveBaoPy(); py = getPythonCmd(); }
+    try { await ensureXousCorePath(); bao = await resolveBaoPy(); py = await ensurePythonCmd(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core / bao.py not set'); return; }
 
     // 1) Build

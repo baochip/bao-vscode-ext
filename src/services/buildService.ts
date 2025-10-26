@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { ensureXousCorePath } from '@services/pathService';
-import { getBuildTarget, getXousAppName } from '@services/configService';
+import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
 import { listBaoApps } from '@services/appService';
 import { checkRustToolchain } from '@services/rustCheckService';
 
@@ -48,6 +48,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
     const pick = await vscode.window.showQuickPick(apps, { placeHolder: 'Select app workspace to build' });
     if (!pick) return;
     app = pick;
+    await setXousAppName(app);
   }
 
   return { root, target, app };

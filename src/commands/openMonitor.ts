@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { ensureXousCorePath, resolveBaoPy } from "@services/pathService";
-import { getMonitorPort, getDefaultBaud, getPythonCmd } from "@services/configService";
+import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from "@services/pathService";
+import { getMonitorPort, getDefaultBaud } from "@services/configService";
 
 let monitorTerm: vscode.Terminal | undefined;
 const q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
@@ -18,7 +18,7 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
     try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); }
     catch (e: any) { vscode.window.showWarningMessage(e?.message || "xous-core / bao.py not set"); return; }
 
-    const py = getPythonCmd();
+    const py = await ensurePythonCmd();
     const baud = getDefaultBaud();
 
     // Read your new settings
