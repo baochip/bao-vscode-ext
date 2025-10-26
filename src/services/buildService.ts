@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
-import { ensureXousCorePath } from '@services/pathService';
+import { ensureXousFolderOpen, ensureXousCorePath } from '@services/pathService';
 import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
 import { listBaoApps } from '@services/appService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -21,6 +21,13 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
   try { root = await ensureXousCorePath(); }
   catch (e: any) {
     vscode.window.showErrorMessage(e?.message || 'xous-core path not set');
+    return;
+  }
+
+  // Ensure the xous-core folder is actually opened in the workspace
+  const wsState = await ensureXousFolderOpen(root);
+  if (wsState === 'reopen') {
+    // We just triggered a window reload / new window; stop this command for now.
     return;
   }
 

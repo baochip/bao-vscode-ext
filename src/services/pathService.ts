@@ -4,8 +4,13 @@ import * as path from 'path';
 import { spawnSync } from 'child_process';
 import * as os from 'os';
 import { setXousCorePath } from '@services/configService';
+import { cloneXousCore } from '@services/cloneXousCore';
 
 const cfg = () => vscode.workspace.getConfiguration();
+
+function samePath(a: string, b: string) {
+  return path.resolve(a) === path.resolve(b);
+}
 
 /** Return the configured python command, or an empty string if not set */
 export function getPythonCmd(): string {
@@ -102,21 +107,32 @@ export async function ensurePythonCmd(): Promise<string> {
   return cmd;
 }
 
-/**
- * Ensure a valid xous-core path is configured.
- * Prompts the user if missing or invalid.
- */
 export async function ensureXousCorePath(): Promise<string> {
   let p = cfg().get<string>('baochip.xousCorePath') || '';
   if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) return p;
 
-  const ok = await vscode.window.showInformationMessage(
-    'You need to select your local xous-core folder to run tools-bao/bao.py and cargo xtask builds.',
+  const choice = await vscode.window.showInformationMessage(
+    'Baochip needs your local xous-core folder.',
     { modal: true },
-    'Select Folder'
+    'Select Folder',
+    'Clone from GitHub',
+    'Open Repo Page'
   );
-  if (ok !== 'Select Folder') throw new Error('xous-core path not set');
+  if (!choice) throw new Error('xous-core path not set');
 
+  if (choice === 'Clone from GitHub') {
+    const cloned = await cloneXousCore();
+    if (!cloned) throw new Error('Clone did not complete.');
+    await setXousCorePath(cloned);
+    return cloned;
+  }
+
+  if (choice === 'Open Repo Page') {
+    await vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
+    throw new Error('Open the repo, clone locally, then try again.');
+  }
+
+  // 'Select Folder'
   const picked = await vscode.window.showOpenDialog({
     title: 'Select your xous-core folder',
     canSelectFiles: false,
@@ -136,4 +152,42 @@ export async function resolveBaoPy(): Promise<string> {
   const p = path.join(root, 'tools-bao', 'bao.py');
   if (!fs.existsSync(p)) throw new Error(`Cannot find tools-bao/bao.py under: ${root}`);
   return p;
+}
+
+
+/**
+ * Ensure the given `root` (xous-core) is present in the current workspace.
+ * Returns:
+ *  - 'ready' if already present (you can continue)
+ *  - 'added' if we added it to the current multi-root workspace (you can continue)
+ *  - 'reopen' if we triggered a window reload via openFolder (STOP your command afterwards)
+ */
+export async function ensureXousFolderOpen(root: string): Promise<'ready'|'added'|'reopen'> {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const hasRoot = folders.some(f => samePath(f.uri.fsPath, root));
+  if (hasRoot) return 'ready';
+
+  // Offer options depending on whether the user already has a workspace
+  const choices: Array<'Open Here' | 'Add to Workspace' | 'Open in New Window'> =
+    folders.length > 0 ? ['Add to Workspace', 'Open Here', 'Open in New Window'] : ['Open Here', 'Open in New Window'];
+
+  const choice = await vscode.window.showInformationMessage(
+    'Baochip needs the xous-core folder opened in the workspace to build.',
+    { modal: true },
+    ...choices
+  );
+  if (!choice) throw new Error('xous-core workspace not opened');
+
+  const uri = vscode.Uri.file(root);
+
+  if (choice === 'Add to Workspace' && folders.length > 0) {
+    vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: 'xous-core' });
+    return 'added';
+  }
+
+  // Either "Open Here" (same window) or "Open in New Window"
+  const newWindow = choice === 'Open in New Window';
+  await vscode.commands.executeCommand('vscode.openFolder', uri, newWindow);
+  // After this, the extension host reloads / a new window opens; abort current command flow.
+  return 'reopen';
 }
