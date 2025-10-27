@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "out",
+    "rootDir": "src",
+    "strict": true,
+    "sourceMap": true,
+    "lib": ["ES2020"],
+    "baseUrl": ".",
+    "paths": {
+      "@commands/*": ["src/commands/*"],
+      "@services/*": ["src/services/*"],
+      "@views/*": ["src/views/*"],
+      "@tree/*":  ["src/views/tree/*"],
+      "@webviews/*": ["src/views/webviews/*"]
+    }
+  },
+  "exclude": ["node_modules", ".vscode-test"]
+}
