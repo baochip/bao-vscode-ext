@@ -205,6 +205,10 @@
         {
           "id": "bao-view",
           "name": "Baochip"
+        },
+        {
+          "id": "bao-docs",
+          "name": "Documentation"
         }
       ]
     },

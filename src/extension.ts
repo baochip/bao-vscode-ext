@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BaoTreeProvider } from '@tree/baoTree';
+import { DocsTreeProvider } from '@tree/docsTree';
 import { registerCommands } from './index';
 import {
   getDefaultBaud,
@@ -16,6 +17,10 @@ export function activate(context: vscode.ExtensionContext) {
   // Sidebar tree
   const tree = new BaoTreeProvider();
   vscode.window.registerTreeDataProvider('bao-view', tree);
+
+  // Documentation tree
+  const docsTree = new DocsTreeProvider();
+  vscode.window.registerTreeDataProvider('bao-docs', docsTree); 
 
   // --- Status bar items (left side) ---
   // Higher priority number = appears more to the left
@@ -107,6 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
     settingsItem.show();
 
     tree.refresh();
+    docsTree.refresh();
   };
 
   refreshUI();
