@@ -1,8 +1,9 @@
 # Baochip VSCode Extension
 
-This extension adds a Baochip sidebar, a welcome screen with buttons, and buttons in a toolbar:
+This extension adds a Baochip sidebar with commands and documentation sections, a welcome screen with buttons, and buttons with updating information in the toolbar:
 
-<img width="948" height="562" alt="baochip preview image" src="https://github.com/user-attachments/assets/52ddd93d-f59b-44fe-9d49-5fd8d31b14fa" />
+<img width="988" height="748" alt="image" src="https://github.com/user-attachments/assets/6d6753eb-7ae4-49b2-8603-178597fbf3f8" />
+
 
 ## Requirements
 - Python 3
