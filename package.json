@@ -84,10 +84,6 @@
         "command": "baochip.flash",
         "title": "Baochip: Flash Device"
       },
-      { 
-        "command": "baochip.flashForceAll", 
-        "title": "Baochip: Flash device (force all)" 
-      },
       {
         "command": "baochip.buildFlashMonitor",
         "title": "Baochip: Build • Flash • Monitor"

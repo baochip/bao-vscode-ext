@@ -9,7 +9,6 @@ import { registerSelectApp } from '@commands/selectApp';
 import { registerCreateApp } from '@commands/createApp';
 import { registerCleanCommand } from '@commands/clean';
 import { registerFlashCommand } from '@commands/flash';
-import { registerFlashForceAll } from '@commands/flashForceAll';
 import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
 import { registerOpenSettings } from '@commands/openSettings';
 
@@ -24,7 +23,6 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
     registerCreateApp(context),
     registerCleanCommand(context),
     registerFlashCommand(context),
-    registerFlashForceAll(context),
     registerBuildFlashMonitor(context),
     registerOpenSettings(context),
     vscode.commands.registerCommand('baochip.openWelcome', () => WelcomePanel.show(context)),

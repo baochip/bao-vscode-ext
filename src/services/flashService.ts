@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
-import { fetchArtifacts, BaoArtifact } from '@services/artifactsService';
-import { getUpdateAllInfo } from '@services/updateService';
-import { getFlashLocation, setFlashLocation, getMonitorPort, getDefaultBaud } from '@services/configService';
+import { fetchArtifacts } from '@services/artifactsService';
+import { getFlashLocation, setFlashLocation } from '@services/configService';
 
 async function pathExists(absPath: string): Promise<boolean> {
   try {
@@ -46,8 +45,7 @@ export async function gatherArtifacts(py: string, bao: string, root: string) {
     app:   images.find(i => i.role === 'app')?.path,
   };
   const all: string[] = (['loader','xous','app'] as const).map(r => byRole[r]).filter((p): p is string => !!p);
-  const appOnly: string[] = byRole.app ? [byRole.app] : [];
-  return { byRole, all, appOnly };
+  return { byRole, all };
 }
 
 export async function flashFiles(
@@ -98,51 +96,11 @@ export async function decideAndFlash(py: string, bao: string, root: string): Pro
   const dest = await ensureFlashLocation();
   if (!dest) return false; // path missing/cancelled → stop
 
-  const { all, appOnly } = await gatherArtifacts(py, bao, root);
-  if (all.length === 0 && appOnly.length === 0) {
-    vscode.window.showWarningMessage('No UF2s found (loader/xous/app). Build first, then flash.');
-    return false;
-  }
-
-  const monPort = getMonitorPort();
-  const baud = getDefaultBaud();
-  if (!monPort) {
-    const a = await vscode.window.showWarningMessage('No monitor port set. Set it to check versions.', 'Set Port');
-    if (a === 'Set Port') await vscode.commands.executeCommand('baochip.setMonitorPort');
-    return false;
-  }
-
-  const info = await getUpdateAllInfo(py, bao, root, monPort, baud).catch(err => {
-    vscode.window.showErrorMessage(err?.message || 'Failed to check board version.');
-    return undefined;
-  });
-  if (!info) return false;
-
-  const chan = vscode.window.createOutputChannel('Bao Flash'); chan.show(true);
-  chan.appendLine(`[bao] Versions:`);
-  chan.appendLine(`  local: ${info.localSemver ?? '(unknown)'}  ${info.localTimestamp ?? ''}`.trim());
-  chan.appendLine(`  board: ${info.boardSemver ?? '(unknown)'}  ${info.boardTimestamp ?? ''}`.trim());
-  chan.appendLine(`  update-all: ${info.updateAll ? 'YES' : 'no'}`);
-
-  const files = info.updateAll ? all : appOnly;
-  if (files.length === 0) {
-    vscode.window.showWarningMessage(info.updateAll
-      ? 'No UF2s found to flash (loader/xous/app).'
-      : 'No app.uf2 found to flash.');
-    return false;
-  }
-
-  return flashFiles(py, bao, root, dest, files);
-}
-
-export async function flashForceAll(py: string, bao: string, root: string): Promise<boolean> {
-  const dest = await ensureFlashLocation();
-  if (!dest) return false;
-
   const { all } = await gatherArtifacts(py, bao, root);
   if (all.length === 0) {
     vscode.window.showWarningMessage('No UF2s found (loader/xous/app). Build first, then flash.');
     return false;
   }
-  return flashFiles(py, bao, root, dest, all, 'FORCE mode: flashing all available UF2s (no version checks).');
+
+  return flashFiles(py, bao, root, dest, all);
 }

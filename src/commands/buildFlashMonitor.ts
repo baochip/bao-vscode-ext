@@ -19,7 +19,7 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     const code = await runBuildAndWait(pre.root, pre.target, pre.app);
     if (code !== 0) { vscode.window.showErrorMessage('Build failed.'); return; }
 
-    // 2) Flash (decide all vs app-only)
+    // 2) Flash 
     const flashed = await decideAndFlash(py, bao, pre.root);
     if (!flashed) return; 
 
