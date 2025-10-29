@@ -29,7 +29,7 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
   if (!(await pathExists(dest))) {
     vscode.window.showErrorMessage(
       `Flash location not found: ${dest}  Is the board mounted? ` +
-      `Hold down the PROGRAM button during flashing.`
+      `Make sure the board appears as a drive, press RESET if needed.`
     );
     return undefined; // cancel flash
   }
