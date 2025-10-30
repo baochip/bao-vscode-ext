@@ -42,8 +42,16 @@
         "title": "Baochip: Open Settings"
       },
       {
-        "command": "baochip.setMonitorPort",
-        "title": "Baochip: Set Monitor Port"
+        "command": "baochip.setBootloaderSerialPort",
+        "title": "Baochip: Set Bootloader Mode's Serial Port"
+      },
+      {
+        "command": "baochip.setRunSerialPort",
+        "title": "Baochip: Set Run Mode's Serial Port"
+      },
+      {
+        "command": "baochip.setMonitorDefaultPort",
+        "title": "Baochip: Set Default Monitor Port"
       },
       { 
         "command": "baochip.setMonitorBaud", 
@@ -108,10 +116,21 @@
           "default": "python",
           "description": "Python command to run (e.g. 'python' on Windows, 'python3' on macOS/Linux)."
         },
-        "baochip.monitorPort": {
+        "baochip.serialPortBootloader": {
           "type": "string",
           "default": "",
-          "description": "Default serial port (e.g., COM5 or /dev/ttyUSB0)."
+          "description": "Serial port that appears in bootloader / UF2 drive mode."
+        },
+        "baochip.serialPortRun": {
+          "type": "string",
+          "default": "",
+          "description": "Serial port used for run mode (normal firmware logs)."
+        },
+        "baochip.monitorDefaultPort": {
+          "type": "string",
+          "enum": ["run", "bootloader"],
+          "default": "run",
+          "description": "Which port the Monitor button uses by default."
         },
         "baochip.monitor.defaultBaud": {
           "type": "number",

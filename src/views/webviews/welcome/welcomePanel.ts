@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashLocation, getMonitorPort } from '@services/configService';
+import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashLocation, getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
 
 export class WelcomePanel {
   public static current: WelcomePanel | undefined;
@@ -80,7 +80,8 @@ export class WelcomePanel {
     const cfg = vscode.workspace.getConfiguration();
     const state = {
       xousCorePath: getXousCorePath(),
-      monitorPort: getMonitorPort(),
+      bootloaderSerialPort: getBootloaderSerialPort(),
+      runSerialPort: getRunSerialPort(),
       baud: getDefaultBaud(),
       flashLocation: getFlashLocation(),
       target: getBuildTarget(),

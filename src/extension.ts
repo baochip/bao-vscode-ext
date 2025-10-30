@@ -4,10 +4,12 @@ import { DocsTreeProvider } from '@tree/docsTree';
 import { registerCommands } from './index';
 import {
   getDefaultBaud,
-  getMonitorPort,
+  getBootloaderSerialPort,
   getFlashLocation,
   getBuildTarget,
-  getXousAppName
+  getXousAppName,
+  getRunSerialPort,
+  getMonitorDefaultPort, 
 } from '@services/configService';
 
 const shouldShowWelcome = () =>
@@ -24,19 +26,21 @@ export function activate(context: vscode.ExtensionContext) {
 
   // --- Status bar items (left side) ---
   // Higher priority number = appears more to the left
-  const monitorPortItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  const flashLocationItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
-  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
-  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
-  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
-  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
-  const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
-  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
-  const bfmItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 92);
-  const settingsItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 91);
+  const bootloaderSerialPortItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  const runSerialPortItem   = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
+  const flashLocationItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
+  const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
+  const appItem    = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
+  const cleanItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
+  const buildItem  = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
+  const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
+  const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 92);
+  const bfmItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 91);
+  const settingsItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
 
 
-  monitorPortItem.command   = 'baochip.setMonitorPort';
+  bootloaderSerialPortItem.command   = 'baochip.setBootloaderSerialPort';
+  runSerialPortItem.command = 'baochip.setRunSerialPort';
   monitorBtn.command = 'baochip.openMonitor';
   flashLocationItem.command  = 'baochip.setFlashLocation';
   targetItem.command = 'baochip.selectBuildTarget';
@@ -47,29 +51,47 @@ export function activate(context: vscode.ExtensionContext) {
   bfmItem.command   = 'baochip.buildFlashMonitor';
   settingsItem.command = 'baochip.openSettings';
 
-  context.subscriptions.push(monitorPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem, settingsItem);
+  context.subscriptions.push(bootloaderSerialPortItem, runSerialPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem, settingsItem);
 
   // Single UI refresher
   const refreshUI = () => {
-    const monPort = getMonitorPort();
+    const bootloaderSerPort = getBootloaderSerialPort();
+    const runSerPort = getRunSerialPort();
     const baud    = getDefaultBaud();
     const flLoc   = getFlashLocation();
     const target  = getBuildTarget();
     const app      = getXousAppName();
 
-    // Monitor port item
-    monitorPortItem.text = monPort ? `$(plug) ${monPort}` : '$(plug) Monitor Port: (not set)';
-    monitorPortItem.tooltip = monPort
-      ? `Current monitor port @ ${baud}`
-      : 'Click to set monitor port';
-    monitorPortItem.show();
+  const def = getMonitorDefaultPort(); // "run" | "bootloader"
+  const chosenPort = def === 'run' ? runSerPort : bootloaderSerPort;
+  const defLabel = def === 'run' ? 'Run' : 'Bootloader';
 
-    // Monitor button 
-    monitorBtn.text = '$(vm)';
-    monitorBtn.tooltip = monPort
-      ? `Open monitor on ${monPort} @ ${baud}`
-      : 'Open monitor (will ask you to set a port first)';
+    // Bootloader serial port item
+    bootloaderSerialPortItem.text = bootloaderSerPort ? `$(plug) ${bootloaderSerPort}` : '$(plug) Bootloader Mode Serial Port: (not set)';
+    bootloaderSerialPortItem.tooltip = bootloaderSerPort
+      ? `Current bootloader mode serial port @ ${baud}`
+      : 'Click to set bootloader mode serial port';
+    bootloaderSerialPortItem.show();
+
+    // Bootloader Monitor button 
+    if (chosenPort) {
+      monitorBtn.text = `$(vm) ${defLabel}: ${chosenPort}`;
+      monitorBtn.tooltip = `Open monitor on ${defLabel} port ${chosenPort} @ ${baud}`;
+    } else {
+      monitorBtn.text = '$(vm) Monitor';
+      monitorBtn.tooltip =
+        def === 'run'
+          ? 'Open monitor (run mode serial port not set)'
+          : 'Open monitor (bootloader mode serial port not set)';
+    }
     monitorBtn.show();
+
+    // Run serial port item
+    runSerialPortItem.text = runSerPort ? `$(plug) ${runSerPort}` : '$(plug) Run Mode Serial Port: (not set)';
+    runSerialPortItem.tooltip = runSerPort
+      ? `Current run mode serial port @ ${baud}`
+      : 'Click to set run mode serial port';
+    runSerialPortItem.show();
 
     // Flash location
     flashLocationItem.text = flLoc ? `$(chip) ${flLoc}` : '$(chip) Baochip Location: (not set)';
@@ -112,6 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
     settingsItem.show();
 
     tree.refresh();
+    tree.refreshMonitor();
     docsTree.refresh();
   };
 
@@ -120,7 +143,9 @@ export function activate(context: vscode.ExtensionContext) {
   // If settings change outside commands (e.g., user edits Settings UI), auto-update status bar
   const cfgWatcher = vscode.workspace.onDidChangeConfiguration(e => {
     if (
-      e.affectsConfiguration('baochip.monitorPort')  ||
+      e.affectsConfiguration('baochip.monitorDefaultPort') || 
+      e.affectsConfiguration('baochip.serialPortBootloader')  ||
+      e.affectsConfiguration('baochip.serialPortRun')  ||
       e.affectsConfiguration('baochip.monitor.defaultBaud')  ||
       e.affectsConfiguration('baochip.flashPort')    ||
       e.affectsConfiguration('baochip.buildTarget')  ||

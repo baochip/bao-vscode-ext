@@ -10,10 +10,16 @@ async function updateSetting(key: string, value: any, target?: vscode.Configurat
 }
 
 export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || '';
-
 export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 115200;
-export const getMonitorPort = () => cfg().get<string>('baochip.monitorPort') || '';
-export const setMonitorPort = (p: string) => cfg().update('baochip.monitorPort', p, updateTarget());
+
+export const getMonitorDefaultPort = (): "run" | "bootloader" => (cfg().get<string>('baochip.monitorDefaultPort') as any) || 'run';
+export const setMonitorDefaultPort = (v: "run" | "bootloader") => updateSetting('baochip.monitorDefaultPort', v);
+
+export const getBootloaderSerialPort = (): string => cfg().get<string>('baochip.serialPortBootloader') || '';
+export const setBootloaderSerialPort = (port: string) => updateSetting('baochip.serialPortBootloader', port);
+
+export const getRunSerialPort = (): string => cfg().get<string>('baochip.serialPortRun') || '';
+export const setRunSerialPort = (port: string) => updateSetting('baochip.serialPortRun', port);
 
 export const getFlashLocation = () => cfg().get<string>('baochip.flashLocation') || '';
 export const setFlashLocation = (p: string) => updateSetting('baochip.flashLocation', p);
