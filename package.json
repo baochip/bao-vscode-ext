@@ -134,7 +134,7 @@
         },
         "baochip.monitor.defaultBaud": {
           "type": "number",
-          "default": 115200,
+          "default": 1000000,
           "minimum": 1,
           "description": "Default baud rate for the serial monitor."
         },
