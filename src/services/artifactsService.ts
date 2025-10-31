@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 
 export type BaoArtifact = {
   path: string;
-  role?: 'loader' | 'xous' | 'app';
+  role?: 'loader' | 'xous' | 'apps';
 }
 
 export async function fetchArtifacts(

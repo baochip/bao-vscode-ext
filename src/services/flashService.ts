@@ -39,12 +39,12 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 
 export async function gatherArtifacts(py: string, bao: string, root: string) {
   const images = await fetchArtifacts(py, bao, root).catch(() => []);
-  const byRole: Record<'loader'|'xous'|'app', string | undefined> = {
+  const byRole: Record<'loader'|'xous'|'apps', string | undefined> = {
     loader: images.find(i => i.role === 'loader')?.path,
     xous:  images.find(i => i.role === 'xous')?.path,
-    app:   images.find(i => i.role === 'app')?.path,
+    apps:   images.find(i => i.role === 'apps')?.path,
   };
-  const all: string[] = (['loader','xous','app'] as const).map(r => byRole[r]).filter((p): p is string => !!p);
+  const all: string[] = (['loader','xous','apps'] as const).map(r => byRole[r]).filter((p): p is string => !!p);
   return { byRole, all };
 }
 
@@ -98,7 +98,7 @@ export async function decideAndFlash(py: string, bao: string, root: string): Pro
 
   const { all } = await gatherArtifacts(py, bao, root);
   if (all.length === 0) {
-    vscode.window.showWarningMessage('No UF2s found (loader/xous/app). Build first, then flash.');
+    vscode.window.showWarningMessage('No UF2s found (loader/xous/apps). Build first, then flash.');
     return false;
   }
 
