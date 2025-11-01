@@ -16,3 +16,26 @@ export async function listPorts(pythonCmd: string, baoPath: string, cwd?: string
     });
   });
 }
+
+
+export async function waitForPort(
+  pythonCmd: string,
+  baoPath: string,
+  targetPort: string,
+  opts?: { cwd?: string; timeoutMs?: number; intervalMs?: number }
+): Promise<boolean> {
+  const timeoutMs = opts?.timeoutMs ?? 20000;
+  const intervalMs = opts?.intervalMs ?? 500;
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const ports = await listPorts(pythonCmd, baoPath, opts?.cwd);
+      if (ports.includes(targetPort)) return true;
+    } catch {
+      // ignore transient errors and keep polling
+    }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return false;
+}
