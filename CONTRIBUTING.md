@@ -16,7 +16,7 @@ Thanks for helping improve the Baochip VS Code extension! 💜
     cd bao-vscode-ext
     npm install
 
-**Run the extension **
+**Run the extension**
 1. Open the repo folder in VS Code.  
 2. npm run compile
 2. Press **F5** (or Run → **Start Debugging**) to launch an **Extension Development Host**.  
