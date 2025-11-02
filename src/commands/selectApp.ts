@@ -30,7 +30,5 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
     await setXousAppName(pick.label);
     vscode.window.showInformationMessage(`Bao app set to ${pick.label}`);
 
-    // Keep xous-core as workspace; focus the app folder
-    await revealAppFolder(root, pick.label);
   });
 }
