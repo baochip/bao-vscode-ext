@@ -18,7 +18,7 @@ Thanks for helping improve the Baochip VS Code extension! 💜
 
 **Run the extension**
 1. Open the repo folder in VS Code.  
-2. npm run compile
+2. `npm run compile`
 2. Press **F5** (or Run → **Start Debugging**) to launch an **Extension Development Host**.  
 3. Use the Command Palette to try Baochip commands and verify changes.
 
