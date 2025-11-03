@@ -1,9 +1,9 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { ensureXousCorePath } from '@services/pathService';
-import { isValidAppName, scaffoldBaoApp } from '@services/appService';
-import { setXousAppName } from '@services/configService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
+import { setXousAppName } from '@services/configService';
+import { isLikelyValidAppName, createBaoAppViaCli } from '@services/appService';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
   return vscode.commands.registerCommand('baochip.createApp', async () => {
@@ -11,31 +11,35 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
     try { root = await ensureXousCorePath(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core path not set'); return; }
 
-    // Enforce opening xous-core as the workspace (2B)
     const ok = await ensureXousWorkspaceOpen(root);
-    if (!ok) return; // window is reloading or user cancelled
+    if (!ok) return;
 
-    const name = await vscode.window.showInputBox({
+    const nameInput = await vscode.window.showInputBox({
       title: 'New Bao App Name',
-      prompt: 'Will be created under xous-core/apps-bao/<name>/',
-      placeHolder: 'helloworld',
+      prompt: 'Will be created under xous-core/apps-dabao/<name>/',
+      placeHolder: 'test_app',
       validateInput: (val) => {
-        if (!val.trim()) return 'App name is required';
-        if (!isValidAppName(val.trim())) return 'Use letters, numbers, -, _; start with a letter';
+        const n = (val || '').trim().toLowerCase();
+        if (!n) return 'App name is required';
+        if (!isLikelyValidAppName(n)) return 'Use lowercase letters, numbers, -, _; start with a letter';
         return null;
       }
     });
-    if (!name) return;
+    if (!nameInput) return;
 
+    const name = nameInput.trim().toLowerCase();
+
+    const progressOpts = { location: vscode.ProgressLocation.Notification, title: `Creating app "${name}"…` };
     try {
-      const appDir = scaffoldBaoApp(root, name.trim());
-      await setXousAppName(name.trim()); // safe setter works even outside a workspace, but we’re in one now
-      vscode.window.showInformationMessage(`Created ${appDir} and selected app "${name.trim()}"`);
+      await vscode.window.withProgress(progressOpts, async () => {
+        await createBaoAppViaCli(root, name);
+      });
 
-      // Keep xous-core as the workspace, just focus the app folder in Explorer
-      await revealAppFolder(root, name.trim());
+      await setXousAppName(name);
+      vscode.window.showInformationMessage(`Created apps-dabao/${name} and added to workspace.`);
+      await revealAppFolder(root, name);
     } catch (e: any) {
-      vscode.window.showErrorMessage(e?.message || String(e));
+      vscode.window.showErrorMessage(`Create app failed: ${e?.message || String(e)}`);
     }
   });
 }

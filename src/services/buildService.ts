@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { ensureXousFolderOpen, ensureXousCorePath } from '@services/pathService';
 import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
-import { listBaoApps } from '@services/appService';
+import { listBaoApps, appExists } from '@services/appService';
 import { checkRustToolchain } from '@services/rustCheckService';
 
 export type BuildPrereqs = {
@@ -56,6 +56,14 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
     if (!pick) return;
     app = pick;
     await setXousAppName(app);
+  }
+
+  if (!appExists(root, app)) {
+    vscode.window.showErrorMessage(
+      `App "${app}" was not found under ${root}/apps-dabao. ` +
+      `Select a different app in settings or recreate it.`
+    );
+    return;
   }
 
   return { root, target, app };

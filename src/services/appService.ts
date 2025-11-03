@@ -1,8 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { spawn } from 'child_process';
+import * as vscode from 'vscode';
+import { getPythonCmd } from '@services/pathService';
+
+const APPS_DIRNAME = 'apps-dabao';
 
 export async function listBaoApps(xousRoot: string): Promise<string[]> {
-  const appsDir = path.join(xousRoot, 'apps-dabao');
+  const appsDir = path.join(xousRoot, APPS_DIRNAME);
   if (!fs.existsSync(appsDir) || !fs.statSync(appsDir).isDirectory()) return [];
   const entries = fs.readdirSync(appsDir, { withFileTypes: true });
   return entries
@@ -12,47 +17,38 @@ export async function listBaoApps(xousRoot: string): Promise<string[]> {
     .sort((a, b) => a.localeCompare(b));
 }
 
-export function isValidAppName(name: string): boolean {
-  // simple, cargo-friendly: letters, numbers, underscores, hyphens; must start with a letter
-  return /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(name);
+export function appExists(xousRoot: string, appName: string): boolean {
+  const appDir = path.join(xousRoot, APPS_DIRNAME, appName);
+  return fs.existsSync(appDir) && fs.statSync(appDir).isDirectory();
 }
 
-export function scaffoldBaoApp(xousRoot: string, appName: string) {
-  const appsDir = path.join(xousRoot, 'apps-dabao');
-  const appDir = path.join(appsDir, appName);
-  if (!fs.existsSync(appsDir)) fs.mkdirSync(appsDir, { recursive: true });
-  if (fs.existsSync(appDir)) throw new Error(`App folder already exists: ${appDir}`);
-
-  fs.mkdirSync(path.join(appDir, 'src'), { recursive: true });
-
-  // Minimal Cargo.toml (adjust later to match any Xous-specific expectations)
-  const cargoToml = `[package]
-name = "${appName}"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-`;
-
-  const mainRs = `#![no_std]
-#![no_main]
-
-use core::panic::PanicInfo;
-
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+// lightweight validator for UX; final validation happens in tools-bao
+export function isLikelyValidAppName(name: string): boolean {
+  return /^[a-z][a-z0-9_-]*$/.test(name); // lowercase, start with letter
 }
 
-#[no_mangle]
-pub extern "C" fn main() -> ! {
-    // TODO: call into Xous syscalls once linked via workspace
-    loop {}
-}
-`;
+// Use tools-bao to create the app
+export async function createBaoAppViaCli(xousRoot: string, appName: string): Promise<void> {
+  const py = getPythonCmd();
+  const bao = path.join(xousRoot, 'tools-bao', 'bao.py');
 
-  fs.writeFileSync(path.join(appDir, 'Cargo.toml'), cargoToml, { encoding: 'utf8' });
-  fs.writeFileSync(path.join(appDir, 'src', 'main.rs'), mainRs, { encoding: 'utf8' });
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(py, [bao, 'app', 'create', '--xous-root', xousRoot, '--name', appName], {
+      cwd: xousRoot,
+      shell: process.platform === 'win32', // helps Windows find python in PATH
+    });
 
-  return appDir;
+    let out = '', err = '';
+    child.stdout.on('data', d => { out += d.toString(); });
+    child.stderr.on('data', d => { err += d.toString(); });
+
+    child.on('close', code => {
+      if (code === 0) return resolve();
+      // Surface whatever tools-bao printed
+      const msg = (err || out || `Exited with code ${code}`).trim();
+      reject(new Error(msg));
+    });
+  });
+
+  try { await vscode.workspace.saveAll(); } catch {}
 }
