@@ -140,7 +140,7 @@
         },
         "baochip.monitor.timestamp": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Prefix received lines with timestamps."
         },
         "baochip.monitor.crlf": {
@@ -150,7 +150,7 @@
         },
         "baochip.monitor.raw": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Send keystrokes immediately (raw mode)."
         },
         "baochip.monitor.echo": {
