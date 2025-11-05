@@ -182,7 +182,7 @@
         "baochip.xousAppName": {
           "type": "string",
           "default": "",
-          "description": "Name of the Bao app workspace under xous-core/apps-dabao/ (e.g., 'helloworld')."
+          "description": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only."
         }
       }
     },
