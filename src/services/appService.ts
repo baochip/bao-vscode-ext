@@ -17,9 +17,34 @@ export async function listBaoApps(xousRoot: string): Promise<string[]> {
     .sort((a, b) => a.localeCompare(b));
 }
 
-export function appExists(xousRoot: string, appName: string): boolean {
-  const appDir = path.join(xousRoot, APPS_DIRNAME, appName);
-  return fs.existsSync(appDir) && fs.statSync(appDir).isDirectory();
+export function appExists(xousRoot: string, appNames: string): boolean {
+  const appsDir = path.join(xousRoot, APPS_DIRNAME);
+  const names = appNames.trim().split(/\s+/).filter(Boolean);
+  if (names.length === 0) return false;
+
+  return names.every(n => {
+    const dir = path.join(appsDir, n);
+    return (
+      fs.existsSync(dir) &&
+      fs.statSync(dir).isDirectory() &&
+      fs.existsSync(path.join(dir, 'Cargo.toml'))
+    );
+  });
+}
+
+export function missingApps(xousRoot: string, appNames: string): string[] {
+  const appsDir = path.join(xousRoot, APPS_DIRNAME);
+  const names = appNames.trim().split(/\s+/).filter(Boolean);
+  const missing: string[] = [];
+  for (const n of names) {
+    const dir = path.join(appsDir, n);
+    const ok =
+      fs.existsSync(dir) &&
+      fs.statSync(dir).isDirectory() &&
+      fs.existsSync(path.join(dir, 'Cargo.toml'));
+    if (!ok) missing.push(n);
+  }
+  return missing;
 }
 
 // lightweight validator for UX; final validation happens in tools-bao

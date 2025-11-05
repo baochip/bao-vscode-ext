@@ -2,13 +2,13 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { ensureXousFolderOpen, ensureXousCorePath } from '@services/pathService';
 import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
-import { listBaoApps, appExists } from '@services/appService';
+import { listBaoApps, appExists, missingApps } from '@services/appService';
 import { checkRustToolchain } from '@services/rustCheckService';
 
 export type BuildPrereqs = {
   root: string;
   target: string;
-  app: string;
+  app?: string;
 };
 
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
@@ -44,48 +44,56 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
     return;
   }
 
-  // Require APP (prompt from apps-bao/ if unset)
-  let app = getXousAppName();
-  if (!app) {
-    const apps = await listBaoApps(root);
-    if (apps.length === 0) {
-      vscode.window.showWarningMessage(`No apps found under ${root}/apps-bao. Create one first.`);
+  const app = (getXousAppName() || '').trim();
+
+  if (app) {
+    // Validate single or space-separated multiple
+    if (!appExists(root, app)) {
+      const missing = missingApps(root, app);
+      vscode.window.showErrorMessage(
+        missing.length > 1
+          ? `These apps were not found under ${root}/apps-dabao: ${missing.join(', ')}`
+          : `App "${missing[0] || app}" was not found under ${root}/apps-dabao.`
+      );
       return;
     }
-    const pick = await vscode.window.showQuickPick(apps, { placeHolder: 'Select app workspace to build' });
-    if (!pick) return;
-    app = pick;
-    await setXousAppName(app);
+  } else {
+    const apps = await listBaoApps(root);
   }
 
-  if (!appExists(root, app)) {
-    vscode.window.showErrorMessage(
-      `App "${app}" was not found under ${root}/apps-dabao. ` +
-      `Select a different app in settings or recreate it.`
-    );
-    return;
-  }
-
-  return { root, target, app };
+  return { root, target, app: app || undefined };
 }
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
-export function runBuildInTerminal(root: string, target: string, app: string) {
+export function runBuildInTerminal(root: string, target: string, app?: string) {
   const term =
     vscode.window.terminals.find(t => t.name === 'Bao Build')
     ?? vscode.window.createTerminal({ name: 'Bao Build' });
 
+  const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
+  if (appArgs.length === 0) {
+    vscode.window.showInformationMessage(`Building "${target}" without an app.`);
+    term.sendText(`echo [bao] No apps specified — building target "${target}" only.`);
+  }
+
   term.sendText(`cd "${root}"`);
-  term.sendText(`cargo xtask ${target} ${app}`);
+  term.sendText(`cargo xtask ${target}${app ? ` ${app}` : ''}`);
   term.show(true);
 }
 
 /** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */
-export async function runBuildAndWait(root: string, target: string, app: string): Promise<number> {
+export async function runBuildAndWait(root: string, target: string, app?: string): Promise<number> {
   const chan = vscode.window.createOutputChannel('Bao Build');
   chan.show(true);
 
-  const args = ['xtask', target, app];
+  const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
+  const args = ['xtask', target, ...appArgs];
+
+  if (appArgs.length === 0) {
+    chan.appendLine(`[bao] No apps specified — building target "${target}" only.`);
+    vscode.window.showInformationMessage(`Building "${target}" without an app.`);
+  }
+
   chan.appendLine(`[bao] Building: cargo ${args.join(' ')}`);
   chan.appendLine(`[bao] cwd: ${root}`);
 
