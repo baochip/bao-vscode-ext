@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { getMonitorDefaultPort, setMonitorDefaultPort } from '@services/configService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerSetMonitorDefaultPort(context: vscode.ExtensionContext, refreshUI: () => void) {
-  return vscode.commands.registerCommand('baochip.setMonitorDefaultPort', async () => {
+  return gateToolsBao('baochip.setMonitorDefaultPort', async () => {
     const current = getMonitorDefaultPort();
     const picked = await vscode.window.showQuickPick(
       [

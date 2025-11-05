@@ -1,12 +1,12 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { ensureXousCorePath } from '@services/pathService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import { setXousAppName } from '@services/configService';
 import { isLikelyValidAppName, createBaoAppViaCli } from '@services/appService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
-  return vscode.commands.registerCommand('baochip.createApp', async () => {
+  return gateToolsBao('baochip.createApp', async () => {
     let root: string;
     try { root = await ensureXousCorePath(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core path not set'); return; }

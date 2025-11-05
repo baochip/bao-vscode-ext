@@ -1,12 +1,13 @@
 import * as vscode from "vscode";
 import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from "@services/pathService";
 import { getRunSerialPort, getBootloaderSerialPort, getDefaultBaud, getMonitorDefaultPort } from "@services/configService";
+import { gateToolsBao } from '@services/versionGate';
 
 let monitorTerm: vscode.Terminal | undefined;
 const q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
 
 export function registerOpenMonitor(context: vscode.ExtensionContext) {
-  return vscode.commands.registerCommand("baochip.openMonitor", async () => {
+  return gateToolsBao("baochip.openMonitor", async () => {
     // 1) Choose which port based on default
     const def = getMonitorDefaultPort(); // "run" | "bootloader"
     const port = def === 'run' ? getRunSerialPort() : getBootloaderSerialPort();

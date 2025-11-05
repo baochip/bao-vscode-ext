@@ -9,6 +9,7 @@
     "lib": ["ES2020"],
     "baseUrl": ".",
     "paths": {
+      "@constants": ["src/constants"],
       "@commands/*": ["src/commands/*"],
       "@services/*": ["src/services/*"],
       "@views/*": ["src/views/*"],

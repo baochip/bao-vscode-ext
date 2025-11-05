@@ -2,9 +2,10 @@ import * as vscode from 'vscode';
 import { resolveBaoPy, ensureXousCorePath, ensurePythonCmd } from '@services/pathService';
 import { listPorts } from '@services/portsService';
 import { setBootloaderSerialPort } from '@services/configService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerSetBootloaderSerialPort(context: vscode.ExtensionContext, refreshUI: () => void) {
-  return vscode.commands.registerCommand('baochip.setBootloaderSerialPort', async () => {
+  return gateToolsBao('baochip.setBootloaderSerialPort', async () => {
     let baoPath: string, cwd: string;
     try {
       baoPath = await resolveBaoPy();

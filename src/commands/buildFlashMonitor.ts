@@ -6,9 +6,10 @@ import { sendBoot } from '@services/bootService';
 import { openMonitorTTYOnMode } from '@services/monitorService';
 import { waitForPort } from '@services/portsService';
 import { getRunSerialPort } from '@services/configService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
-  return vscode.commands.registerCommand('baochip.buildFlashMonitor', async () => {
+  return gateToolsBao('baochip.buildFlashMonitor', async () => {
     // Gather/validate build prereqs (root/target/app)
     const pre = await ensureBuildPrereqs();
     if (!pre) return;

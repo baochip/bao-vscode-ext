@@ -2,9 +2,10 @@ import * as vscode from 'vscode';
 import { resolveBaoPy, ensureXousCorePath, ensurePythonCmd } from '@services/pathService';
 import { listBuildTargets } from '@services/targetsService';
 import { getBuildTarget, setBuildTarget, getBuildTargetsFallback } from '@services/configService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerSelectBuildTarget(context: vscode.ExtensionContext, refreshUI: () => void) {
-  return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
+  return gateToolsBao('baochip.selectBuildTarget', async () => {
     let baoPath: string, cwd: string;
     try {
       baoPath = await resolveBaoPy();

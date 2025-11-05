@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import { registerCommands } from './index';
+import { checkToolsBaoVersion } from '@services/versionService';
 import {
   getDefaultBaud,
   getBootloaderSerialPort,
@@ -16,6 +17,9 @@ const shouldShowWelcome = () =>
   vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
 export function activate(context: vscode.ExtensionContext) {
+  // Check on activation (non-blocking)
+  checkToolsBaoVersion();
+
   // Sidebar tree
   const tree = new BaoTreeProvider();
   vscode.window.registerTreeDataProvider('bao-view', tree);

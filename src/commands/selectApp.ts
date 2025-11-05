@@ -3,9 +3,10 @@ import { ensureXousCorePath } from '@services/pathService';
 import { listBaoApps } from '@services/appService';
 import { getXousAppName, setXousAppName } from '@services/configService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
+import { gateToolsBao } from '@services/versionGate';
 
 export function registerSelectApp(_context: vscode.ExtensionContext) {
-  return vscode.commands.registerCommand('baochip.selectApp', async () => {
+  return gateToolsBao('baochip.selectApp', async () => {
     let root: string;
     try { root = await ensureXousCorePath(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core path not set'); return; }
