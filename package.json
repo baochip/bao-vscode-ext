@@ -138,11 +138,6 @@
           "minimum": 1,
           "description": "Default baud rate for the serial monitor."
         },
-        "baochip.monitor.timestamp": {
-          "type": "boolean",
-          "default": false,
-          "description": "Prefix received lines with timestamps."
-        },
         "baochip.monitor.crlf": {
           "type": "boolean",
           "default": true,
@@ -157,21 +152,6 @@
           "type": "boolean",
           "default": false,
           "description": "Local echo of typed input."
-        },
-        "baochip.monitor.rtscts": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable RTS/CTS hardware flow control."
-        },
-        "baochip.monitor.xonxoff": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable XON/XOFF software flow control."
-        },
-        "baochip.monitor.dsrdtr": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable DSR/DTR hardware flow control."
         },
         "baochip.flashLocation": {
           "type": "string",

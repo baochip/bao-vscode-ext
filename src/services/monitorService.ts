@@ -34,7 +34,6 @@ export async function openMonitorTTY(context?: vscode.ExtensionContext) {
   const cfg = vscode.workspace.getConfiguration("baochip.monitor");
   const baud = getDefaultBaud();
   const flags: string[] = [];
-  if (cfg.get<boolean>("timestamp")) flags.push("--ts");
   if (cfg.get<boolean>("crlf"))      flags.push("--crlf");
   if (cfg.get<boolean>("raw"))       flags.push("--raw");
   // Align with your CLI: if echo=false means pass '--no-echo':
@@ -87,13 +86,9 @@ export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
   const cfg = vscode.workspace.getConfiguration("baochip.monitor");
   const baud = getDefaultBaud();
   const flags: string[] = [];
-  if (cfg.get<boolean>("timestamp")) flags.push("--ts");
   if (cfg.get<boolean>("crlf"))      flags.push("--crlf");
   if (cfg.get<boolean>("raw"))       flags.push("--raw");
   if (!cfg.get<boolean>("echo"))     flags.push("--no-echo");
-  if (cfg.get<boolean>("rtscts"))    flags.push("--rtscts");
-  if (cfg.get<boolean>("xonxoff"))   flags.push("--xonxoff");
-  if (cfg.get<boolean>("dsrdtr"))    flags.push("--dsrdtr");
 
   const py = await ensurePythonCmd();
   const cmd = [

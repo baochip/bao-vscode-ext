@@ -29,23 +29,14 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
 
     // 3) Read monitor flags
     const cfg = vscode.workspace.getConfiguration("baochip.monitor");
-    const useTs   = cfg.get<boolean>("timestamp", true);
     const useCrlf = cfg.get<boolean>("crlf", true);
     const useRaw  = cfg.get<boolean>("raw", false);
     const useEcho = cfg.get<boolean>("echo", false);
-    const rtscts  = cfg.get<boolean>("rtscts", false);
-    const xonxoff = cfg.get<boolean>("xonxoff", false);
-    const dsrdtr  = cfg.get<boolean>("dsrdtr", false);
 
     const flags: string[] = [];
-    if (useTs)   flags.push("--ts");
     if (useCrlf) flags.push("--crlf");
     if (useRaw)  flags.push("--raw");
-    // If your Python monitor uses '--no-echo' to disable echo:
     if (!useEcho) flags.push("--no-echo");
-    if (rtscts)  flags.push("--rtscts");
-    if (xonxoff) flags.push("--xonxoff");
-    if (dsrdtr)  flags.push("--dsrdtr");
 
     // 4) Launch terminal
     try { monitorTerm?.dispose(); } catch {}
