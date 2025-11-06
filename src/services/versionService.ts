@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
-import * as path from 'path';
-import { ensureXousCorePath, getPythonCmd } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy, getBaoPythonCmd } from '@services/pathService';
 import { REQUIRED_TOOLS_BAO } from '@constants';
 
 function parseSemver(s: string): [number, number, number] | null {
@@ -20,10 +19,9 @@ function cmpSemver(a: string, b: string): number {
   return 0;
 }
 
-async function runBaoVersion(py: string, xousRoot: string): Promise<string> {
-  const baoPath = path.join(xousRoot, 'tools-bao', 'bao.py');
+async function runBaoVersion(py: string, baoPy: string, cwd: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const child = spawn(py, [baoPath, '--version'], { cwd: xousRoot, shell: process.platform === 'win32' });
+    const child = spawn(py, [baoPy, '--version'], { cwd, shell: process.platform === 'win32' });
     let out = '', err = '';
     child.stdout.on('data', d => out += d.toString());
     child.stderr.on('data', d => err += d.toString());
@@ -38,10 +36,15 @@ async function runBaoVersion(py: string, xousRoot: string): Promise<string> {
 }
 
 export async function checkToolsBaoVersion(): Promise<boolean> {
+  const xousRoot = await ensureXousCorePath().catch(() => undefined);
+  if (!xousRoot) return false;
+
+  const baoPy = await resolveBaoPy().catch(() => undefined);
+  if (!baoPy) return false;
+
   try {
-    const py = getPythonCmd();
-    const xousRoot = await ensureXousCorePath();
-    const found = await runBaoVersion(py, xousRoot);
+    const py = getBaoPythonCmd(xousRoot);
+    const found = await runBaoVersion(py, baoPy, xousRoot);
 
     if (cmpSemver(found, REQUIRED_TOOLS_BAO) < 0) {
       vscode.window.showErrorMessage(
@@ -50,6 +53,7 @@ export async function checkToolsBaoVersion(): Promise<boolean> {
       );
       return false;
     }
+
     return true;
   } catch (e: any) {
     vscode.window.showErrorMessage(
