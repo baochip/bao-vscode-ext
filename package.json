@@ -101,95 +101,131 @@
       }
     ],
     "menus": {},
-    "configuration": {
-      "title": "Baochip",
+"configuration": [
+    {
+      "title": "Baochip — General",
       "scope": "resource",
       "properties": {
         "baochip.showWelcomeOnStartup": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically open the Baochip Welcome page when the extension activates."
+          "description": "Automatically open the Baochip Welcome page when the extension activates.",
+          "order": 1
         },
         "baochip.xousCorePath": {
           "type": "string",
           "default": "",
-          "description": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it."
+          "description": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it.",
+          "order": 2
         },
         "baochip.pythonCommand": {
           "type": "string",
           "default": "python",
-          "description": "Python command to run (e.g. 'python' on Windows, 'python3' on macOS/Linux)."
-        },
+          "description": "Python command to run (e.g. 'python' on Windows, 'python3' on macOS/Linux).",
+          "order": 3
+        }
+      }
+    },
+    {
+      "title": "Baochip — Ports",
+      "scope": "resource",
+      "properties": {
         "baochip.serialPortBootloader": {
           "type": "string",
           "default": "",
-          "description": "Serial port that appears in bootloader / UF2 drive mode."
+          "description": "Serial port that appears in bootloader / UF2 drive mode.",
+          "order": 1
         },
         "baochip.serialPortRun": {
           "type": "string",
           "default": "",
-          "description": "Serial port used for run mode (normal firmware logs)."
+          "description": "Serial port used for run mode (normal firmware logs).",
+          "order": 2
         },
         "baochip.monitorDefaultPort": {
           "type": "string",
           "enum": ["run", "bootloader"],
           "default": "run",
-          "description": "Which port the Monitor button uses by default."
-        },
+          "description": "Which port the Monitor button uses by default.",
+          "order": 3
+        }
+      }
+    },
+    {
+      "title": "Baochip — Monitor",
+      "scope": "resource",
+      "properties": {
         "baochip.monitor.defaultBaud": {
           "type": "number",
           "default": 1000000,
           "minimum": 1,
-          "description": "Default baud rate for the serial monitor."
+          "description": "Default baud rate for the serial monitor.",
+          "order": 1
         },
         "baochip.monitor.crlf": {
           "type": "boolean",
           "default": true,
-          "description": "Use CRLF as TX line ending in line mode."
+          "description": "Use CRLF as TX line ending in line mode.",
+          "order": 2
         },
         "baochip.monitor.raw": {
           "type": "boolean",
           "default": true,
-          "description": "Send keystrokes immediately (raw mode)."
+          "description": "Send keystrokes immediately (raw mode).",
+          "order": 3
         },
         "baochip.monitor.echo": {
           "type": "boolean",
           "default": false,
-          "description": "Local echo of typed input."
-        },
-        "baochip.flashLocation": {
-          "type": "string",
-          "default": "",
-          "description": "Location of the mounted Baochip UF2 drive (e.g., D:\\\\ on Windows or /Volumes/BAOBOOT on macOS/Linux)."
-        },
+          "description": "Local echo of typed input.",
+          "order": 4
+        }
+      }
+    },
+    {
+      "title": "Baochip — Build",
+      "scope": "resource",
+      "properties": {
         "baochip.buildTarget": {
           "type": "string",
           "default": "",
-          "description": "Currently selected build target (e.g., dabao, baosec)."
+          "description": "Currently selected build target (e.g., dabao, baosec).",
+          "order": 1
         },
         "baochip.buildTargets": {
           "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "dabao",
-            "baosec"
-          ],
-          "description": "Fallback list if bao.py cannot list targets."
+          "items": { "type": "string" },
+          "default": ["dabao", "baosec"],
+          "description": "Fallback list if bao.py cannot list targets.",
+          "order": 2
         },
         "baochip.build.cwd": {
           "type": "string",
           "default": "${workspaceFolder}",
-          "description": "Working directory for the build. Change if the build should run in xous-core or another repo."
+          "description": "Working directory for the build.",
+          "order": 3
         },
         "baochip.xousAppName": {
           "type": "string",
           "default": "",
-          "description": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only."
+          "description": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only.",
+          "order": 4
         }
       }
     },
+    {
+      "title": "Baochip — Flashing",
+      "scope": "resource",
+      "properties": {
+        "baochip.flashLocation": {
+          "type": "string",
+          "default": "",
+          "description": "Location of the mounted Baochip UF2 drive (e.g., D:\\\\ on Windows).",
+          "order": 1
+        }
+      }
+    }
+  ],
     "viewsContainers": {
       "activitybar": [
         {
