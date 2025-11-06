@@ -4,7 +4,7 @@
   "description": "Develop applications for Baochip.",
   "publisher": "baochip",
   "website": "https://baochip.com",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "icon": "media/baochip-128x128-logo-only.png",
   "license": "Apache-2.0",
   "preview": true,
@@ -24,7 +24,10 @@
     "baochip",
     "precursor",
     "xous",
-    "xous-core"
+    "xous-core",
+    "embedded",
+    "development",
+    "microcontroller"
   ],
   "activationEvents": [
     "onView:bao.view",
@@ -100,6 +103,7 @@
     "menus": {},
     "configuration": {
       "title": "Baochip",
+      "scope": "resource",
       "properties": {
         "baochip.showWelcomeOnStartup": {
           "type": "boolean",

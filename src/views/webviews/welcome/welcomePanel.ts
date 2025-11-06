@@ -43,7 +43,7 @@ export class WelcomePanel {
     this.panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
         await vscode.workspace.getConfiguration()
-          .update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Global);
+          .update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Workspace);
         return;
       }
 

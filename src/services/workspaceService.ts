@@ -62,10 +62,8 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
     );
 
     if (choice === 'Open configured xous-core') {
-      // Persist path globally before we reload/open the folder.
-      await setXousCorePath(xousRoot, vscode.ConfigurationTarget.Global);
       await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
-      return false; // window will reload
+      return false;
     }
 
     if (choice === 'Use current workspace instead') {
@@ -85,7 +83,6 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   );
   if (openChoice !== 'Open') return false;
 
-  await setXousCorePath(xousRoot, vscode.ConfigurationTarget.Global);
   await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
   return false; // window reloads
 }

@@ -2,11 +2,8 @@ import * as vscode from 'vscode';
 
 export const cfg = () => vscode.workspace.getConfiguration(''); // root
 
-async function updateSetting(key: string, value: any, target?: vscode.ConfigurationTarget) {
-  // If target provided, use it. Otherwise pick Workspace if open, else Global.
-  const hasWorkspace = !!vscode.workspace.workspaceFolders?.length;
-  const t = target ?? (hasWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
-  await cfg().update(key, value, t);
+async function updateSetting(key: string, value: any) {
+  await cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 }
 
 export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || '';
@@ -25,16 +22,11 @@ export const getFlashLocation = () => cfg().get<string>('baochip.flashLocation')
 export const setFlashLocation = (p: string) => updateSetting('baochip.flashLocation', p);
 
 export const getBuildTarget = () => cfg().get<string>('baochip.buildTarget') || '';
-export const setBuildTarget = (t: string) => cfg().update('baochip.buildTarget', t, updateTarget());
-export const getBuildTargetsFallback = () => (cfg().get<string[]>('baochip.buildTargets') || []);
+export const setBuildTarget = (t: string) => updateSetting('baochip.buildTarget', t);
+export const getBuildTargetsFallback = () => cfg().get<string[]>('baochip.buildTargets') || [];
 
 export const getXousAppName    = () => cfg().get<string>('baochip.xousAppName') || '';
-export const setXousAppName    = (n: string) => cfg().update('baochip.xousAppName', n);
+export const setXousAppName    = (n: string) => updateSetting('baochip.xousAppName', n);
 
 export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
-export const setXousCorePath = (p: string, target?: vscode.ConfigurationTarget) => updateSetting('baochip.xousCorePath', p, target);
-
-export const updateTarget = (): vscode.ConfigurationTarget =>
-  vscode.workspace.workspaceFolders?.length
-    ? vscode.ConfigurationTarget.Workspace
-    : vscode.ConfigurationTarget.Global;
+export const setXousCorePath = (p: string) => updateSetting('baochip.xousCorePath', p);
