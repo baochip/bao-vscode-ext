@@ -5,6 +5,9 @@ import { spawnSync } from 'child_process';
 import * as os from 'os';
 import { setXousCorePath } from '@services/configService';
 import { cloneXousCore } from '@services/cloneXousCore';
+import { spawn } from 'child_process';
+import { createHash } from 'crypto';
+import { REQUIRED_TOOLS_BAO, BAO_VENV_DIR, REQUIREMENTS_FILE, STATE_KEY_REQ_HASH_MAP } from '@constants';
 
 const cfg = () => vscode.workspace.getConfiguration();
 
@@ -190,4 +193,99 @@ export async function ensureXousFolderOpen(root: string): Promise<'ready'|'added
   await vscode.commands.executeCommand('vscode.openFolder', uri, newWindow);
   // After this, the extension host reloads / a new window opens; abort current command flow.
   return 'reopen';
+}
+
+function normalizeRootKey(root: string): string {
+  // Normalize path (and lowercase on Windows) so keys are stable
+  const p = path.resolve(root);
+  return os.platform() === 'win32' ? p.toLowerCase() : p;
+}
+
+function getReqHashMap(ctx: vscode.ExtensionContext): Record<string, string> {
+  return (ctx.globalState.get<Record<string, string>>(STATE_KEY_REQ_HASH_MAP)) || {};
+}
+
+async function setReqHashForRoot(
+  ctx: vscode.ExtensionContext,
+  root: string,
+  hash: string
+): Promise<void> {
+  const key = normalizeRootKey(root);
+  const map = getReqHashMap(ctx);
+  map[key] = hash;
+  await ctx.globalState.update(STATE_KEY_REQ_HASH_MAP, map);
+}
+
+function getReqHashForRoot(ctx: vscode.ExtensionContext, root: string): string | undefined {
+  const key = normalizeRootKey(root);
+  const map = getReqHashMap(ctx);
+  return map[key];
+}
+
+function venvPythonPath(toolsBaoDir: string): string {
+  return os.platform() === 'win32'
+    ? path.join(toolsBaoDir, BAO_VENV_DIR, 'Scripts', 'python.exe')
+    : path.join(toolsBaoDir, BAO_VENV_DIR, 'bin', 'python');
+}
+
+function hasVenv(toolsBaoDir: string): boolean {
+  return fs.existsSync(venvPythonPath(toolsBaoDir));
+}
+
+function hashFile(p: string): string {
+  const buf = fs.readFileSync(p);
+  return createHash('sha256').update(buf).digest('hex');
+}
+
+function run(cmd: string, args: string[], cwd: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd, shell: os.platform() === 'win32' });
+    let stderr = '';
+    child.stderr.on('data', d => (stderr += d.toString()));
+    child.on('close', code => {
+      if (code === 0) resolve();
+      else reject(new Error(stderr || `${cmd} ${args.join(' ')} exited with ${code}`));
+    });
+  });
+}
+
+/** Prefer the venv python under tools-bao if it exists; otherwise fall back to configured python */
+export function getBaoPythonCmd(xousRoot: string): string {
+  const toolsBao = path.join(xousRoot, 'tools-bao');
+  const vpy = venvPythonPath(toolsBao);
+  if (fs.existsSync(vpy)) return vpy;
+  const configured = getPythonCmd();
+  return configured || (os.platform() === 'win32' ? 'py -3' : 'python3');
+}
+
+export async function ensureBaoPythonDeps(
+  ctx: vscode.ExtensionContext,
+  xousRoot: string,
+  { quiet = false }: { quiet?: boolean } = {}
+): Promise<void> {
+  const toolsBaoDir = path.join(xousRoot, 'tools-bao');
+  const reqPath = path.join(toolsBaoDir, 'requirements.txt');
+  if (!fs.existsSync(reqPath)) return;
+
+  const currentHash = hashFile(reqPath);
+  const prevHash = getReqHashForRoot(ctx, xousRoot);
+  const needVenv = !hasVenv(toolsBaoDir);
+  const needInstall = needVenv || prevHash !== currentHash;
+
+  if (!needInstall) return;
+
+  await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'Baochip: Setting up Python environment…', cancellable: false },
+    async () => {
+      const sysPy = await ensurePythonCmd();
+      if (needVenv) await run(sysPy, ['-m', 'venv', '.venv'], toolsBaoDir);
+
+      const vpy = venvPythonPath(toolsBaoDir);
+      await run(vpy, ['-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'], toolsBaoDir);
+      await run(vpy, ['-m', 'pip', 'install', '--force-reinstall', '-r', 'requirements.txt'], toolsBaoDir);
+
+      await setReqHashForRoot(ctx, xousRoot, currentHash);  // <— store per-root
+      if (!quiet) vscode.window.showInformationMessage('Baochip: Python dependencies installed.');
+    }
+  );
 }

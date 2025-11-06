@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import { ensureXousCorePath, ensureBaoPythonDeps } from '@services/pathService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import { registerCommands } from './index';
@@ -16,7 +18,7 @@ import {
 const shouldShowWelcome = () =>
   vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // Check on activation (non-blocking)
   checkToolsBaoVersion();
 
@@ -27,6 +29,30 @@ export function activate(context: vscode.ExtensionContext) {
   // Documentation tree
   const docsTree = new DocsTreeProvider();
   vscode.window.registerTreeDataProvider('bao-docs', docsTree); 
+
+
+  // --- Prep Python deps once on activation (quiet) and watch requirements.txt for changes ---
+  try {
+    const root = await ensureXousCorePath(); // user may cancel; that's OK
+    await ensureBaoPythonDeps(context, root, { quiet: true });
+    wireRequirementsWatcher(context, root);
+  } catch {
+    // No xous-core yet — skip for now; we’ll catch it when the user sets the path.
+  }
+
+  // Re-run deps once when the user updates xous-core path later
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(async (e) => {
+      if (!e.affectsConfiguration('baochip.xousCorePath')) return;
+      try {
+        const newRoot = await ensureXousCorePath();
+        await ensureBaoPythonDeps(context, newRoot, { quiet: true });
+        wireRequirementsWatcher(context, newRoot);
+      } catch {
+        /* ignore */
+      }
+    })
+  );
 
   // --- Status bar items (left side) ---
   // Higher priority number = appears more to the left
@@ -169,3 +195,23 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
+
+function wireRequirementsWatcher(context: vscode.ExtensionContext, xousRoot: string) {
+  const reqAbs = path.join(xousRoot, 'tools-bao', 'requirements.txt');
+  const watcher = vscode.workspace.createFileSystemWatcher(reqAbs);
+
+  const reinstallQuietly = async () => {
+    try {
+      await ensureBaoPythonDeps(context, xousRoot, { quiet: true });
+    } catch {
+      /* ignore — user will see errors if they actually run a command */
+    }
+  };
+
+  context.subscriptions.push(
+    watcher,
+    watcher.onDidCreate(reinstallQuietly),
+    watcher.onDidChange(reinstallQuietly),
+    watcher.onDidDelete(reinstallQuietly),
+  );
+}
