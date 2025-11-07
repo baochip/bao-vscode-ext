@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy, runBaoCmd } from '@services/pathService';
 import { ensureBuildPrereqs, runBuildAndWait } from '@services/buildService';
 import { decideAndFlash } from '@services/flashService';
 import { sendBoot } from '@services/bootService';
@@ -14,9 +14,9 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     const pre = await ensureBuildPrereqs();
     if (!pre) return;
 
-    // Also resolve bao.py & python
-    let root: string, bao: string, py: string;
-    try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); py = await ensurePythonCmd(); }
+    // Also resolve bao.py (root)
+    let root: string, bao: string;
+    try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core / bao.py not set'); return; }
 
     // 1) Build
@@ -24,10 +24,10 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     if (code !== 0) { vscode.window.showErrorMessage('Build failed.'); return; }
 
     // 2) Flash 
-    const flashed = await decideAndFlash(py, bao, pre.root);
+    const flashed = await decideAndFlash(pre.root);
     if (!flashed) return; 
 
-    const ok = await sendBoot(py, bao, root);
+    const ok = await sendBoot(runBaoCmd, bao, root);
     if (!ok) return;
 
     const runPort = getRunSerialPort();
@@ -45,7 +45,7 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
         await new Promise(r => setTimeout(r, 300));
 
         progress.report({ message: 'waiting for run mode serial port…' });
-        const seen = await waitForPort(py, bao, runPort, { cwd: root, timeoutMs: 20000, intervalMs: 500 });
+        const seen = await waitForPort(runBaoCmd, runPort, { cwd: root, timeoutMs: 20000, intervalMs: 500 });
 
         if (!seen) {
           vscode.window.showWarningMessage(`Run mode port ${runPort} didn’t appear in time. Trying anyway…`);

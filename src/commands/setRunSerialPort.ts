@@ -1,37 +1,44 @@
 import * as vscode from 'vscode';
-import { resolveBaoPy, ensureXousCorePath, ensurePythonCmd } from '@services/pathService';
-import { listPorts } from '@services/portsService';
-import { setRunSerialPort } from '@services/configService';
+import { ensureXousCorePath, runBaoCmd } from '@services/pathService';
+import { setRunSerialPort as saveRunPort } from '@services/configService';
 import { gateToolsBao } from '@services/versionGate';
 
 export function registerSetRunSerialPort(context: vscode.ExtensionContext, refreshUI: () => void) {
   return gateToolsBao('baochip.setRunSerialPort', async () => {
-    let baoPath: string, cwd: string;
+    let cwd: string;
     try {
-      baoPath = await resolveBaoPy();
       cwd = await ensureXousCorePath();
     } catch (e: any) {
       vscode.window.showWarningMessage(e?.message || 'xous-core path not set');
       return;
     }
 
-    const py = await ensurePythonCmd();
-    const ports = await listPorts(py, baoPath, cwd).catch(err => {
+    const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch(err => {
       vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
-      return [] as string[];
+      return '' as string;
     });
-    if (ports.length === 0) {
+
+    const items = lines
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(line => {
+        const [port, desc] = line.split('\t');
+        return { label: port, description: desc || undefined };
+      });
+
+    if (items.length === 0) {
       vscode.window.showWarningMessage('No serial ports found.');
       return;
     }
 
-    const picked = await vscode.window.showQuickPick(ports, {
+    const picked = await vscode.window.showQuickPick(items, {
       placeHolder: 'Select run mode (firmware) serial port',
     });
     if (!picked) return;
 
-    await setRunSerialPort(picked);
-    vscode.window.showInformationMessage(`Run mode serial port set to: ${picked}`);
-    refreshUI();
+    await saveRunPort(picked.label); // store only the bare port (e.g., "COM7")
+    vscode.window.showInformationMessage(`Run mode serial port set to: ${picked.label}`);
+    try { refreshUI(); } catch {}
   });
 }
