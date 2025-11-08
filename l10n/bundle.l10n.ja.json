@@ -173,7 +173,7 @@
   "welcome.footer.link": "GitHub で Issue を作成",
   "welcome.h1": "Baochip へようこそ",
   "welcome.link.xous.title": "GitHub で xous-core を開く",
-  "welcome.showOnStartup": "拡張機能起動時に Welcome を表示",
+  "welcome.showOnStartup": "拡張機能起動時に「Baochip へようこそ」を表示",
   "welcome.sub": "すぐに始められるクイックアクション。",
   "welcome.titleBar": "Welcome • Baochip",
   
