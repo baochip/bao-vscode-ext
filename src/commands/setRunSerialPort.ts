@@ -9,16 +9,16 @@ export function registerSetRunSerialPort(context: vscode.ExtensionContext, refre
     try {
       cwd = await ensureXousCorePath();
     } catch (e: any) {
-      vscode.window.showWarningMessage(e?.message || 'xous-core path not set');
+      vscode.window.showWarningMessage(e?.message || vscode.l10n.t('prereq.xousPathNotSet'));
       return;
     }
 
     const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch(err => {
-      vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
+      vscode.window.showErrorMessage(vscode.l10n.t('ports.listFailed', err?.message || String(err)));
       return '' as string;
     });
 
-    const items = lines
+    const items = (lines || '')
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(Boolean)
@@ -28,17 +28,17 @@ export function registerSetRunSerialPort(context: vscode.ExtensionContext, refre
       });
 
     if (items.length === 0) {
-      vscode.window.showWarningMessage('No serial ports found.');
+      vscode.window.showWarningMessage(vscode.l10n.t('ports.noneFound'));
       return;
     }
 
     const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Select run mode (firmware) serial port',
+      placeHolder: vscode.l10n.t('ports.selectRunPort'),
     });
     if (!picked) return;
 
     await saveRunPort(picked.label); // store only the bare port (e.g., "COM7")
-    vscode.window.showInformationMessage(`Run mode serial port set to: ${picked.label}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('ports.runSet', picked.label));
     try { refreshUI(); } catch {}
   });
 }

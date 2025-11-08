@@ -1,0 +1,50 @@
+{
+  "ext.displayName": "Baochip",
+  "ext.description": "Entwickeln Sie Anwendungen für Baochip.",
+
+  "cmd.openWelcome": "Baochip: Willkommen öffnen",
+  "cmd.openSettings": "Baochip: Einstellungen öffnen",
+  "cmd.setBootPort": "Baochip: Seriellport für Bootloader-Modus festlegen",
+  "cmd.setRunPort": "Baochip: Seriellport für Run-Modus festlegen",
+  "cmd.setMonitorDefaultPort": "Baochip: Standard-Monitor-Port festlegen",
+  "cmd.setMonitorBaud": "Baochip: Monitor-Baudrate festlegen",
+  "cmd.monitorOpen": "Baochip: Seriellen Monitor öffnen",
+  "cmd.monitorStop": "Baochip: Seriellen Monitor stoppen",
+  "cmd.setFlashLocation": "Baochip: Flash-Speicherort festlegen",
+  "cmd.selectBuildTarget": "Baochip: Build-Ziel auswählen",
+  "cmd.clean": "Baochip: Aufräumen",
+  "cmd.build": "Baochip: Projekt bauen",
+  "cmd.selectApp": "Baochip: App auswählen",
+  "cmd.createApp": "Baochip: Neue App",
+  "cmd.flash": "Baochip: Gerät flashen",
+  "cmd.buildFlashMonitor": "Baochip: Build • Flash • Monitor",
+  "cmd.resetUvSetup": "Baochip: UV-Konfiguration zurücksetzen",
+
+  "cfg.title.general": "Baochip — Allgemein",
+  "cfg.general.showWelcomeOnStartup": "Beim Aktivieren der Erweiterung automatisch die Willkommensseite öffnen.",
+  "cfg.general.xousCorePath": "Pfad zu Ihrem lokalen xous-core-Checkout (Ordner). Die Erweiterung führt darin tools-bao/bao.py aus.",
+
+  "cfg.title.ports": "Baochip — Ports",
+  "cfg.ports.bootloader": "Seriellport, der im Bootloader-/UF2-Laufwerksmodus erscheint.",
+  "cfg.ports.run": "Seriellport für den Run-Modus (normale Firmware-Logs).",
+  "cfg.ports.monitorDefault": "Welchen Port die Monitor-Schaltfläche standardmäßig nutzt.",
+
+  "cfg.title.monitor": "Baochip — Monitor",
+  "cfg.monitor.defaultBaud": "Standard-Baudrate für den seriellen Monitor.",
+  "cfg.monitor.crlf": "In der Zeilenübertragung CRLF als Zeilenende verwenden.",
+  "cfg.monitor.raw": "Tastendrücke sofort senden (Raw-Modus).",
+  "cfg.monitor.echo": "Lokales Echo der Eingabe.",
+
+  "cfg.title.build": "Baochip — Build",
+  "cfg.build.target": "Aktuell ausgewähltes Build-Ziel (z. B. dabao, baosec).",
+  "cfg.build.fallbackTargets": "Fallback-Liste, wenn bao.py keine Ziele liefern kann.",
+  "cfg.build.cwd": "Arbeitsverzeichnis für den Build.",
+  "cfg.build.appName": "Name der Bao-App unter xous-core/apps-dabao/. Mehrere durch Leerzeichen trennbar (z. B. 'helloworld demo_app util'); leer lassen, um nur das Ziel zu bauen.",
+
+  "cfg.title.flashing": "Baochip — Flashen",
+  "cfg.flashing.location": "Speicherort des gemounteten Baochip-UF2-Laufwerks (z. B. D:\\ unter Windows).",
+
+  "views.container.title": "Baochip",
+  "views.main": "Baochip",
+  "views.docs": "Dokumentation"
+}

@@ -1,0 +1,50 @@
+{
+  "ext.displayName": "Baochip",
+  "ext.description": "Develop applications for Baochip.",
+
+  "cmd.openWelcome": "Baochip: Open Welcome",
+  "cmd.openSettings": "Baochip: Open Settings",
+  "cmd.setBootPort": "Baochip: Set Bootloader Mode's Serial Port",
+  "cmd.setRunPort": "Baochip: Set Run Mode's Serial Port",
+  "cmd.setMonitorDefaultPort": "Baochip: Set Default Monitor Port",
+  "cmd.setMonitorBaud": "Baochip: Set Monitor Baud",
+  "cmd.monitorOpen": "Baochip: Open Serial Monitor",
+  "cmd.monitorStop": "Baochip: Stop Serial Monitor",
+  "cmd.setFlashLocation": "Baochip: Set Flash Location",
+  "cmd.selectBuildTarget": "Baochip: Select Build Target",
+  "cmd.clean": "Baochip: Full Clean",
+  "cmd.build": "Baochip: Build Project",
+  "cmd.selectApp": "Baochip: Select App",
+  "cmd.createApp": "Baochip: New App",
+  "cmd.flash": "Baochip: Flash Device",
+  "cmd.buildFlashMonitor": "Baochip: Build • Flash • Monitor",
+  "cmd.resetUvSetup": "Baochip: Reset UV Setup",
+
+  "cfg.title.general": "Baochip — General",
+  "cfg.general.showWelcomeOnStartup": "Automatically open the Baochip Welcome page when the extension activates.",
+  "cfg.general.xousCorePath": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it.",
+
+  "cfg.title.ports": "Baochip — Ports",
+  "cfg.ports.bootloader": "Serial port that appears in bootloader / UF2 drive mode.",
+  "cfg.ports.run": "Serial port used for run mode (normal firmware logs).",
+  "cfg.ports.monitorDefault": "Which port the Monitor button uses by default.",
+
+  "cfg.title.monitor": "Baochip — Monitor",
+  "cfg.monitor.defaultBaud": "Default baud rate for the serial monitor.",
+  "cfg.monitor.crlf": "Use CRLF as TX line ending in line mode.",
+  "cfg.monitor.raw": "Send keystrokes immediately (raw mode).",
+  "cfg.monitor.echo": "Local echo of typed input.",
+
+  "cfg.title.build": "Baochip — Build",
+  "cfg.build.target": "Currently selected build target (e.g., dabao, baosec).",
+  "cfg.build.fallbackTargets": "Fallback list if bao.py cannot list targets.",
+  "cfg.build.cwd": "Working directory for the build.",
+  "cfg.build.appName": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only.",
+
+  "cfg.title.flashing": "Baochip — Flashing",
+  "cfg.flashing.location": "Location of the mounted Baochip UF2 drive (e.g., D:\\ on Windows).",
+
+  "views.container.title": "Baochip",
+  "views.main": "Baochip",
+  "views.docs": "Documentation"
+}

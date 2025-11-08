@@ -8,7 +8,7 @@ export async function checkRustToolchain(): Promise<boolean> {
   const rustc = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
   if (rustc.error) {
     await vscode.window.showErrorMessage(
-      'Rust not found. Please install Rust from https://rustup.rs before building.'
+      vscode.l10n.t('rust.missingRust')
     );
     return false;
   }
@@ -17,7 +17,7 @@ export async function checkRustToolchain(): Promise<boolean> {
   const cargo = spawnSync('cargo', ['--version'], { encoding: 'utf8' });
   if (cargo.error) {
     await vscode.window.showErrorMessage(
-      'Cargo not found. Make sure Rust is installed correctly and in PATH.'
+      vscode.l10n.t('rust.missingCargo')
     );
     return false;
   }
@@ -27,16 +27,17 @@ export async function checkRustToolchain(): Promise<boolean> {
   const targets = (targetCheck.stdout || '').split(/\r?\n/).map(s => s.trim());
   if (!targets.includes('riscv32imac-unknown-none-elf')) {
     const choice = await vscode.window.showWarningMessage(
-      'The RISC-V target `riscv32imac-unknown-none-elf` is not installed. Install it now?',
-      'Install', 'Ignore'
+      vscode.l10n.t('rust.targetMissingPrompt', 'riscv32imac-unknown-none-elf'),
+      vscode.l10n.t('button.install'),
+      vscode.l10n.t('button.ignore')
     );
-    if (choice === 'Install') {
+    if (choice === vscode.l10n.t('button.install')) {
       const install = spawnSync('rustup', ['target', 'add', 'riscv32imac-unknown-none-elf'], { stdio: 'inherit' });
       if (install.status !== 0) {
-        vscode.window.showErrorMessage('Failed to install target; please run manually:\n rustup target add riscv32imac-unknown-none-elf');
+        vscode.window.showErrorMessage(vscode.l10n.t('rust.targetInstallFailed'));
         return false;
       }
-      vscode.window.showInformationMessage('Target installed successfully.');
+      vscode.window.showInformationMessage(vscode.l10n.t('rust.targetInstallSuccess'));
     }
   }
 

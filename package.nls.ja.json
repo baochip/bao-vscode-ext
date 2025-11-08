@@ -1,0 +1,50 @@
+{
+  "ext.displayName": "Baochip",
+  "ext.description": "Baochip 向けのアプリ開発を支援します。",
+
+  "cmd.openWelcome": "Baochip: ようこそを開く",
+  "cmd.openSettings": "Baochip: 設定を開く",
+  "cmd.setBootPort": "Baochip: ブートローダーモードのシリアルポートを設定",
+  "cmd.setRunPort": "Baochip: 実行モードのシリアルポートを設定",
+  "cmd.setMonitorDefaultPort": "Baochip: 既定のモニターポートを設定",
+  "cmd.setMonitorBaud": "Baochip: モニターのボーレートを設定",
+  "cmd.monitor.open": "Baochip: シリアルモニターを開く",
+  "cmd.monitor.stop": "Baochip: シリアルモニターを停止",
+  "cmd.setFlashLocation": "Baochip: フラッシュ先を設定",
+  "cmd.selectBuildTarget": "Baochip: ビルドターゲットを選択",
+  "cmd.clean": "Baochip: クリーン",
+  "cmd.build": "Baochip: プロジェクトをビルド",
+  "cmd.selectApp": "Baochip: アプリを選択",
+  "cmd.createApp": "Baochip: 新規アプリ",
+  "cmd.flash": "Baochip: デバイスにフラッシュ",
+  "cmd.buildFlashMonitor": "Baochip: ビルド・フラッシュ・モニター",
+  "cmd.resetUvSetup": "Baochip: UV 設定をリセット",
+
+  "cfg.title.general": "Baochip — 全般",
+  "cfg.general.showWelcomeOnStartup": "拡張機能の起動時に「ようこそ」ページを自動で開きます。",
+  "cfg.general.xousCorePath": "ローカルの xous-core チェックアウト先（フォルダー）へのパス。拡張機能はこの中の tools-bao/bao.py を実行します。",
+
+  "cfg.title.ports": "Baochip — ポート",
+  "cfg.ports.bootloader": "ブートローダー / UF2 ドライブモードで現れるシリアルポート。",
+  "cfg.ports.run": "実行モード（通常のファームウェアログ）で使用するシリアルポート。",
+  "cfg.ports.monitorDefault": "モニターボタンが既定で使用するポート。",
+
+  "cfg.title.monitor": "Baochip — モニター",
+  "cfg.monitor.defaultBaud": "シリアルモニターの既定のボーレート。",
+  "cfg.monitor.crlf": "ラインモードで CRLF を送信行末に使用。",
+  "cfg.monitor.raw": "キー入力を即時送信（生モード）。",
+  "cfg.monitor.echo": "入力のローカルエコー。",
+
+  "cfg.title.build": "Baochip — ビルド",
+  "cfg.build.target": "現在選択中のビルドターゲット（例：dabao、baosec）。",
+  "cfg.build.fallbackTargets": "bao.py がターゲット一覧を取得できない場合のフォールバックリスト。",
+  "cfg.build.cwd": "ビルドの作業ディレクトリ。",
+  "cfg.build.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app util'）。空の場合はターゲットのみをビルド。",
+
+  "cfg.title.flashing": "Baochip — フラッシュ",
+  "cfg.flashing.location": "マウント済みの Baochip UF2 ドライブの場所（例：Windows では D:\\）。",
+
+  "views.container.title": "Baochip",
+  "views.main": "Baochip",
+  "views.docs": "ドキュメント"
+}

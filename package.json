@@ -1,7 +1,7 @@
 {
   "name": "bao-vscode-ext",
-  "displayName": "Baochip",
-  "description": "Develop applications for Baochip.",
+  "displayName": "%ext.displayName%",
+  "description": "%ext.description%",
   "publisher": "baochip",
   "website": "https://baochip.com",
   "version": "1.0.0",
@@ -15,6 +15,7 @@
   "engines": {
     "vscode": "^1.92.0"
   },
+  "l10n": "./l10n",
   "categories": [
     "Programming Languages",
     "Debuggers",
@@ -38,197 +39,198 @@
     "commands": [
       {
         "command": "baochip.openWelcome",
-        "title": "Baochip: Open Welcome"
+        "title": "%cmd.openWelcome%"
       },
       {
         "command": "baochip.openSettings",
-        "title": "Baochip: Open Settings"
+        "title": "%cmd.openSettings%"
       },
       {
         "command": "baochip.setBootloaderSerialPort",
-        "title": "Baochip: Set Bootloader Mode's Serial Port"
+        "title": "%cmd.setBootPort%"
       },
       {
         "command": "baochip.setRunSerialPort",
-        "title": "Baochip: Set Run Mode's Serial Port"
+        "title": "%cmd.setRunPort%"
       },
       {
         "command": "baochip.setMonitorDefaultPort",
-        "title": "Baochip: Set Default Monitor Port"
+        "title": "%cmd.setMonitorDefaultPort%"
       },
-      { 
-        "command": "baochip.setMonitorBaud", 
-        "title": "Baochip: Set Monitor Baud" 
+      {
+        "command": "baochip.setMonitorBaud",
+        "title": "%cmd.setMonitorBaud%"
       },
-      { 
-        "command": "baochip.monitor.open", 
-        "title": "Baochip: Open Serial Monitor" 
+      {
+        "command": "baochip.monitor.open",
+        "title": "%cmd.monitorOpen%"
       },
-      { 
-        "command": "baochip.monitor.stop", 
-        "title": "Baochip: Stop Serial Monitor" 
+      {
+        "command": "baochip.monitor.stop",
+        "title": "%cmd.monitorStop%"
       },
       {
         "command": "baochip.setFlashLocation",
-        "title": "Baochip: Set Flash Location"
+        "title": "%cmd.setFlashLocation%"
       },
       {
         "command": "baochip.selectBuildTarget",
-        "title": "Baochip: Select Build Target"
+        "title": "%cmd.selectBuildTarget%"
       },
       {
         "command": "baochip.clean",
-        "title": "Baochip: Full Clean"
+        "title": "%cmd.clean%"
       },
       {
         "command": "baochip.build",
-        "title": "Baochip: Build Project"
+        "title": "%cmd.build%"
       },
-      { 
-        "command": "baochip.selectApp", 
-        "title": "Baochip: Select App" 
+      {
+        "command": "baochip.selectApp",
+        "title": "%cmd.selectApp%"
       },
-      { "command": "baochip.createApp",
-        "title": "Baochip: New App"
+      {
+        "command": "baochip.createApp",
+        "title": "%cmd.createApp%"
       },
       {
         "command": "baochip.flash",
-        "title": "Baochip: Flash Device"
+        "title": "%cmd.flash%"
       },
       {
         "command": "baochip.buildFlashMonitor",
-        "title": "Baochip: Build • Flash • Monitor"
+        "title": "%cmd.buildFlashMonitor%"
       },
       {
         "command": "baochip.resetUvSetup",
-        "title": "Baochip: Reset UV Setup"
+        "title": "%cmd.resetUvSetup%"
       }
     ],
     "menus": {},
-"configuration": [
-    {
-      "title": "Baochip — General",
-      "scope": "resource",
-      "properties": {
-        "baochip.showWelcomeOnStartup": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically open the Baochip Welcome page when the extension activates.",
-          "order": 1
-        },
-        "baochip.xousCorePath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it.",
-          "order": 2
+    "configuration": [
+      {
+        "title": "%cfg.title.general%",
+        "scope": "resource",
+        "properties": {
+          "baochip.showWelcomeOnStartup": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.general.showWelcomeOnStartup%",
+            "order": 1
+          },
+          "baochip.xousCorePath": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.general.xousCorePath%",
+            "order": 2
+          }
+        }
+      },
+      {
+        "title": "%cfg.title.ports%",
+        "scope": "resource",
+        "properties": {
+          "baochip.serialPortBootloader": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.ports.bootloader%",
+            "order": 1
+          },
+          "baochip.serialPortRun": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.ports.run%",
+            "order": 2
+          },
+          "baochip.monitorDefaultPort": {
+            "type": "string",
+            "enum": ["run", "bootloader"],
+            "default": "run",
+            "description": "%cfg.ports.monitorDefault%",
+            "order": 3
+          }
+        }
+      },
+      {
+        "title": "%cfg.title.monitor%",
+        "scope": "resource",
+        "properties": {
+          "baochip.monitor.defaultBaud": {
+            "type": "number",
+            "default": 1000000,
+            "minimum": 1,
+            "description": "%cfg.monitor.defaultBaud%",
+            "order": 1
+          },
+          "baochip.monitor.crlf": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.monitor.crlf%",
+            "order": 2
+          },
+          "baochip.monitor.raw": {
+            "type": "boolean",
+            "default": true,
+            "description": "%cfg.monitor.raw%",
+            "order": 3
+          },
+          "baochip.monitor.echo": {
+            "type": "boolean",
+            "default": false,
+            "description": "%cfg.monitor.echo%",
+            "order": 4
+          }
+        }
+      },
+      {
+        "title": "%cfg.title.build%",
+        "scope": "resource",
+        "properties": {
+          "baochip.buildTarget": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.build.target%",
+            "order": 1
+          },
+          "baochip.buildTargets": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": ["dabao", "baosec"],
+            "description": "%cfg.build.fallbackTargets%",
+            "order": 2
+          },
+          "baochip.build.cwd": {
+            "type": "string",
+            "default": "${workspaceFolder}",
+            "description": "%cfg.build.cwd%",
+            "order": 3
+          },
+          "baochip.xousAppName": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.build.appName%",
+            "order": 4
+          }
+        }
+      },
+      {
+        "title": "%cfg.title.flashing%",
+        "scope": "resource",
+        "properties": {
+          "baochip.flashLocation": {
+            "type": "string",
+            "default": "",
+            "description": "%cfg.flashing.location%",
+            "order": 1
+          }
         }
       }
-    },
-    {
-      "title": "Baochip — Ports",
-      "scope": "resource",
-      "properties": {
-        "baochip.serialPortBootloader": {
-          "type": "string",
-          "default": "",
-          "description": "Serial port that appears in bootloader / UF2 drive mode.",
-          "order": 1
-        },
-        "baochip.serialPortRun": {
-          "type": "string",
-          "default": "",
-          "description": "Serial port used for run mode (normal firmware logs).",
-          "order": 2
-        },
-        "baochip.monitorDefaultPort": {
-          "type": "string",
-          "enum": ["run", "bootloader"],
-          "default": "run",
-          "description": "Which port the Monitor button uses by default.",
-          "order": 3
-        }
-      }
-    },
-    {
-      "title": "Baochip — Monitor",
-      "scope": "resource",
-      "properties": {
-        "baochip.monitor.defaultBaud": {
-          "type": "number",
-          "default": 1000000,
-          "minimum": 1,
-          "description": "Default baud rate for the serial monitor.",
-          "order": 1
-        },
-        "baochip.monitor.crlf": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use CRLF as TX line ending in line mode.",
-          "order": 2
-        },
-        "baochip.monitor.raw": {
-          "type": "boolean",
-          "default": true,
-          "description": "Send keystrokes immediately (raw mode).",
-          "order": 3
-        },
-        "baochip.monitor.echo": {
-          "type": "boolean",
-          "default": false,
-          "description": "Local echo of typed input.",
-          "order": 4
-        }
-      }
-    },
-    {
-      "title": "Baochip — Build",
-      "scope": "resource",
-      "properties": {
-        "baochip.buildTarget": {
-          "type": "string",
-          "default": "",
-          "description": "Currently selected build target (e.g., dabao, baosec).",
-          "order": 1
-        },
-        "baochip.buildTargets": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": ["dabao", "baosec"],
-          "description": "Fallback list if bao.py cannot list targets.",
-          "order": 2
-        },
-        "baochip.build.cwd": {
-          "type": "string",
-          "default": "${workspaceFolder}",
-          "description": "Working directory for the build.",
-          "order": 3
-        },
-        "baochip.xousAppName": {
-          "type": "string",
-          "default": "",
-          "description": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only.",
-          "order": 4
-        }
-      }
-    },
-    {
-      "title": "Baochip — Flashing",
-      "scope": "resource",
-      "properties": {
-        "baochip.flashLocation": {
-          "type": "string",
-          "default": "",
-          "description": "Location of the mounted Baochip UF2 drive (e.g., D:\\\\ on Windows).",
-          "order": 1
-        }
-      }
-    }
-  ],
+    ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "bao-container",
-          "title": "Baochip",
+          "title": "%views.container.title%",
           "icon": "media/bao-icon.svg"
         }
       ]
@@ -237,11 +239,11 @@
       "bao-container": [
         {
           "id": "bao-view",
-          "name": "Baochip"
+          "name": "%views.main%"
         },
         {
           "id": "bao-docs",
-          "name": "Documentation"
+          "name": "%views.docs%"
         }
       ]
     },

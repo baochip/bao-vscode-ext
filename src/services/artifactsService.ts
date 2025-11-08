@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { runBaoCmd } from '@services/pathService';
 
 export type BaoArtifact = {
@@ -16,6 +17,6 @@ export async function fetchArtifacts(
     if (Array.isArray(parsed)) return parsed as BaoArtifact[];
     return [];
   } catch {
-    throw new Error('artifacts JSON parse failed');
+    throw new Error(vscode.l10n.t('artifacts.parseFailed'));
   }
 }

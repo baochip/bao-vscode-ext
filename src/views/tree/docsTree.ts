@@ -24,7 +24,7 @@ export class DocsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
       item.description = link.description;
       item.iconPath = new vscode.ThemeIcon('link-external');
       item.command = {
-        title: 'Open',
+        title: vscode.l10n.t('button.open'),
         command: 'vscode.open',
         arguments: [vscode.Uri.parse(link.url)]
       };

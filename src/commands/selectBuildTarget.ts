@@ -6,7 +6,7 @@ export function registerSelectBuildTarget(context: vscode.ExtensionContext, refr
   return gateToolsBao('baochip.selectBuildTarget', async () => {
     const targets = getBuildTargetsFallback();
     if (!targets || targets.length === 0) {
-      vscode.window.showWarningMessage('No build targets available.');
+      vscode.window.showWarningMessage(vscode.l10n.t('target.noneAvailable'));
       return;
     }
 
@@ -14,15 +14,15 @@ export function registerSelectBuildTarget(context: vscode.ExtensionContext, refr
     const picked = await vscode.window.showQuickPick(
       targets.map(t => ({
         label: t,
-        description: t === current ? 'current' : undefined,
+        description: t === current ? vscode.l10n.t('tag.current') : undefined,
       })),
-      { placeHolder: 'Select build target' }
+      { placeHolder: vscode.l10n.t('target.select') } // reuse
     );
 
     if (!picked) return;
 
     await setBuildTarget(picked.label);
-    vscode.window.showInformationMessage(`Build target set to ${picked.label}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('target.setDone', picked.label));
     refreshUI();
   });
 }

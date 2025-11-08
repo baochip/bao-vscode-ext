@@ -4,28 +4,29 @@ import { gateToolsBao } from '@services/versionGate';
 
 export function registerSetFlashLocation(_context: vscode.ExtensionContext, refreshUI: () => void) {
   return gateToolsBao('baochip.setFlashLocation', async () => {
-      const ok = await vscode.window.showInformationMessage(
-        'You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.',
-        { modal: true },
-        'Select Folder'
-      );
-      if (ok !== 'Select Folder') {
-        throw new Error('baochip location not set');
-      }
+    const selectFolderBtn = vscode.l10n.t('button.selectFolder');
+    const ok = await vscode.window.showInformationMessage(
+      vscode.l10n.t('flash.selectDriveInstructions'),
+      { modal: true },
+      selectFolderBtn
+    );
+    if (ok !== selectFolderBtn) {
+      throw new Error(vscode.l10n.t('flash.locationNotSet'));
+    }
 
     const pick = await vscode.window.showOpenDialog({
-      title: 'Select mounted baochip drive',
+      title: vscode.l10n.t('flash.selectDriveTitle'),
       canSelectFiles: false,
       canSelectFolders: true,
       canSelectMany: false,
-      openLabel: 'Use this location',
+      openLabel: vscode.l10n.t('button.useThisLocation'),
     });
 
     if (!pick || pick.length === 0) return;
     const folder = pick[0].fsPath;
 
     await setFlashLocation(folder);
-    vscode.window.showInformationMessage(`Baochip location set to: ${folder}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('flash.locationSet', folder));
     refreshUI();
   });
 }

@@ -90,90 +90,100 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Single UI refresher
-  const refreshUI = () => {
-    const bootloaderSerPort = getBootloaderSerialPort();
-    const runSerPort = getRunSerialPort();
-    const baud    = getDefaultBaud();
-    const flLoc   = getFlashLocation();
-    const target  = getBuildTarget();
-    const app      = getXousAppName();
+// Single UI refresher
+const refreshUI = () => {
+  const bootloaderSerPort = getBootloaderSerialPort();
+  const runSerPort = getRunSerialPort();
+  const baud    = getDefaultBaud();
+  const flLoc   = getFlashLocation();
+  const target  = getBuildTarget();
+  const app     = getXousAppName();
 
   const def = getMonitorDefaultPort(); // "run" | "bootloader"
   const chosenPort = def === 'run' ? runSerPort : bootloaderSerPort;
-  const defLabel = def === 'run' ? 'Run' : 'Bootloader';
+  const defLabel = def === 'run' ? vscode.l10n.t('label.run') : vscode.l10n.t('label.bootloader');
 
-    // Bootloader serial port item
-    bootloaderSerialPortItem.text = bootloaderSerPort ? `$(plug) ${bootloaderSerPort}` : '$(plug) Bootloader Mode Serial Port: (not set)';
-    bootloaderSerialPortItem.tooltip = bootloaderSerPort
-      ? `Current bootloader mode serial port @ ${baud}`
-      : 'Click to set bootloader mode serial port';
-    bootloaderSerialPortItem.show();
+  // Bootloader serial port item
+  bootloaderSerialPortItem.text = bootloaderSerPort
+    ? `$(plug) ${bootloaderSerPort}`
+    : `$(plug) ${vscode.l10n.t('status.bootloaderPort.notSetLabel')}`;
+  bootloaderSerialPortItem.tooltip = bootloaderSerPort
+    ? vscode.l10n.t('status.bootloaderPort.tooltipSet', String(baud))
+    : vscode.l10n.t('status.bootloaderPort.tooltipUnset');
+  bootloaderSerialPortItem.show();
 
-    // Bootloader Monitor button 
-    if (chosenPort) {
-      monitorBtn.text = `$(vm) ${defLabel}: ${chosenPort}`;
-      monitorBtn.tooltip = `Open monitor on ${defLabel} port ${chosenPort} @ ${baud}`;
-    } else {
-      monitorBtn.text = '$(vm) Monitor';
-      monitorBtn.tooltip =
-        def === 'run'
-          ? 'Open monitor (run mode serial port not set)'
-          : 'Open monitor (bootloader mode serial port not set)';
-    }
-    monitorBtn.show();
+  // Monitor button
+  if (chosenPort) {
+    monitorBtn.text = `$(vm) ${defLabel}: ${chosenPort}`;
+    monitorBtn.tooltip = vscode.l10n.t('status.monitor.tooltipSet', defLabel, chosenPort, String(baud));
+  } else {
+    monitorBtn.text = `$(vm) ${vscode.l10n.t('tree.monitor')}`;
+    monitorBtn.tooltip =
+      def === 'run'
+        ? vscode.l10n.t('status.monitor.tooltipUnsetRun')
+        : vscode.l10n.t('status.monitor.tooltipUnsetBoot');
+  }
+  monitorBtn.show();
 
-    // Run serial port item
-    runSerialPortItem.text = runSerPort ? `$(plug) ${runSerPort}` : '$(plug) Run Mode Serial Port: (not set)';
-    runSerialPortItem.tooltip = runSerPort
-      ? `Current run mode serial port @ ${baud}`
-      : 'Click to set run mode serial port';
-    runSerialPortItem.show();
+  // Run serial port item
+  runSerialPortItem.text = runSerPort
+    ? `$(plug) ${runSerPort}`
+    : `$(plug) ${vscode.l10n.t('status.runPort.notSetLabel')}`;
+  runSerialPortItem.tooltip = runSerPort
+    ? vscode.l10n.t('status.runPort.tooltipSet', String(baud))
+    : vscode.l10n.t('status.runPort.tooltipUnset');
+  runSerialPortItem.show();
 
-    // Flash location
-    flashLocationItem.text = flLoc ? `$(chip) ${flLoc}` : '$(chip) Baochip Location: (not set)';
-    flashLocationItem.tooltip = 'Click to set baochip location';
-    flashLocationItem.show();
+  // Flash location
+  flashLocationItem.text = flLoc
+    ? `$(chip) ${flLoc}`
+    : `$(chip) ${vscode.l10n.t('status.flashLoc.notSetLabel')}`;
+  flashLocationItem.tooltip = vscode.l10n.t('status.flashLoc.tooltip');
+  flashLocationItem.show();
 
-    // Build target
-    targetItem.text = target ? `$(target) ${target}` : '$(target) Target: (not set)';
-    targetItem.tooltip = 'Click to select build target';
-    targetItem.show();
+  // Build target
+  targetItem.text = target
+    ? `$(target) ${target}`
+    : `$(target) ${vscode.l10n.t('status.target.notSetLabel')}`;
+  targetItem.tooltip = vscode.l10n.t('status.target.tooltip');
+  targetItem.show();
 
-    // App name
-    appItem.text = app ? `$(package) ${app}` : '$(package) App: (not set)';
-    appItem.tooltip = 'Click to select xous-core app';
-    appItem.show();
+  // App name
+  appItem.text = app
+    ? `$(package) ${app}`
+    : `$(package) ${vscode.l10n.t('status.app.notSetLabel')}`;
+  appItem.tooltip = vscode.l10n.t('status.app.tooltip');
+  appItem.show();
 
-    // Status bar: Full Clean
-    cleanItem.text = '$(trash)';
-    cleanItem.tooltip = 'Full clean (cargo clean)';
-    cleanItem.show();
+  // Status bar: Full Clean (keep cargo literal)
+  cleanItem.text = '$(trash)';
+  cleanItem.tooltip = vscode.l10n.t('status.clean.tooltip'); // "Full clean (cargo clean)"
+  cleanItem.show();
 
-    // Status bar: Build
-    buildItem.text = '$(tools)';
-    buildItem.tooltip = 'Build (cargo xtask)';
-    buildItem.show();
+  // Status bar: Build (keep cargo literal)
+  buildItem.text = '$(tools)';
+  buildItem.tooltip = vscode.l10n.t('status.build.tooltip'); // "Build (cargo xtask)"
+  buildItem.show();
 
-    // Status bar: Flash
-    flashItem.text = '$(rocket)';
-    flashItem.tooltip = 'Flash to device';
-    flashItem.show();
+  // Status bar: Flash
+  flashItem.text = '$(rocket)';
+  flashItem.tooltip = vscode.l10n.t('status.flash.tooltip');
+  flashItem.show();
 
-    // Status bar: B•F•M
-    bfmItem.text = '$(rocket) B•F•M';
-    bfmItem.tooltip = 'Build • Flash • Monitor';
-    bfmItem.show();
+  // Status bar: B•F•M
+  bfmItem.text = '$(rocket) B•F•M';
+  bfmItem.tooltip = vscode.l10n.t('tree.buildFlashMonitor'); // reuse tree label
+  bfmItem.show();
 
-    // Status bar: Settings
-    settingsItem.text = '$(gear)';
-    settingsItem.tooltip = 'Open Baochip Settings';
-    settingsItem.show();
+  // Status bar: Settings
+  settingsItem.text = '$(gear)';
+  settingsItem.tooltip = vscode.l10n.t('status.settings.tooltip');
+  settingsItem.show();
 
-    tree.refresh();
-    tree.refreshMonitor();
-    docsTree.refresh();
-  };
+  tree.refresh();
+  tree.refreshMonitor();
+  docsTree.refresh();
+};
 
   refreshUI();
 

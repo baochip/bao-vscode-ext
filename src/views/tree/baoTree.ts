@@ -11,7 +11,7 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private monitorNode = new TreeItem(
-    'Monitor',
+    vscode.l10n.t('tree.monitor'),
     'baochip.openMonitor',
     'vm',
     vscode.TreeItemCollapsibleState.Collapsed
@@ -26,28 +26,32 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
       const def = getMonitorDefaultPort(); // "run" | "bootloader"
       const port = def === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
       const baud = getDefaultBaud();
-      const mode = def === 'run' ? 'Run' : 'Bootloader';
-      el.tooltip = port
-        ? `Open monitor on ${mode} port ${port} @ ${baud}`
-        : `Open monitor (${mode.toLowerCase()} port not set)`;
+      const modeLabel = def === 'run' ? vscode.l10n.t('label.run') : vscode.l10n.t('label.bootloader');
+      if (port) {
+        el.tooltip = vscode.l10n.t('tree.monitorTooltipSet', modeLabel, port, String(baud));
+      } else {
+        // lower-cased mode
+        const modeWord = def === 'run' ? vscode.l10n.t('mode.run') : vscode.l10n.t('mode.bootloader');
+        el.tooltip = vscode.l10n.t('tree.monitorTooltipUnset', modeWord);
+      }
     }
     return el;
   }
 
   getChildren(element?: TreeItem) {
     if (!element) {
-      const welcome = new TreeItem('Welcome', 'baochip.openWelcome', 'home');
-      const setBootloaderPort = new TreeItem('Set bootloader mode serial port', 'baochip.setBootloaderSerialPort', 'plug');
-      const setRunPort = new TreeItem('Set run mode serial port', 'baochip.setRunSerialPort', 'plug');
-      const setFlashLoc = new TreeItem('Set baochip location', 'baochip.setFlashLocation', 'chip');
-      const target   = new TreeItem('Select build target', 'baochip.selectBuildTarget', 'target');
-      const newApp   = new TreeItem('New app', 'baochip.createApp', 'add');
-      const selectApp = new TreeItem('Select app', 'baochip.selectApp', 'search');
-      const clean    = new TreeItem('Clean (cargo clean)', 'baochip.clean', 'trash');
-      const build    = new TreeItem('Build (cargo xtask)', 'baochip.build', 'tools');
-      const flash    = new TreeItem('Flash device', 'baochip.flash', 'rocket');
-      const bfm      = new TreeItem('Build • Flash • Monitor', 'baochip.buildFlashMonitor', 'rocket');
-      const settings = new TreeItem('Open Settings', 'baochip.openSettings', 'gear');
+      const welcome = new TreeItem(vscode.l10n.t('tree.welcome'), 'baochip.openWelcome', 'home');
+      const setBootloaderPort = new TreeItem(vscode.l10n.t('tree.setBootloaderPort'), 'baochip.setBootloaderSerialPort', 'plug');
+      const setRunPort = new TreeItem(vscode.l10n.t('tree.setRunPort'), 'baochip.setRunSerialPort', 'plug');
+      const setFlashLoc = new TreeItem(vscode.l10n.t('tree.setFlashLoc'), 'baochip.setFlashLocation', 'chip');
+      const target   = new TreeItem(vscode.l10n.t('tree.selectBuildTarget'), 'baochip.selectBuildTarget', 'target');
+      const newApp   = new TreeItem(vscode.l10n.t('tree.newApp'), 'baochip.createApp', 'add');
+      const selectApp = new TreeItem(vscode.l10n.t('tree.selectApp'), 'baochip.selectApp', 'search');
+      const clean    = new TreeItem(vscode.l10n.t('tree.cleanCargo'), 'baochip.clean', 'trash');
+      const build    = new TreeItem(vscode.l10n.t('tree.buildXtask'), 'baochip.build', 'tools');
+      const flash    = new TreeItem(vscode.l10n.t('tree.flashDevice'), 'baochip.flash', 'rocket');
+      const bfm      = new TreeItem(vscode.l10n.t('tree.buildFlashMonitor'), 'baochip.buildFlashMonitor', 'rocket');
+      const settings = new TreeItem(vscode.l10n.t('tree.openSettings'), 'baochip.openSettings', 'gear');
 
       return Promise.resolve([
         setBootloaderPort,
@@ -67,9 +71,9 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 
     if (element === this.monitorNode) {
       const def = getMonitorDefaultPort();
-      const label = def === 'run' ? 'Run' : 'Bootloader';
+      const label = def === 'run' ? vscode.l10n.t('label.run') : vscode.l10n.t('label.bootloader');
       const defaultMonChild = new TreeItem(
-        `Default monitor: ${label}`,
+        vscode.l10n.t('tree.defaultMonitorLabel', label),
         'baochip.setMonitorDefaultPort',
         'gear'
       );

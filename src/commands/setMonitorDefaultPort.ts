@@ -5,16 +5,20 @@ import { gateToolsBao } from '@services/versionGate';
 export function registerSetMonitorDefaultPort(context: vscode.ExtensionContext, refreshUI: () => void) {
   return gateToolsBao('baochip.setMonitorDefaultPort', async () => {
     const current = getMonitorDefaultPort();
+    const runLabel = vscode.l10n.t('monitor.option.run');
+    const bootLabel = vscode.l10n.t('monitor.option.bootloader');
+
     const picked = await vscode.window.showQuickPick(
       [
-        { label: 'Run (normal firmware logs)', value: 'run' as const },
-        { label: 'Bootloader (drive mode)', value: 'bootloader' as const }
+        { label: runLabel, value: 'run' as const },
+        { label: bootLabel, value: 'bootloader' as const }
       ],
-      { placeHolder: `Current: ${current === 'run' ? 'Run' : 'Bootloader'}` }
+      { placeHolder: vscode.l10n.t('pick.currentPlaceholder', current === 'run' ? vscode.l10n.t('label.run') : vscode.l10n.t('label.bootloader')) }
     );
     if (!picked) return;
+
     setMonitorDefaultPort(picked.value);
-    vscode.window.showInformationMessage(`Default monitor port set to: ${picked.value}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('monitor.defaultPortSet', picked.value));
     refreshUI();
   });
 }

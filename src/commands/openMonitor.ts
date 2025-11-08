@@ -13,8 +13,8 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
     const port = def === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
 
     if (!port) {
-      const friendly = def === 'run' ? 'run mode' : 'bootloader mode';
-      vscode.window.showInformationMessage(`No ${friendly} serial port set. Pick one first.`);
+      const friendly = def === 'run' ? vscode.l10n.t('mode.run') : vscode.l10n.t('mode.bootloader');
+      vscode.window.showInformationMessage(vscode.l10n.t('ports.noSerialPortSet', friendly));
       await vscode.commands.executeCommand(def === 'run' ? "baochip.setRunSerialPort" : "baochip.setBootloaderSerialPort");
       return;
     }
@@ -22,7 +22,7 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
     // 2) Resolve paths
     let root: string, bao: string;
     try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); }
-    catch (e: any) { vscode.window.showWarningMessage(e?.message || "xous-core / bao.py not set"); return; }
+    catch (e: any) { vscode.window.showWarningMessage(e?.message || vscode.l10n.t("prereq.xousOrBaoNotSet")); return; }
 
     const baud = getDefaultBaud();
 
@@ -39,8 +39,9 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
 
     // 4) Launch terminal via uv
     try { monitorTerm?.dispose(); } catch {}
-    const label = def === 'run' ? 'Run' : 'Bootloader';
-    monitorTerm = vscode.window.createTerminal({ name: `Bao Monitor (${label}: ${port})`, cwd: root });
+    const label = def === 'run' ? vscode.l10n.t('label.run') : vscode.l10n.t('label.bootloader');
+    const termName = vscode.l10n.t('terminal.monitorTitleTemplate', label, port);
+    monitorTerm = vscode.window.createTerminal({ name: termName, cwd: root });
 
     const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
     const full = [

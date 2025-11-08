@@ -16,9 +16,9 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
   let dest = getFlashLocation();
   if (!dest) {
     const pick = await vscode.window.showOpenDialog({
-      title: 'Select mounted Baochip UF2 drive',
+      title: vscode.l10n.t('flash.selectDriveTitleUf2'),
       canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
-      openLabel: 'Use this location',
+      openLabel: vscode.l10n.t('button.useThisLocation'),
     });
     if (!pick || pick.length === 0) return undefined;
     dest = pick[0].fsPath;
@@ -28,8 +28,7 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
   // Always ensure it exists at time of flashing
   if (!(await pathExists(dest))) {
     vscode.window.showErrorMessage(
-      `Flash location not found: ${dest}  Is the board mounted? ` +
-      `Make sure the board appears as a drive, press RESET if needed.`
+      vscode.l10n.t('flash.locationMissing', dest)
     );
     return undefined;
   }
@@ -53,7 +52,7 @@ export async function gatherArtifacts(root: string) {
 
 export async function flashFiles(dest: string, files: string[]): Promise<boolean> {
   return vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'Baochip: Flashing…', cancellable: true },
+    { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t('flash.progressTitle'), cancellable: true },
     async (_progress, token) => {
       try {
         let copied = 0;
@@ -70,15 +69,15 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
         }
 
         if (token.isCancellationRequested) {
-          vscode.window.showWarningMessage('Baochip: Flash cancelled.');
+          vscode.window.showWarningMessage(vscode.l10n.t('flash.cancelled'));
           return false;
         }
 
-        vscode.window.showInformationMessage(`Baochip: flashed ${copied} file(s) to ${dest}.`);
+        vscode.window.showInformationMessage(vscode.l10n.t('flash.done', copied, dest));
         return true;
       } catch (e: any) {
         const msg = e?.message ?? String(e);
-        vscode.window.showErrorMessage(`Baochip flash failed: ${msg}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('flash.failed', msg));
         return false;
       }
     }
@@ -91,7 +90,7 @@ export async function decideAndFlash(root: string): Promise<boolean> {
 
   const { all } = await gatherArtifacts(root);
   if (all.length === 0) {
-    vscode.window.showWarningMessage('No UF2s found (loader/xous/apps). Build first, then flash.');
+    vscode.window.showWarningMessage(vscode.l10n.t('flash.noUf2s'));
     return false;
   }
 

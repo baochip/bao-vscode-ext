@@ -1,0 +1,50 @@
+{
+  "ext.displayName": "Baochip",
+  "ext.description": "為 Baochip 開發應用程式。",
+
+  "cmd.openWelcome": "Baochip：開啟歡迎頁",
+  "cmd.openSettings": "Baochip：開啟設定",
+  "cmd.setBootPort": "Baochip：設定開機模式串列埠",
+  "cmd.setRunPort": "Baochip：設定執行模式串列埠",
+  "cmd.setMonitorDefaultPort": "Baochip：設定預設監視埠",
+  "cmd.setMonitorBaud": "Baochip：設定監視器鮑率",
+  "cmd.monitorOpen": "Baochip：開啟串列監視器",
+  "cmd.monitorStop": "Baochip：停止串列監視器",
+  "cmd.setFlashLocation": "Baochip：設定燒錄位置",
+  "cmd.selectBuildTarget": "Baochip：選擇建置目標",
+  "cmd.clean": "Baochip：清理",
+  "cmd.build": "Baochip：建置專案",
+  "cmd.selectApp": "Baochip：選擇應用程式",
+  "cmd.createApp": "Baochip：新增應用程式",
+  "cmd.flash": "Baochip：燒錄到裝置",
+  "cmd.buildFlashMonitor": "Baochip：建置 • 燒錄 • 監視",
+  "cmd.resetUvSetup": "Baochip：重設 UV 設定",
+
+  "cfg.title.general": "Baochip — 一般",
+  "cfg.general.showWelcomeOnStartup": "擴充功能啟用時自動開啟 Baochip 歡迎頁。",
+  "cfg.general.xousCorePath": "本機 xous-core 檔案夾路徑。擴充功能會在此執行 tools-bao/bao.py。",
+
+  "cfg.title.ports": "Baochip — 埠",
+  "cfg.ports.bootloader": "在開機載入程式 / UF2 磁碟模式出現的串列埠。",
+  "cfg.ports.run": "執行模式（一般韌體日誌）所使用的串列埠。",
+  "cfg.ports.monitorDefault": "監視按鈕預設使用的埠。",
+
+  "cfg.title.monitor": "Baochip — 監視器",
+  "cfg.monitor.defaultBaud": "串列監視器的預設鮑率。",
+  "cfg.monitor.crlf": "行模式傳送時使用 CRLF 作為行尾。",
+  "cfg.monitor.raw": "立即傳送按鍵（原始模式）。",
+  "cfg.monitor.echo": "輸入的本地回顯。",
+
+  "cfg.title.build": "Baochip — 建置",
+  "cfg.build.target": "目前選擇的建置目標（例如：dabao、baosec）。",
+  "cfg.build.fallbackTargets": "當 bao.py 無法列出目標時的後備清單。",
+  "cfg.build.cwd": "建置的工作目錄。",
+  "cfg.build.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app util'），留白則僅建置目標。",
+
+  "cfg.title.flashing": "Baochip — 燒錄",
+  "cfg.flashing.location": "已掛載的 Baochip UF2 磁碟位置（例如 Windows 為 D:\\）。",
+
+  "views.container.title": "Baochip",
+  "views.main": "Baochip",
+  "views.docs": "文件"
+}

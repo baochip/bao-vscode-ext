@@ -9,16 +9,16 @@ export function registerSetBootloaderSerialPort(context: vscode.ExtensionContext
     try {
       cwd = await ensureXousCorePath();
     } catch (e: any) {
-      vscode.window.showWarningMessage(e?.message || 'xous-core path not set');
+      vscode.window.showWarningMessage(e?.message || vscode.l10n.t('prereq.xousPathNotSet'));
       return;
     }
 
     const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch(err => {
-      vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
+      vscode.window.showErrorMessage(vscode.l10n.t('ports.listFailed', err?.message || String(err)));
       return '' as string;
     });
 
-    const items = lines
+    const items = (lines || '')
       .split(/\r?\n/)
       .map(s => s.trim())
       .filter(Boolean)
@@ -28,17 +28,17 @@ export function registerSetBootloaderSerialPort(context: vscode.ExtensionContext
       });
 
     if (items.length === 0) {
-      vscode.window.showWarningMessage('No serial ports found.');
+      vscode.window.showWarningMessage(vscode.l10n.t('ports.noneFound'));
       return;
     }
 
     const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Select bootloader (drive mode) serial port',
+      placeHolder: vscode.l10n.t('ports.selectBootloaderPort')
     });
     if (!picked) return;
 
     await saveBootPort(picked.label); // store only the bare port
-    vscode.window.showInformationMessage(`Bootloader (drive mode) serial port set to: ${picked.label}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('ports.bootloaderSet', picked.label));
     try { refreshUI(); } catch {}
   });
 }

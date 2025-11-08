@@ -12,15 +12,15 @@ export async function sendBoot(
 ): Promise<boolean> {
   const port = getBootloaderSerialPort();
   if (!port) {
-    vscode.window.showWarningMessage('Bootloader-mode serial port not set. Set it first.');
+    vscode.window.showWarningMessage(vscode.l10n.t('ports.noSerialPortSet', vscode.l10n.t('mode.bootloader')));
     await vscode.commands.executeCommand('baochip.setBootloaderSerialPort');
     return false;
   }
 
   const baud = getDefaultBaud();
-  const chan = vscode.window.createOutputChannel('Bao Boot');
+  const chan = vscode.window.createOutputChannel(vscode.l10n.t('terminal.bootName'));
   chan.show(true);
-  chan.appendLine(`[bao] Sending 'boot' to ${port} @ ${baud}…`);
+  chan.appendLine(`[bao] ${vscode.l10n.t('boot.sending', port, baud)}`);
 
   const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
   const fullArgs = [...args, bao, 'boot', '-p', port, '-b', String(baud)];
@@ -33,11 +33,12 @@ export async function sendBoot(
     child.stderr.on('data', d => { const s = d.toString(); err += s; chan.append(s); });
     child.on('close', code => {
       if (code === 0) {
-        chan.appendLine('[bao] boot command succeeded.');
+        chan.appendLine(`[bao] ${vscode.l10n.t('boot.success')}`);
         resolve(true);
       } else {
         const msg = (err || out || `exit ${code}`).trim().slice(0, 300);
-        vscode.window.showErrorMessage(`Boot command failed: ${msg}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('boot.failed', msg));
+        chan.appendLine(`[bao] ${vscode.l10n.t('boot.failedInline', msg)}`);
         resolve(false);
       }
     });
