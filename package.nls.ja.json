@@ -1,6 +1,6 @@
 {
   "ext.displayName": "Baochip",
-  "ext.description": "Baochip 向けのアプリ開発を支援します。",
+  "ext.description": "VS Code で Baochip マイコン向けアプリを開発・フラッシュ・デバッグできます。",
 
   "cmd.openWelcome": "Baochip: ようこそを開く",
   "cmd.openSettings": "Baochip: 設定を開く",

@@ -1,6 +1,6 @@
 {
   "ext.displayName": "Baochip",
-  "ext.description": "Entwickeln Sie Anwendungen für Baochip.",
+  "ext.description": "In VS Code Anwendungen für Baochip-Mikrocontroller entwickeln, flashen und debuggen.",
 
   "cmd.openWelcome": "Baochip: Willkommen öffnen",
   "cmd.openSettings": "Baochip: Einstellungen öffnen",

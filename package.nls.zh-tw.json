@@ -1,6 +1,6 @@
 {
   "ext.displayName": "Baochip",
-  "ext.description": "為 Baochip 開發應用程式。",
+  "ext.description": "在 VS Code 中開發、燒錄並偵錯 Baochip 微控制器應用程式。",
 
   "cmd.openWelcome": "Baochip：開啟歡迎頁",
   "cmd.openSettings": "Baochip：開啟設定",
