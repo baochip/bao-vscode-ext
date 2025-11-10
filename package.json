@@ -261,7 +261,7 @@
     "package": "npx vsce package"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.10.0",
     "@types/vscode": "^1.92.0",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.5.0",
