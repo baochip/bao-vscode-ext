@@ -144,7 +144,10 @@
           },
           "baochip.monitorDefaultPort": {
             "type": "string",
-            "enum": ["run", "bootloader"],
+            "enum": [
+              "run",
+              "bootloader"
+            ],
             "default": "run",
             "description": "%cfg.ports.monitorDefault%",
             "order": 3
@@ -194,8 +197,13 @@
           },
           "baochip.buildTargets": {
             "type": "array",
-            "items": { "type": "string" },
-            "default": ["dabao", "baosec"],
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "dabao",
+              "baosec"
+            ],
             "description": "%cfg.build.fallbackTargets%",
             "order": 2
           },
@@ -265,9 +273,9 @@
   "devDependencies": {
     "@types/node": "^24.10.0",
     "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.7.0",
     "tsc-alias": "^1.8.16",
-    "typescript": "^5.5.0",
-    "vsce": "^2.15.0"
+    "typescript": "^5.5.0"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.41"
