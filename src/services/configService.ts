@@ -6,11 +6,10 @@ async function updateSetting(key: string, value: any) {
   await cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 }
 
-export const getPythonCmd = () => cfg().get<string>('baochip.pythonCommand') || '';
 export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 1000000;
 
-export const getMonitorDefaultPort = (): "run" | "bootloader" => (cfg().get<string>('baochip.monitorDefaultPort') as any) || 'run';
-export const setMonitorDefaultPort = (v: "run" | "bootloader") => updateSetting('baochip.monitorDefaultPort', v);
+export const getMonitorDefaultPort = (): 'run' | 'bootloader' => (cfg().get<string>('baochip.monitorDefaultPort') as any) || 'run';
+export const setMonitorDefaultPort = (v: 'run' | 'bootloader') => updateSetting('baochip.monitorDefaultPort', v);
 
 export const getBootloaderSerialPort = (): string => cfg().get<string>('baochip.serialPortBootloader') || '';
 export const setBootloaderSerialPort = (port: string) => updateSetting('baochip.serialPortBootloader', port);

@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy, runBaoCmd } from '@services/pathService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { gateToolsBao } from '@services/versionGate';
 
 export function registerFlashCommand(context: vscode.ExtensionContext) {
   return gateToolsBao('baochip.flash', async () => {
-    let root: string, bao: string, py: string;
-    try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); py = await ensurePythonCmd(); }
+    let root: string, bao: string;
+    try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); }
     catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core / bao.py not set'); return; }
 
     const target = getBuildTarget();
@@ -15,6 +15,6 @@ export function registerFlashCommand(context: vscode.ExtensionContext) {
     const app = getXousAppName();
     if (!app) { await vscode.window.showWarningMessage('No app selected.'); await vscode.commands.executeCommand('baochip.selectApp'); return; }
 
-    await decideAndFlash(py, bao, root);
+    await decideAndFlash(root);
   });
 }

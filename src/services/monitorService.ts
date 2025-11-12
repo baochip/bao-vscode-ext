@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ensureXousCorePath, ensurePythonCmd, resolveBaoPy } from "@services/pathService";
+import { ensureXousCorePath, resolveBaoPy, getBaoRunner } from "@services/pathService";
 import { getRunSerialPort, getBootloaderSerialPort, getDefaultBaud, getMonitorDefaultPort } from "@services/configService";
 
 let monitorTerm: vscode.Terminal | undefined;
@@ -42,9 +42,10 @@ export async function openMonitorTTY(context?: vscode.ExtensionContext) {
   if (cfg.get<boolean>("xonxoff"))   flags.push("--xonxoff");
   if (cfg.get<boolean>("dsrdtr"))    flags.push("--dsrdtr");
 
-  const py = await ensurePythonCmd();
-  const cmd = [
-    q(py),
+  const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
+  const full = [
+    q(cmd),
+    ...args.map(q),
     q(bao),
     "monitor",
     "-p", q(port),
@@ -59,7 +60,7 @@ export async function openMonitorTTY(context?: vscode.ExtensionContext) {
     name: `Bao Monitor (${label}: ${port})`,
     cwd: root
   });
-  monitorTerm.sendText(cmd);
+  monitorTerm.sendText(full);
   monitorTerm.show();
 }
 
@@ -67,7 +68,6 @@ export function stopMonitorTTY() {
   try { monitorTerm?.dispose(); } catch {}
   monitorTerm = undefined;
 }
-
 
 export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
   const port = mode === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
@@ -90,9 +90,9 @@ export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
   if (cfg.get<boolean>("raw"))       flags.push("--raw");
   if (!cfg.get<boolean>("echo"))     flags.push("--no-echo");
 
-  const py = await ensurePythonCmd();
-  const cmd = [
-    q(py), q(bao), "monitor",
+  const { cmd, args } = await getBaoRunner();
+  const full = [
+    q(cmd), ...args.map(q), q(bao), "monitor",
     "-p", q(port),
     "-b", String(baud),
     ...flags
@@ -101,6 +101,6 @@ export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
   try { monitorTerm?.dispose(); } catch {}
   const label = mode === 'run' ? 'Run' : 'Bootloader';
   monitorTerm = vscode.window.createTerminal({ name: `Bao Monitor (${label}: ${port})`, cwd: root });
-  monitorTerm.sendText(cmd);
+  monitorTerm.sendText(full);
   monitorTerm.show();
 }

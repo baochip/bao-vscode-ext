@@ -99,6 +99,10 @@
       {
         "command": "baochip.buildFlashMonitor",
         "title": "Baochip: Build • Flash • Monitor"
+      },
+      {
+        "command": "baochip.resetUvSetup",
+        "title": "Baochip: Reset UV Setup"
       }
     ],
     "menus": {},
@@ -118,12 +122,6 @@
             "default": "",
             "description": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it.",
             "order": 2
-          },
-          "baochip.pythonCommand": {
-            "type": "string",
-            "default": "python",
-            "description": "Python command to run (e.g. 'python' on Windows, 'python3' on macOS/Linux).",
-            "order": 3
           }
         }
       },

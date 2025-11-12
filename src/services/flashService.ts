@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { spawn } from 'child_process';
+import * as path from 'path';
 import { fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 
@@ -31,76 +31,69 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
       `Flash location not found: ${dest}  Is the board mounted? ` +
       `Make sure the board appears as a drive, press RESET if needed.`
     );
-    return undefined; // cancel flash
+    return undefined;
   }
 
   return dest;
 }
 
-export async function gatherArtifacts(py: string, bao: string, root: string) {
-  const images = await fetchArtifacts(py, bao, root).catch(() => []);
+export async function gatherArtifacts(root: string) {
+  const images = await fetchArtifacts(root).catch(() => []);
   const byRole: Record<'loader'|'xous'|'apps', string | undefined> = {
-    loader: images.find(i => i.role === 'loader')?.path,
-    xous:  images.find(i => i.role === 'xous')?.path,
-    apps:   images.find(i => i.role === 'apps')?.path,
+    loader: images.find((i: any) => i.role === 'loader')?.path,
+    xous:   images.find((i: any) => i.role === 'xous')?.path,
+    apps:   images.find((i: any) => i.role === 'apps')?.path,
   };
-  const all: string[] = (['loader','xous','apps'] as const).map(r => byRole[r]).filter((p): p is string => !!p);
+  const all: string[] = (['loader','xous','apps'] as const)
+    .map(r => byRole[r])
+    .filter((p): p is string => !!p);
+
   return { byRole, all };
 }
 
-export async function flashFiles(
-  py: string, bao: string, root: string, dest: string, files: string[], forceLabel?: string
-): Promise<boolean> {
-  const chan = vscode.window.createOutputChannel('Bao Flash');
-  chan.show(true);
-  if (forceLabel) chan.appendLine(`[bao] ${forceLabel}`);
-  chan.appendLine(`[bao] Flash destination: ${dest}`);
-  chan.appendLine('[bao] Files:'); files.forEach(f => chan.appendLine(`  - ${f}`));
-
-  const args = [bao, 'flash', '--dest', dest, ...files];
-
+export async function flashFiles(dest: string, files: string[]): Promise<boolean> {
   return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Baochip: Flashing…', cancellable: true },
-    async (_progress, token) =>
-      new Promise<boolean>((resolve) => {
-        const total = files.length;
-        let copied = 0, stdoutBuf = '', stderrBuf = '';
-        const child = spawn(py, args, { cwd: root, shell: process.platform === 'win32' });
+    async (_progress, token) => {
+      try {
+        let copied = 0;
 
-        token.onCancellationRequested(() => { try { child.kill(); } catch {} chan.appendLine('[bao] Cancelled by user.'); });
+        for (const srcPath of files) {
+          if (token.isCancellationRequested) break;
 
-        const bump = () => { copied = Math.min(total, copied + 1); };
+          const fileName = path.basename(srcPath);
+          const srcUri = vscode.Uri.file(srcPath);
+          const dstUri = vscode.Uri.file(path.join(dest, fileName));
 
-        child.stdout.on('data', (d) => {
-          const s = d.toString(); stdoutBuf += s; chan.append(s);
-          if (/\bcopy\b.+->/i.test(s)) bump();
-          const m = s.match(/copied\s+(\d+)\s+file\(s\)/i);
-          if (m) copied = Math.max(copied, parseInt(m[1], 10) || copied);
-        });
-        child.stderr.on('data', (d) => { const s = d.toString(); stderrBuf += s; chan.append(s); });
-        child.on('close', (code) => {
-          if (code === 0) {
-            vscode.window.showInformationMessage(`Baochip: flashed ${copied || total} file(s) to ${dest}.`);
-            resolve(true);
-          } else {
-            const msg = (stderrBuf || stdoutBuf || `exit ${code}`).trim().slice(0, 300);
-            vscode.window.showErrorMessage(`Baochip flash failed: ${msg}`);
-            resolve(false);
-          }
-        });
-      })
+          await vscode.workspace.fs.copy(srcUri, dstUri, { overwrite: true });
+          copied++;
+        }
+
+        if (token.isCancellationRequested) {
+          vscode.window.showWarningMessage('Baochip: Flash cancelled.');
+          return false;
+        }
+
+        vscode.window.showInformationMessage(`Baochip: flashed ${copied} file(s) to ${dest}.`);
+        return true;
+      } catch (e: any) {
+        const msg = e?.message ?? String(e);
+        vscode.window.showErrorMessage(`Baochip flash failed: ${msg}`);
+        return false;
+      }
+    }
   );
 }
 
-export async function decideAndFlash(py: string, bao: string, root: string): Promise<boolean> {
+export async function decideAndFlash(root: string): Promise<boolean> {
   const dest = await ensureFlashLocation();
   if (!dest) return false; // path missing/cancelled → stop
 
-  const { all } = await gatherArtifacts(py, bao, root);
+  const { all } = await gatherArtifacts(root);
   if (all.length === 0) {
     vscode.window.showWarningMessage('No UF2s found (loader/xous/apps). Build first, then flash.');
     return false;
   }
 
-  return flashFiles(py, bao, root, dest, all);
+  return flashFiles(dest, all);
 }

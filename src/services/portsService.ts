@@ -1,26 +1,21 @@
-import { spawn } from 'child_process';
+import type { } from 'child_process'; // keep file type-safe; no direct spawn needed
 
-export async function listPorts(pythonCmd: string, baoPath: string, cwd?: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(pythonCmd, [baoPath, 'ports'], { cwd });
-    let out = '', err = '';
-    child.stdout.on('data', d => out += d.toString());
-    child.stderr.on('data', d => err += d.toString());
-    child.on('close', code => {
-      if (code === 0) {
-        const ports = out.split(/\r?\n/).map(l => l.split('\t')[0]).filter(Boolean);
-        resolve(ports);
-      } else {
-        reject(new Error(err || `Exited ${code}`));
-      }
-    });
-  });
+export async function listPorts(
+  runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
+  cwd?: string
+): Promise<string[]> {
+  const out = await runBao(['ports'], cwd, { capture: true });
+  // Support either plain lines or tab-separated fields (take the first column)
+  return out
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(l => l.split('\t')[0])
+    .filter(Boolean);
 }
 
-
 export async function waitForPort(
-  pythonCmd: string,
-  baoPath: string,
+  runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
   targetPort: string,
   opts?: { cwd?: string; timeoutMs?: number; intervalMs?: number }
 ): Promise<boolean> {
@@ -30,7 +25,7 @@ export async function waitForPort(
 
   while (Date.now() - start < timeoutMs) {
     try {
-      const ports = await listPorts(pythonCmd, baoPath, opts?.cwd);
+      const ports = await listPorts(runBao, opts?.cwd);
       if (ports.includes(targetPort)) return true;
     } catch {
       // ignore transient errors and keep polling

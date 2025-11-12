@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ensureXousCorePath, resolveBaoPy, ensurePythonCmd } from "@services/pathService";
+import { ensureXousCorePath, resolveBaoPy, getBaoRunner } from "@services/pathService";
 import { getRunSerialPort, getBootloaderSerialPort, getDefaultBaud, getMonitorDefaultPort } from "@services/configService";
 import { gateToolsBao } from '@services/versionGate';
 
@@ -24,7 +24,6 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
     try { root = await ensureXousCorePath(); bao = await resolveBaoPy(); }
     catch (e: any) { vscode.window.showWarningMessage(e?.message || "xous-core / bao.py not set"); return; }
 
-    const py = await ensurePythonCmd();
     const baud = getDefaultBaud();
 
     // 3) Read monitor flags
@@ -38,13 +37,23 @@ export function registerOpenMonitor(context: vscode.ExtensionContext) {
     if (useRaw)  flags.push("--raw");
     if (!useEcho) flags.push("--no-echo");
 
-    // 4) Launch terminal
+    // 4) Launch terminal via uv
     try { monitorTerm?.dispose(); } catch {}
     const label = def === 'run' ? 'Run' : 'Bootloader';
     monitorTerm = vscode.window.createTerminal({ name: `Bao Monitor (${label}: ${port})`, cwd: root });
 
-    const cmd = `${q(py)} ${q(bao)} monitor -p ${q(port)} -b ${baud} ${flags.join(" ")}`.trim();
-    monitorTerm.sendText(cmd);
+    const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
+    const full = [
+      q(cmd),
+      ...args.map(q),
+      q(bao),
+      'monitor',
+      '-p', q(port),
+      '-b', String(baud),
+      ...flags
+    ].join(' ').trim();
+
+    monitorTerm.sendText(full);
     monitorTerm.show();
   });
 }

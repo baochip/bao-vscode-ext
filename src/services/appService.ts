@@ -1,8 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn } from 'child_process';
 import * as vscode from 'vscode';
-import { getPythonCmd } from '@services/pathService';
+import { runBaoCmd } from '@services/pathService';
 
 const APPS_DIRNAME = 'apps-dabao';
 
@@ -54,26 +53,12 @@ export function isLikelyValidAppName(name: string): boolean {
 
 // Use tools-bao to create the app
 export async function createBaoAppViaCli(xousRoot: string, appName: string): Promise<void> {
-  const py = getPythonCmd();
-  const bao = path.join(xousRoot, 'tools-bao', 'bao.py');
-
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(py, [bao, 'app', 'create', '--xous-root', xousRoot, '--name', appName], {
-      cwd: xousRoot,
-      shell: process.platform === 'win32', // helps Windows find python in PATH
-    });
-
-    let out = '', err = '';
-    child.stdout.on('data', d => { out += d.toString(); });
-    child.stderr.on('data', d => { err += d.toString(); });
-
-    child.on('close', code => {
-      if (code === 0) return resolve();
-      // Surface whatever tools-bao printed
-      const msg = (err || out || `Exited with code ${code}`).trim();
-      reject(new Error(msg));
-    });
-  });
+  try {
+    await runBaoCmd(['app', 'create', '--xous-root', xousRoot, '--name', appName], xousRoot, { capture: false });
+  } catch (e: any) {
+    const msg = (e?.message ?? String(e)).trim();
+    throw new Error(msg);
+  }
 
   try { await vscode.workspace.saveAll(); } catch {}
 }

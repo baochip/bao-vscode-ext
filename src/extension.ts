@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ensureXousCorePath, ensureBaoPythonDeps } from '@services/pathService';
+import { ensureXousCorePath, ensureBaoPythonDeps, setExtensionContext, resetUvSetup } from '@services/pathService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import { registerCommands } from './index';
@@ -19,6 +19,7 @@ const shouldShowWelcome = () =>
   vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
 export async function activate(context: vscode.ExtensionContext) {
+  setExtensionContext(context);
   // Check on activation (non-blocking)
   checkToolsBaoVersion();
 
@@ -34,7 +35,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // --- Prep Python deps once on activation (quiet) and watch requirements.txt for changes ---
   try {
     const root = await ensureXousCorePath(); // user may cancel; that's OK
-    await ensureBaoPythonDeps(context, root, { quiet: true });
+    await ensureBaoPythonDeps(root, { quiet: true });
     wireRequirementsWatcher(context, root);
   } catch {
     // No xous-core yet — skip for now; we’ll catch it when the user sets the path.
@@ -46,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!e.affectsConfiguration('baochip.xousCorePath')) return;
       try {
         const newRoot = await ensureXousCorePath();
-        await ensureBaoPythonDeps(context, newRoot, { quiet: true });
+        await ensureBaoPythonDeps(newRoot, { quiet: true });
         wireRequirementsWatcher(context, newRoot);
       } catch {
         /* ignore */
@@ -82,6 +83,12 @@ export async function activate(context: vscode.ExtensionContext) {
   settingsItem.command = 'baochip.openSettings';
 
   context.subscriptions.push(bootloaderSerialPortItem, runSerialPortItem, monitorBtn, flashLocationItem, targetItem, cleanItem, buildItem, appItem, flashItem, bfmItem, settingsItem);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('baochip.resetUvSetup', async () => {
+      await resetUvSetup();
+    })
+  );
 
   // Single UI refresher
   const refreshUI = () => {
@@ -202,7 +209,7 @@ function wireRequirementsWatcher(context: vscode.ExtensionContext, xousRoot: str
 
   const reinstallQuietly = async () => {
     try {
-      await ensureBaoPythonDeps(context, xousRoot, { quiet: true });
+      await ensureBaoPythonDeps(xousRoot, { quiet: true });
     } catch {
       /* ignore — user will see errors if they actually run a command */
     }

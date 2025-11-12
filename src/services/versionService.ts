@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
-import { ensureXousCorePath, resolveBaoPy, getBaoPythonCmd } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy, getBaoRunner, ensureBaoPythonDeps } from '@services/pathService';
 import { REQUIRED_TOOLS_BAO } from '@constants';
 
 function parseSemver(s: string): [number, number, number] | null {
@@ -19,9 +19,16 @@ function cmpSemver(a: string, b: string): number {
   return 0;
 }
 
-async function runBaoVersion(py: string, baoPy: string, cwd: string): Promise<string> {
+async function runBaoVersion(
+  runner: { cmd: string; args: string[] },
+  baoPy: string,
+  cwd: string
+): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const child = spawn(py, [baoPy, '--version'], { cwd, shell: process.platform === 'win32' });
+    const child = spawn(runner.cmd, [...runner.args, baoPy, '--version'], {
+      cwd,
+      shell: process.platform === 'win32',
+    });
     let out = '', err = '';
     child.stdout.on('data', d => out += d.toString());
     child.stderr.on('data', d => err += d.toString());
@@ -35,6 +42,10 @@ async function runBaoVersion(py: string, baoPy: string, cwd: string): Promise<st
   });
 }
 
+/**
+ * Ensure uv (auto-bootstraps if missing), ensure requirements via uv,
+ * then run bao --version and compare against REQUIRED_TOOLS_BAO.
+ */
 export async function checkToolsBaoVersion(): Promise<boolean> {
   const xousRoot = await ensureXousCorePath().catch(() => undefined);
   if (!xousRoot) return false;
@@ -43,8 +54,10 @@ export async function checkToolsBaoVersion(): Promise<boolean> {
   if (!baoPy) return false;
 
   try {
-    const py = getBaoPythonCmd(xousRoot);
-    const found = await runBaoVersion(py, baoPy, xousRoot);
+    await ensureBaoPythonDeps(xousRoot, { quiet: true });
+
+    const runner = await getBaoRunner(); // uv run python
+    const found = await runBaoVersion(runner, baoPy, xousRoot);
 
     if (cmpSemver(found, REQUIRED_TOOLS_BAO) < 0) {
       vscode.window.showErrorMessage(
