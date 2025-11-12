@@ -13,6 +13,18 @@ export function registerSetBootloaderSerialPort(context: vscode.ExtensionContext
       return;
     }
 
+    const clicked = await vscode.window.showInformationMessage(
+      'Is your Baochip board in bootloader mode?',
+      {
+        modal: true,
+        detail:
+          'Press RESET on the board if you do not\n' +
+          'see a removable drive named "BAOCHIP".',
+      },
+      'OK'
+    );
+    if (clicked !== 'OK') return;
+
     const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch(err => {
       vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
       return '' as string;

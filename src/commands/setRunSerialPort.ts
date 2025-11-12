@@ -13,6 +13,18 @@ export function registerSetRunSerialPort(context: vscode.ExtensionContext, refre
       return;
     }
 
+    const clicked = await vscode.window.showInformationMessage(
+      'Is your Baochip board in run mode?',
+      {
+        modal: true,
+        detail:
+          'If you still see a removable drive named "BAOCHIP",\n' +
+          'press PROG on the board to enter run mode.',
+      },
+      'OK'
+    );
+    if (clicked !== 'OK') return;
+
     const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch(err => {
       vscode.window.showErrorMessage(`Could not list ports: ${err.message || err}`);
       return '' as string;
