@@ -6,9 +6,30 @@ import * as os from 'os';
 import { setXousCorePath } from '@services/configService';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { createHash } from 'crypto';
-import { REQUIREMENTS_FILE } from '@constants';
+import { REQUIREMENTS_FILE, BAO_VENV_DIR } from '@constants';
 
 let _ctx: vscode.ExtensionContext | undefined;
+
+/* ------------------------------ logging (quiet) ------------------------------ */
+const chan = vscode.window.createOutputChannel('Baochip');
+
+function log(msg: string) {
+  const stamp = new Date().toISOString();
+  chan.appendLine(`[${stamp}] ${msg}`);
+}
+function info(msg: string) {
+  log(`INFO: ${msg}`);
+  vscode.window.showInformationMessage(msg);
+}
+function warn(msg: string) {
+  log(`WARN: ${msg}`);
+  vscode.window.showWarningMessage(msg);
+}
+function errorToast(msg: string) {
+  log(`ERROR: ${msg}`);
+  chan.show(true);
+  vscode.window.showErrorMessage(msg);
+}
 
 export function setExtensionContext(ctx: vscode.ExtensionContext) { _ctx = ctx; }
 function ctx(): vscode.ExtensionContext {
@@ -19,14 +40,23 @@ function ctx(): vscode.ExtensionContext {
 /* ------------------------------ utilities ------------------------------ */
 function samePath(a: string, b: string) { return path.resolve(a) === path.resolve(b); }
 
-function run(cmd: string, args: string[], cwd?: string): Promise<void> {
+/** Run a subprocess; concise logs; only surface stdout/stderr on failure. */
+function run(cmd: string, args: string[], cwd?: string): Promise<{ stdout: string; stderr: string; code: number }> {
+  log(`→ ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { cwd, shell: os.platform() === 'win32' });
     let stdout = '', stderr = '';
     p.stdout.on('data', d => { stdout += d.toString(); });
     p.stderr.on('data', d => { stderr += d.toString(); });
     p.on('close', code => {
-      code === 0 ? resolve() : reject(new Error(stderr || stdout || `${cmd} ${args.join(' ')} exited ${code}`));
+      if (code === 0) {
+        log(`✓ ${cmd} exited 0`);
+        resolve({ stdout, stderr, code });
+      } else {
+        const msg = `${cmd} failed (exit ${code})\n${stderr || stdout || ''}`.trim();
+        errorToast(msg);
+        reject(new Error(msg));
+      }
     });
   });
 }
@@ -36,8 +66,8 @@ function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolea
     const r = spawnSync(cmd, args, { encoding: 'utf8', shell: true });
     const out = ((r.stdout || '') + (r.stderr || '')).trim();
     return { ok: r.status === 0, out };
-  } catch {
-    return { ok: false, out: '' };
+  } catch (e: any) {
+    return { ok: false, out: String(e?.message ?? '') };
   }
 }
 
@@ -58,10 +88,10 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 
     try { fs.unlinkSync(tmpFile); } catch {}
 
-    const stdout = (res.stdout || '').trim();
+    const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
     return { ok: res.status === 0, out: stdout };
-  } catch {
-    return { ok: false, out: '' };
+  } catch (e: any) {
+    return { ok: false, out: String(e?.message ?? '') };
   }
 }
 
@@ -74,7 +104,10 @@ function normalizeRootKey(root: string): string {
 export async function ensureXousCorePath(): Promise<string> {
   const cfg = vscode.workspace.getConfiguration('');
   let p = cfg.get<string>('baochip.xousCorePath') || '';
-  if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) return p;
+  if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+    log(`xous-core path (cached): ${p}`);
+    return p;
+  }
 
   const choice = await vscode.window.showInformationMessage(
     'Baochip needs your local xous-core folder.',
@@ -89,6 +122,7 @@ export async function ensureXousCorePath(): Promise<string> {
     const cloned = await cloneXousCore();
     if (!cloned) throw new Error('Clone did not complete.');
     await setXousCorePath(cloned);
+    log(`xous-core cloned to: ${cloned}`);
     return cloned;
   }
 
@@ -104,6 +138,7 @@ export async function ensureXousCorePath(): Promise<string> {
   if (!picked?.length) throw new Error('xous-core path not set');
   const chosen = picked[0].fsPath;
   await setXousCorePath(chosen);
+  log(`xous-core chosen: ${chosen}`);
   return chosen;
 }
 
@@ -111,7 +146,12 @@ export async function ensureXousCorePath(): Promise<string> {
 export async function resolveBaoPy(): Promise<string> {
   const root = await ensureXousCorePath();
   const p = path.join(root, 'tools-bao', 'bao.py');
-  if (!fs.existsSync(p)) throw new Error(`Cannot find tools-bao/bao.py under: ${root}`);
+  if (!fs.existsSync(p)) {
+    const msg = `Cannot find tools-bao/bao.py under: ${root}`;
+    errorToast(msg);
+    throw new Error(msg);
+  }
+  log(`bao.py resolved: ${p}`);
   return p;
 }
 
@@ -119,7 +159,7 @@ export async function resolveBaoPy(): Promise<string> {
 export async function ensureXousFolderOpen(root: string): Promise<'ready'|'added'|'reopen'> {
   const folders = vscode.workspace.workspaceFolders ?? [];
   const hasRoot = folders.some(f => samePath(f.uri.fsPath, root));
-  if (hasRoot) return 'ready';
+  if (hasRoot) { log('xous-core already in workspace.'); return 'ready'; }
 
   const choices: Array<'Open Here' | 'Add to Workspace' | 'Open in New Window'> =
     folders.length > 0 ? ['Add to Workspace', 'Open Here', 'Open in New Window'] : ['Open Here', 'Open in New Window'];
@@ -134,10 +174,12 @@ export async function ensureXousFolderOpen(root: string): Promise<'ready'|'added
   const uri = vscode.Uri.file(root);
   if (choice === 'Add to Workspace' && folders.length > 0) {
     vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: 'xous-core' });
+    log('xous-core added to current workspace.');
     return 'added';
   }
   const newWindow = choice === 'Open in New Window';
   await vscode.commands.executeCommand('vscode.openFolder', uri, newWindow);
+  log(`xous-core opened (${newWindow ? 'new window' : 'here'}).`);
   return 'reopen';
 }
 
@@ -155,7 +197,12 @@ function detectWorkingPythons(): { cmd: string; version: string }[] {
   const list: { cmd: string; version: string }[] = [];
   for (const c of cands) {
     const v = spawnVersion(c, ['--version']);
-    if (v.ok && v.out.toLowerCase().startsWith('python')) list.push({ cmd: c, version: v.out });
+    if (v.ok && v.out.toLowerCase().startsWith('python')) {
+      list.push({ cmd: c, version: v.out });
+      log(`Python candidate: ${c} -> ${v.out}`);
+    } else {
+      log(`Python candidate not usable: ${c} (${v.out})`);
+    }
   }
   return list;
 }
@@ -163,6 +210,9 @@ function detectWorkingPythons(): { cmd: string; version: string }[] {
 async function pickPython(): Promise<string> {
   const found = detectWorkingPythons();
   if (found.length === 0) {
+    const envPath = process.env.PATH || '';
+    errorToast('No working Python interpreters detected on PATH. Please install Python and retry.');
+    log(`PATH at failure:\n${envPath}`);
     throw new Error('No working Python interpreters detected on PATH. Please install Python (python.org) and retry.');
   }
   const pick = await vscode.window.showQuickPick(
@@ -170,11 +220,14 @@ async function pickPython(): Promise<string> {
     { title: 'Select Python to install uv', ignoreFocusOut: true, placeHolder: 'Pick the Python to run "pip install --user uv"' }
   );
   if (!pick) throw new Error('Python selection cancelled.');
+  log(`Python selected for uv install: ${pick.label}`);
   return pick.label.trim();
 }
 
 function uvUsable(uvCmd: string): boolean {
   const r = spawnVersion(uvCmd, ['--version']);
+  if (r.ok) log(`uv usable: ${uvCmd} -> ${r.out}`);
+  else log(`uv unusable: ${uvCmd} (${r.out})`);
   return r.ok;
 }
 function whichUvFromPath(): string | null {
@@ -189,7 +242,7 @@ cands = set()
 try:
     p = sysconfig.get_path("scripts")
     if p: cands.add(p)
-except Exception: pass
+except Exception as e: pass
 try:
     for sch in sysconfig.get_scheme_names():
         try:
@@ -245,13 +298,13 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
       paths.push(path.join(path.dirname(exeOnly), 'Scripts', 'uv.exe'));
     }
   } catch {}
+  log(`uv probe paths (from ${pythonCmd}):\n  ${paths.join('\n  ')}`);
   return Array.from(new Set(paths));
 }
 
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
-  vscode.window.showInformationMessage('Baochip: Installing uv…');
-
+  info('Baochip: Installing uv…');
   const parts = pythonCmd.split(' ').filter(Boolean);
   const exe = parts[0];
   const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
@@ -259,12 +312,22 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 
   const cands = expectedUvPathsFromPython(pythonCmd);
   for (const c of cands) {
-    if (c && fs.existsSync(c) && uvUsable(c)) return c;
+    if (c && fs.existsSync(c) && uvUsable(c)) {
+      log(`uv found at: ${c}`);
+      return c;
+    } else {
+      log(`uv not at: ${c}`);
+    }
   }
 
   const onPath = whichUvFromPath();
-  if (onPath) return onPath;
+  if (onPath) {
+    log(`uv found on PATH: ${onPath}`);
+    return onPath;
+  }
 
+  const envPath = process.env.PATH || '';
+  log(`uv not found after install. PATH:\n${envPath}`);
   throw new Error(
     os.platform() === 'win32'
       ? 'uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.'
@@ -274,23 +337,33 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 
 async function resolveUvBinary(): Promise<string> {
   const saved = wsGet<string | undefined>(WS_KEY_UV_PATH, undefined);
-  if (saved && uvUsable(saved)) return saved;
+  if (saved && uvUsable(saved)) {
+    log(`Using saved uv path: ${saved}`);
+    return saved;
+  }
 
   const fromPath = whichUvFromPath();
-  if (fromPath) { await wsSet(WS_KEY_UV_PATH, fromPath); return fromPath; }
+  if (fromPath) {
+    await wsSet(WS_KEY_UV_PATH, fromPath);
+    info('Baochip: uv ready.');
+    return fromPath;
+  }
 
   const pythonCmd = await pickPython();
   if (process.platform === 'win32') {
     const sys = pyEval(pythonCmd, 'import platform; print(platform.system())');
     if (sys.ok && sys.out.toLowerCase() === 'linux') {
-      throw new Error('That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).');
+      const msg = 'That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).';
+      errorToast(msg);
+      throw new Error(msg);
     }
   }
   await wsSet(WS_KEY_UV_PYTHON, pythonCmd);
+  log(`Saving Python for uv bootstrap: ${pythonCmd}`);
 
   const uvPath = await installUvAndFindBinary(pythonCmd);
   await wsSet(WS_KEY_UV_PATH, uvPath);
-  vscode.window.showInformationMessage(`Baochip: uv ready.`);
+  info('Baochip: uv ready.');
   return uvPath;
 }
 
@@ -299,13 +372,13 @@ async function resolveUvBinary(): Promise<string> {
 /** Returns `{ cmd: <uv binary>, args: ['run','python'] }` */
 export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
   const uvPath = await resolveUvBinary();
+  log(`Bao runner: ${uvPath} run python`);
   return { cmd: uvPath, args: ['run', 'python'] };
 }
 
 /**
  * Run tools-bao via uv, never direct Python.
- *   await runBaoCmd(['ports'])
- *   const v = await runBaoCmd(['--version'], root, { capture: true })
+ * Ensures Python deps are installed first and uses repo root as default CWD so uv finds .venv.
  */
 export async function runBaoCmd(
   baoArgs: string[],
@@ -314,22 +387,39 @@ export async function runBaoCmd(
 ): Promise<string> {
   const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
   const baoPath = await resolveBaoPy();
+
+  // Ensure deps before we run anything
+  try {
+    const xousRoot = path.dirname(path.dirname(baoPath)); // <root>/tools-bao/bao.py
+    await ensureBaoPythonDeps(xousRoot, { quiet: true });
+  } catch (e: any) {
+    warn(`Baochip: dependency check failed, proceeding anyway.\n${e?.message ?? e}`);
+  }
+
   const fullArgs = [...args, baoPath, ...baoArgs];
   const shell = os.platform() === 'win32';
 
+  // Default CWD to repo root (so uv discovers .venv at <root>/.venv)
+  const xousRoot = path.dirname(path.dirname(baoPath));
+  const effectiveCwd = cwd ?? xousRoot;
+
+  log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
+
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, fullArgs, { cwd, shell });
+    const child = spawn(cmd, fullArgs, { cwd: effectiveCwd, shell });
     let out = '', err = '';
     child.stdout.on('data', d => {
       const s = d.toString();
-      if (opts.capture) out += s;
+      if (opts.capture) out += s; // keep stdout quiet unless caller wants capture
     });
     child.stderr.on('data', d => {
-      err += d.toString();
+      err += d.toString(); // keep stderr for error surface
     });
     child.on('close', code => {
+      log(`bao.py EXIT ${code}`);
       if (code === 0) return resolve(opts.capture ? out.trim() : '');
       const msg = (err || out || `bao.py exited ${code}`).trim();
+      errorToast(`Baochip: bao.py failed.\n${msg}`);
       reject(new Error(msg));
     });
   });
@@ -347,6 +437,7 @@ async function setReqHashForRoot(xousRoot: string, hash: string): Promise<void> 
   const map = getReqHashMap();
   map[normalizeRootKey(xousRoot)] = hash;
   await wsSet(WS_KEY_REQ_HASH, map);
+  log(`requirements hash updated for ${xousRoot}: ${hash}`);
 }
 
 export async function ensureBaoPythonDeps(
@@ -356,27 +447,65 @@ export async function ensureBaoPythonDeps(
   const reqPath = path.isAbsolute(REQUIREMENTS_FILE)
     ? REQUIREMENTS_FILE
     : path.join(xousRoot, REQUIREMENTS_FILE || path.join('tools-bao', 'requirements.txt'));
-  if (!fs.existsSync(reqPath)) return;
+  const venvDir = path.join(xousRoot, BAO_VENV_DIR || '.venv');
 
-  const currentHash = fileSha256(reqPath);
+  if (!fs.existsSync(reqPath)) {
+    log(`No requirements file found at: ${reqPath} (skipping install)`);
+    return;
+  }
+
+  const currentHash = createHash('sha256').update(fs.readFileSync(reqPath)).digest('hex');
   const prevHash = getReqHashMap()[normalizeRootKey(xousRoot)];
-  if (prevHash === currentHash) return;
+  log(`requirements.txt path: ${reqPath}`);
+  log(`requirements current hash: ${currentHash}`);
+  log(`requirements previous hash: ${prevHash || '(none)'}`);
+  log(`checking venv: ${venvDir}`);
+
+  // If the venv folder is missing, remake it and reinstall everything.
+  const venvMissing = !fs.existsSync(venvDir);
+
+  if (!venvMissing && prevHash === currentHash) {
+    log('requirements unchanged and venv present; skipping install.');
+    return;
+  }
+
+  const reason = venvMissing ? 'missing virtual environment' : 'requirements changed';
+  if (!quiet) info(`Baochip: ${reason} — installing Python deps…`);
 
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Baochip: Installing Python deps (uv)…', cancellable: false },
     async () => {
-      const { cmd, args } = await getBaoRunner();
-      await run(cmd, [...args, 'pip', 'install', '-r', reqPath], xousRoot);
+      const uv = await resolveUvBinary();
+
+      // 1) Ensure (or recreate) the venv at <xousRoot>/.venv (idempotent)
+      try {
+        await run(uv, ['venv'], xousRoot);
+      } catch (e: any) {
+        log(`uv venv failed: ${e?.message ?? e}`);
+        errorToast(`Failed to create uv venv:\n${e?.message ?? e}`);
+        throw e;
+      }
+
+      // 2) Install requirements into that venv
+      try {
+        await run(uv, ['pip', 'install', '-r', reqPath], xousRoot);
+      } catch (e: any) {
+        errorToast(`Baochip: Failed installing Python deps via uv.\n${e?.message ?? e}`);
+        throw e;
+      }
+
+      // 3) Cache the current hash
       await setReqHashForRoot(xousRoot, currentHash);
     }
   );
 
-  if (!quiet) vscode.window.showInformationMessage('Baochip: Python dependencies installed (uv).');
+  if (!quiet) info('Baochip: Python dependencies installed (uv).');
 }
 
 /* --------------------------- maintenance helpers --------------------------- */
 export async function resetUvSetup() {
   await wsSet(WS_KEY_UV_PATH, undefined as any);
   await wsSet(WS_KEY_UV_PYTHON, undefined as any);
-  vscode.window.showInformationMessage('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.');
+  info('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.');
+  log(`PATH snapshot:\n${process.env.PATH || ''}`);
 }
