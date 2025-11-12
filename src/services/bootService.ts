@@ -10,11 +10,18 @@ export async function sendBoot(
   bao: string,
   root: string
 ): Promise<boolean> {
-  const port = getBootloaderSerialPort();
+  // Ensure bootloader port is set; if not, prompt and re-check.
+  let port = getBootloaderSerialPort();
   if (!port) {
-    vscode.window.showWarningMessage('Bootloader-mode serial port not set. Set it first.');
+    vscode.window.showInformationMessage('Bootloader mode serial port not set. Pick one first.');
     await vscode.commands.executeCommand('baochip.setBootloaderSerialPort');
-    return false;
+
+    // Re-check after the command returns.
+    port = getBootloaderSerialPort();
+    if (!port) {
+      vscode.window.showWarningMessage('Bootloader mode serial port is still not set. Aborting boot.');
+      return false;
+    }
   }
 
   const baud = getDefaultBaud();

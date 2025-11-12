@@ -72,7 +72,7 @@ export function stopMonitorTTY() {
 export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
   const port = mode === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
   if (!port) {
-    const friendly = mode === 'run' ? 'run-mode' : 'bootloader-mode';
+    const friendly = mode === 'run' ? 'run mode' : 'bootloader mode';
     vscode.window.showInformationMessage(`No ${friendly} serial port set. Pick one first.`);
     await vscode.commands.executeCommand(mode === 'run' ? 'baochip.setRunSerialPort' : 'baochip.setBootloaderSerialPort');
     return;

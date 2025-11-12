@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
 import * as path from 'path';
 import { fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
@@ -12,26 +14,80 @@ async function pathExists(absPath: string): Promise<boolean> {
   }
 }
 
+async function promptForFlashFolder(): Promise<string | undefined> {
+  const pick = await vscode.window.showOpenDialog({
+    title: 'Select mounted BAOCHIP drive',
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    openLabel: 'Use this location',
+  });
+  return pick && pick.length > 0 ? pick[0].fsPath : undefined;
+}
+
+// Poll the same path briefly to allow a freshly mounted drive to appear.
+async function waitForDrive(absPath: string, timeoutMs = 8000, intervalMs = 500): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await pathExists(absPath)) return true;
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return false;
+}
+
 export async function ensureFlashLocation(): Promise<string | undefined> {
   let dest = getFlashLocation();
+
+  // Case 1: not set yet → prompt to pick & save
   if (!dest) {
-    const pick = await vscode.window.showOpenDialog({
-      title: 'Select mounted Baochip UF2 drive',
-      canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
-      openLabel: 'Use this location',
-    });
-    if (!pick || pick.length === 0) return undefined;
-    dest = pick[0].fsPath;
-    await setFlashLocation(dest);
+    const ok = await vscode.window.showInformationMessage(
+      'Select the drive where BAOCHIP is mounted.\n\n' +
+      '• The board should appear as a removable drive named "BAOCHIP".\n' +
+      '• If you can’t see it, press RESET on the board.',
+      { modal: true },
+      'Select Folder'
+    );
+    if (ok !== 'Select Folder') return undefined;
+
+    const picked = await promptForFlashFolder();
+    if (!picked) return undefined;
+
+    await setFlashLocation(picked);
+    dest = picked;
   }
 
-  // Always ensure it exists at time of flashing
+  // Case 2: set but missing → offer "Select New Location" or "Continue"
   if (!(await pathExists(dest))) {
-    vscode.window.showErrorMessage(
-      `Flash location not found: ${dest}  Is the board mounted? ` +
-      `Make sure the board appears as a drive, press RESET if needed.`
+    const choice = await vscode.window.showWarningMessage(
+      `Flash location not found: ${dest}\n\n` +
+      '• Board plugged in?\n' +
+      '• Board in bootloader mode? (press RESET on the board)\n\n' +
+      'If the drive appears after taking corrective action, press "Continue".\n\n' +
+      'Otherwise, select a new location for the BAOCHIP drive.',
+      { modal: true },
+      'Select New Location',
+      'Continue'
     );
-    return undefined;
+
+    if (choice === 'Select New Location') {
+      const picked = await promptForFlashFolder();
+      if (!picked) return undefined;
+      await setFlashLocation(picked);
+      dest = picked;
+
+      if (!(await pathExists(dest))) {
+        vscode.window.showErrorMessage(`Selected location is not accessible: ${dest}`);
+        return undefined;
+      }
+    } else if (choice === 'Continue') {
+      const appeared = await waitForDrive(dest, 8000, 500);
+      if (!appeared) {
+        vscode.window.showErrorMessage(`Drive did not appear at: ${dest}`);
+        return undefined;
+      }
+    } else {
+      return undefined; // user cancelled
+    }
   }
 
   return dest;
@@ -57,6 +113,8 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
     async (_progress, token) => {
       try {
         let copied = 0;
+        const chan = vscode.window.createOutputChannel('Bao Flash');
+        chan.show(true);
 
         for (const srcPath of files) {
           if (token.isCancellationRequested) break;
@@ -64,6 +122,13 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
           const fileName = path.basename(srcPath);
           const srcUri = vscode.Uri.file(srcPath);
           const dstUri = vscode.Uri.file(path.join(dest, fileName));
+
+          // Compute MD5 hash
+          const buf = fs.readFileSync(srcUri.fsPath);
+          const md5 = crypto.createHash('md5').update(buf).digest('hex');
+
+          chan.appendLine(`[bao] Flashing ${fileName}`);
+          chan.appendLine(`      MD5: ${md5}`);
 
           await vscode.workspace.fs.copy(srcUri, dstUri, { overwrite: true });
           copied++;
@@ -75,6 +140,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
         }
 
         vscode.window.showInformationMessage(`Baochip: flashed ${copied} file(s) to ${dest}.`);
+        chan.appendLine(`[bao] Flash complete (${copied} file${copied === 1 ? '' : 's'})`);
         return true;
       } catch (e: any) {
         const msg = e?.message ?? String(e);
@@ -87,7 +153,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 
 export async function decideAndFlash(root: string): Promise<boolean> {
   const dest = await ensureFlashLocation();
-  if (!dest) return false; // path missing/cancelled → stop
+  if (!dest) return false;
 
   const { all } = await gatherArtifacts(root);
   if (all.length === 0) {

@@ -74,6 +74,8 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
   if (appArgs.length === 0) {
     vscode.window.showInformationMessage(`Building "${target}" without an app.`);
     term.sendText(`echo [bao] No apps specified — building target "${target}" only.`);
+  } else {
+    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
   }
 
   term.sendText(`cd "${root}"`);
@@ -92,6 +94,8 @@ export async function runBuildAndWait(root: string, target: string, app?: string
   if (appArgs.length === 0) {
     chan.appendLine(`[bao] No apps specified — building target "${target}" only.`);
     vscode.window.showInformationMessage(`Building "${target}" without an app.`);
+  } else {
+    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
   }
 
   chan.appendLine(`[bao] Building: cargo ${args.join(' ')}`);
