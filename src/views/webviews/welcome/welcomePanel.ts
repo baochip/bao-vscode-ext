@@ -15,7 +15,7 @@ export class WelcomePanel {
 
     const panel = vscode.window.createWebviewPanel(
       'baoWelcome',
-      vscode.l10n.t('welcome.titleBar'), // "Welcome • Baochip"
+      vscode.l10n.t('Welcome • Baochip'), // "Welcome • Baochip"
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
@@ -106,20 +106,20 @@ export class WelcomePanel {
     const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'));
 
     // Localized strings injected into the HTML
-    const titleBar = vscode.l10n.t('welcome.titleBar'); // "Welcome • Baochip"
-    const h1 = vscode.l10n.t('welcome.h1'); // "Welcome to Baochip"
-    const sub = vscode.l10n.t('welcome.sub'); // "Quick actions to get you started."
-    const chkLabel = vscode.l10n.t('welcome.showOnStartup'); // "Show Welcome on extension startup"
-    const xousLinkTitle = vscode.l10n.t('welcome.link.xous.title'); // "Open xous-core on GitHub"
+    const titleBar = vscode.l10n.t('Welcome • Baochip'); // "Welcome • Baochip"
+    const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
+    const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
+    const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"
+    const xousLinkTitle = vscode.l10n.t('Open xous-core on GitHub'); // "Open xous-core on GitHub"
     const xousLinkText = 'betrusted-io/xous-core'; // keep repo slug literal
-    const btnConfigureTitle = vscode.l10n.t('welcome.btn.configure.title');
-    const btnConfigureSub = vscode.l10n.t('welcome.btn.configure.sub');
-    const btnCreateTitle = vscode.l10n.t('welcome.btn.create.title');
-    const btnCreateSub = vscode.l10n.t('welcome.btn.create.sub');
-    const btnSelectTitle = vscode.l10n.t('welcome.btn.select.title');
-    const btnSelectSub = vscode.l10n.t('welcome.btn.select.sub');
-    const footerLead = vscode.l10n.t('welcome.footer.lead');
-    const footerLink = vscode.l10n.t('welcome.footer.link'); // "Open an issue on GitHub"
+    const btnConfigureTitle = vscode.l10n.t('Configure extension');
+    const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
+    const btnCreateTitle = vscode.l10n.t('Create new app');
+    const btnCreateSub = vscode.l10n.t('Scaffold in apps-dabao/');
+    const btnSelectTitle = vscode.l10n.t('Select app');
+    const btnSelectSub = vscode.l10n.t('Choose from apps-dabao/');
+    const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
+    const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
 
     return /* html */`
       <!doctype html>

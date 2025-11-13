@@ -46,19 +46,19 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   if (folders.length > 0) {
     const openPaths = folders.map(f => f.uri.fsPath).join('\n  • ');
     const choice = await vscode.window.showWarningMessage(
-      vscode.l10n.t('workspace.mismatch', xousRoot, openPaths),
+      vscode.l10n.t('The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  • {1}\n\nChoose what to do:', xousRoot, openPaths),
       { modal: true },
-      vscode.l10n.t('button.openConfiguredXous'),
-      vscode.l10n.t('button.useCurrentWorkspace'),
-      vscode.l10n.t('button.cancel')
+      vscode.l10n.t('Open configured xous-core'),
+      vscode.l10n.t('Use current workspace instead'),
+      vscode.l10n.t('Cancel')
     );
 
-    if (choice === vscode.l10n.t('button.openConfiguredXous')) {
+    if (choice === vscode.l10n.t('Open configured xous-core')) {
       await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
       return false;
     }
 
-    if (choice === vscode.l10n.t('button.useCurrentWorkspace')) {
+    if (choice === vscode.l10n.t('Use current workspace instead')) {
       // Pick the first folder
       const chosen = folders[0].uri.fsPath;
       await setXousCorePath(chosen);
@@ -69,11 +69,11 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   }
 
   const openChoice = await vscode.window.showInformationMessage(
-    vscode.l10n.t('workspace.noneOpenPrompt', xousRoot),
+    vscode.l10n.t('No xous-core workspace is open. Open "{0}" to continue?', xousRoot),
     { modal: true },
-    vscode.l10n.t('button.open')
+    vscode.l10n.t('Open')
   );
-  if (openChoice !== vscode.l10n.t('button.open')) return false;
+  if (openChoice !== vscode.l10n.t('Open')) return false;
 
   await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
   return false; // window reloads

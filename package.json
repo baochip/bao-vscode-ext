@@ -271,13 +271,13 @@
     "package": "npx vsce package"
   },
   "devDependencies": {
-    "@types/node": "^24.10.0",
-    "@types/vscode": "^1.92.0",
+    "@types/node": "^24.10.1",
+    "@types/vscode": "^1.106.0",
     "@vscode/vsce": "^3.7.0",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.5.0"
   },
   "dependencies": {
-    "@vscode/codicons": "^0.0.41"
+    "@vscode/codicons": "^0.0.42"
   }
 }

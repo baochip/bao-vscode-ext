@@ -34,9 +34,9 @@ async function runBaoVersion(
     child.stderr.on('data', d => err += d.toString());
     child.on('error', reject);
     child.on('close', (code) => {
-      if (code !== 0) return reject(new Error(err || vscode.l10n.t('common.exitedCode', String(code))));
+      if (code !== 0) return reject(new Error(err || vscode.l10n.t('Exited {0}', String(code))));
       const m = out.trim().match(/(\d+\.\d+\.\d+)/);
-      if (!m) return reject(new Error(vscode.l10n.t('version.parseFail', out.trim())));
+      if (!m) return reject(new Error(vscode.l10n.t('Could not parse version from: {0}', out.trim())));
       resolve(m[1]);
     });
   });
@@ -61,7 +61,7 @@ export async function checkToolsBaoVersion(): Promise<boolean> {
 
     if (cmpSemver(found, REQUIRED_TOOLS_BAO) < 0) {
       vscode.window.showErrorMessage(
-        vscode.l10n.t('version.tooOld', found, REQUIRED_TOOLS_BAO)
+        vscode.l10n.t('Your tools-bao is too old (found v{0}, need ≥ v{1}).\nPlease update your xous-core repository to continue.', found, REQUIRED_TOOLS_BAO)
       );
       return false;
     }
@@ -69,7 +69,7 @@ export async function checkToolsBaoVersion(): Promise<boolean> {
     return true;
   } catch (e: any) {
     vscode.window.showErrorMessage(
-      vscode.l10n.t('version.checkFailed', e?.message ?? String(e))
+      vscode.l10n.t('Could not check tools-bao version. Please ensure your xous-core repository is up to date.\nError: {0}', e?.message ?? String(e))
     );
     return false;
   }

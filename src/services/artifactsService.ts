@@ -17,6 +17,6 @@ export async function fetchArtifacts(
     if (Array.isArray(parsed)) return parsed as BaoArtifact[];
     return [];
   } catch {
-    throw new Error(vscode.l10n.t('artifacts.parseFailed'));
+    throw new Error(vscode.l10n.t('artifacts JSON parse failed'));
   }
 }

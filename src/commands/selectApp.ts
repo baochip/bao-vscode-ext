@@ -9,7 +9,7 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
   return gateToolsBao('baochip.selectApp', async () => {
     let root: string;
     try { root = await ensureXousCorePath(); }
-    catch (e: any) { vscode.window.showErrorMessage(e?.message || vscode.l10n.t('prereq.xousPathNotSet')); return; }
+    catch (e: any) { vscode.window.showErrorMessage(e?.message || vscode.l10n.t('xous-core path not set')); return; }
 
     // Enforce opening xous-core as the workspace (2B)
     const ok = await ensureXousWorkspaceOpen(root);
@@ -17,18 +17,18 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
 
     const apps = await listBaoApps(root);
     if (apps.length === 0) {
-      vscode.window.showWarningMessage(vscode.l10n.t('app.noneFoundUnderPath', `${root}/apps-bao`));
+      vscode.window.showWarningMessage(vscode.l10n.t('No apps found under {0}. Create one first.', `${root}/apps-bao`));
       return;
     }
 
     const current = getXousAppName();
     const pick = await vscode.window.showQuickPick(
-      apps.map(a => ({ label: a, description: a === current ? vscode.l10n.t('tag.current') : undefined })),
+      apps.map(a => ({ label: a, description: a === current ? vscode.l10n.t('current') : undefined })),
       { placeHolder: vscode.l10n.t('app.select') } // reuse
     );
     if (!pick) return;
 
     await setXousAppName(pick.label);
-    vscode.window.showInformationMessage(vscode.l10n.t('app.setDone', pick.label));
+    vscode.window.showInformationMessage(vscode.l10n.t('Bao app set to {0}', pick.label));
   });
 }
