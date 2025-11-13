@@ -19,6 +19,7 @@
   "boot.failedInline": "Boot 命令执行失败：{0}",
   "boot.sending": "正在发送 'boot' 到 {0}（{1}）…",
   "boot.success": "Boot 命令执行成功。",
+
   "build.cancelled": "用户已取消构建。",
   "build.exit": "构建已退出，代码 {0}",
   "build.failed": "构建失败。",
@@ -27,6 +28,9 @@
   "build.progressTitle": "Baochip：正在构建…",
   "build.selectTarget": "选择目标",
   "build.starting": "开始构建：cargo {0}",
+  "build.noApp": "在没有应用的情况下构建目标“{0}”。",
+  "build.forApp": "正在为应用“{1}”构建目标“{0}”…",
+  "build.cwd": "工作目录：{0}",
 
   "button.addToWorkspace": "添加到工作区",
   "button.cancel": "取消",
@@ -43,6 +47,8 @@
   "button.useCurrentWorkspace": "使用当前工作区",
   "button.useThisFolder": "使用此文件夹",
   "button.useThisLocation": "使用此位置",
+  "button.selectNewLocation": "选择新位置",
+  "button.continue": "继续",
 
   "clone.chooseFolderTitle": "选择用于克隆 xous-core 的文件夹",
   "clone.instructionsAfterOpen": "打开仓库，本地克隆后再试一次。",
@@ -66,6 +72,12 @@
   "flash.selectDriveInstructions": "请选择 baochip 挂载的磁盘。\n\n1) 确保 baochip 已插入。\n2) 如果电脑中未出现 BAOCHIP 磁盘，请按 RESET 等待出现。",
   "flash.selectDriveTitle": "选择已挂载的 baochip 驱动器",
   "flash.selectDriveTitleUf2": "选择已挂载的 Baochip UF2 驱动器",
+  "flash.deviceNotFoundDetailed": "在 {0} 未找到设备。\n\n• 板子是否已插入？\n• 板子是否处于引导模式？（请按下板子上的 RESET）\n\n如果检查线缆并按下 RESET 后设备出现，请选择“继续”。\n\n否则，请为 BAOCHIP 设备选择新的位置。",
+  "flash.locationNotAccessible": "所选位置无法访问：{0}",
+  "flash.driveNotAppear": "在以下位置未出现驱动器：{0}",
+  "flash.log.flashingFile": "正在烧录 {0}",
+  "flash.log.md5": "MD5：{0}",
+  "flash.log.complete": "烧录完成（{0} 个文件）",
 
   "label.bootloader": "引导程序",
   "label.run": "运行",
@@ -90,6 +102,7 @@
   "ports.selectBootloaderPort": "选择引导程序（驱动模式）串口",
   "ports.selectRunPort": "选择运行模式（固件）串口",
   "ports.waitingRunPort": "正在等待运行模式串口…",
+  "ports.runPortStillUnsetAbort": "运行模式串口仍未设置，将取消监视器。",
 
   "prereq.xousOrBaoNotSet": "xous-core / bao.py 未设置",
   "prereq.xousPathNotSet": "未设置 xous-core 路径",
@@ -134,6 +147,7 @@
   "terminal.buildName": "Bao 构建",
   "terminal.cleanName": "Bao 清理",
   "terminal.monitorTitleTemplate": "Bao 监视器（{0}: {1}）",
+  "terminal.flashName": "Bao 烧录",
 
   "tree.buildFlashMonitor": "构建 • 烧录 • 监视",
   "tree.buildXtask": "构建（cargo xtask）",

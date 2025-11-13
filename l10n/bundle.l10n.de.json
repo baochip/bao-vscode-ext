@@ -19,6 +19,7 @@
   "boot.failedInline": "Boot-Befehl fehlgeschlagen: {0}",
   "boot.sending": "'boot' wird an {0} @ {1} gesendet…",
   "boot.success": "Boot-Befehl erfolgreich ausgeführt.",
+
   "build.cancelled": "Build vom Benutzer abgebrochen.",
   "build.exit": "Build beendet mit Code {0}",
   "build.failed": "Build fehlgeschlagen.",
@@ -27,6 +28,9 @@
   "build.progressTitle": "Baochip: Wird gebaut…",
   "build.selectTarget": "Ziel auswählen",
   "build.starting": "Starte Build: cargo {0}",
+  "build.noApp": "Ziel „{0}“ wird ohne App gebaut.",
+  "build.forApp": "Ziel „{0}“ wird für App „{1}“ gebaut…",
+  "build.cwd": "Arbeitsverzeichnis: {0}",
 
   "button.addToWorkspace": "Zum Arbeitsbereich hinzufügen",
   "button.cancel": "Abbrechen",
@@ -43,6 +47,8 @@
   "button.useCurrentWorkspace": "Aktuellen Arbeitsbereich verwenden",
   "button.useThisFolder": "Diesen Ordner verwenden",
   "button.useThisLocation": "Diesen Speicherort verwenden",
+  "button.selectNewLocation": "Neuen Speicherort auswählen",
+  "button.continue": "Fortfahren",
 
   "clone.chooseFolderTitle": "Ordner zum Klonen von xous-core auswählen",
   "clone.instructionsAfterOpen": "Repository öffnen, lokal klonen und erneut versuchen.",
@@ -66,6 +72,12 @@
   "flash.selectDriveInstructions": "Bitte wählen Sie das Laufwerk aus, auf dem Ihr Baochip gemountet ist.\n\n1) Stellen Sie sicher, dass der Baochip eingesteckt ist.\n2) Wenn das BAOCHIP-Laufwerk nicht angezeigt wird, drücken Sie RESET und warten Sie, bis es erscheint.",
   "flash.selectDriveTitle": "Gemountetes Baochip-Laufwerk auswählen",
   "flash.selectDriveTitleUf2": "Gemountetes Baochip-UF2-Laufwerk auswählen",
+  "flash.deviceNotFoundDetailed": "Gerät wurde unter {0} nicht gefunden.\n\n• Ist das Board eingesteckt?\n• Befindet sich das Board im Bootloader-Modus? (RESET auf dem Board drücken)\n\nWählen Sie „Fortfahren“, wenn das Gerät nach Kabel-/Reset-Prüfung erscheint.\n\nAndernfalls wählen Sie einen neuen Speicherort für das BAOCHIP-Gerät.",
+  "flash.locationNotAccessible": "Ausgewählter Speicherort ist nicht erreichbar: {0}",
+  "flash.driveNotAppear": "Laufwerk ist nicht erschienen an: {0}",
+  "flash.log.flashingFile": "Flashe {0}",
+  "flash.log.md5": "MD5: {0}",
+  "flash.log.complete": "Flash-Vorgang abgeschlossen ({0} Datei(en))",
 
   "label.bootloader": "Bootloader",
   "label.run": "Run",
@@ -90,6 +102,7 @@
   "ports.selectBootloaderPort": "Bootloader-(Laufwerksmodus)-Seriellport auswählen",
   "ports.selectRunPort": "Run-(Firmware)-Seriellport auswählen",
   "ports.waitingRunPort": "Warten auf Run-Modus-Seriellport…",
+  "ports.runPortStillUnsetAbort": "Run-Modus-Seriellport ist weiterhin nicht gesetzt. Monitor wird abgebrochen.",
 
   "prereq.xousOrBaoNotSet": "xous-core / bao.py nicht gesetzt",
   "prereq.xousPathNotSet": "xous-core-Pfad nicht gesetzt",
@@ -134,6 +147,7 @@
   "terminal.buildName": "Bao Build",
   "terminal.cleanName": "Bao Clean",
   "terminal.monitorTitleTemplate": "Bao Monitor ({0}: {1})",
+  "terminal.flashName": "Bao Flash",
 
   "tree.buildFlashMonitor": "Build • Flash • Monitor",
   "tree.buildXtask": "Build (cargo xtask)",

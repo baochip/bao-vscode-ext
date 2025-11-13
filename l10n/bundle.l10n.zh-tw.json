@@ -19,6 +19,7 @@
   "boot.failedInline": "Boot 指令執行失敗：{0}",
   "boot.sending": "正在傳送 'boot' 至 {0}（{1}）…",
   "boot.success": "Boot 指令執行成功。",
+
   "build.cancelled": "使用者已取消建置。",
   "build.exit": "建置結束，代碼 {0}",
   "build.failed": "建置失敗。",
@@ -27,6 +28,9 @@
   "build.progressTitle": "Baochip：建置中…",
   "build.selectTarget": "選擇目標",
   "build.starting": "開始建置：cargo {0}",
+  "build.noApp": "在沒有應用的情況下建置目標「{0}」。",
+  "build.forApp": "正在為應用「{1}」建置目標「{0}」…",
+  "build.cwd": "工作目錄：{0}",
 
   "button.addToWorkspace": "加入工作區",
   "button.cancel": "取消",
@@ -43,6 +47,8 @@
   "button.useCurrentWorkspace": "使用目前的工作區",
   "button.useThisFolder": "使用此資料夾",
   "button.useThisLocation": "使用此位置",
+  "button.selectNewLocation": "選擇新位置",
+  "button.continue": "繼續",
 
   "clone.chooseFolderTitle": "選擇要複製 xous-core 的資料夾",
   "clone.instructionsAfterOpen": "請開啟儲存庫，完成本地複製後再試一次。",
@@ -66,6 +72,12 @@
   "flash.selectDriveInstructions": "請選擇 baochip 掛載的磁碟。\n\n1) 確認 baochip 已插入。\n2) 若電腦未顯示 BAOCHIP 磁碟，請按 RESET 等待出現。",
   "flash.selectDriveTitle": "選擇已掛載的 baochip 磁碟",
   "flash.selectDriveTitleUf2": "選擇已掛載的 Baochip UF2 磁碟",
+  "flash.deviceNotFoundDetailed": "在 {0} 找不到裝置。\n\n• 板子是否已插入？\n• 板子是否處於開機模式？（請按下板子上的 RESET）\n\n若檢查線材並按下 RESET 後裝置出現，請選擇「繼續」。\n\n否則請為 BAOCHIP 裝置選擇新的位置。",
+  "flash.locationNotAccessible": "選取的位置無法存取：{0}",
+  "flash.driveNotAppear": "在以下位置未出現磁碟機：{0}",
+  "flash.log.flashingFile": "正在燒錄 {0}",
+  "flash.log.md5": "MD5：{0}",
+  "flash.log.complete": "燒錄完成（{0} 個檔案）",
 
   "label.bootloader": "開機載入程式",
   "label.run": "執行",
@@ -90,6 +102,7 @@
   "ports.selectBootloaderPort": "選擇開機載入程式（磁碟模式）串列埠",
   "ports.selectRunPort": "選擇執行模式（韌體）串列埠",
   "ports.waitingRunPort": "等待執行模式串列埠…",
+  "ports.runPortStillUnsetAbort": "執行模式串列埠仍未設定，將中止監視器。",
 
   "prereq.xousOrBaoNotSet": "xous-core / bao.py 未設定",
   "prereq.xousPathNotSet": "xous-core 路徑未設定",
@@ -134,6 +147,7 @@
   "terminal.buildName": "Bao 建置",
   "terminal.cleanName": "Bao 清理",
   "terminal.monitorTitleTemplate": "Bao 監視器（{0}: {1}）",
+  "terminal.flashName": "Bao 燒錄",
 
   "tree.buildFlashMonitor": "建置 • 燒錄 • 監視",
   "tree.buildXtask": "建置（cargo xtask）",

@@ -40,7 +40,7 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
       // Re-check after the command returns.
       runPort = getRunSerialPort();
       if (!runPort) {
-        vscode.window.showWarningMessage('Run mode serial port is still not set. Aborting monitor.');
+        vscode.window.showWarningMessage(vscode.l10n.t('ports.runPortStillUnsetAbort'));
         return;
       }
     }

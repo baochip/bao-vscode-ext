@@ -16,11 +16,11 @@ async function pathExists(absPath: string): Promise<boolean> {
 
 async function promptForFlashFolder(): Promise<string | undefined> {
   const pick = await vscode.window.showOpenDialog({
-    title: 'Select mounted BAOCHIP drive',
+    title: vscode.l10n.t('flash.selectDriveTitle'),
     canSelectFiles: false,
     canSelectFolders: true,
     canSelectMany: false,
-    openLabel: 'Use this location',
+    openLabel: vscode.l10n.t('button.useThisLocation'),
   });
   return pick && pick.length > 0 ? pick[0].fsPath : undefined;
 }
@@ -40,14 +40,14 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 
   // Case 1: not set yet → prompt to pick & save
   if (!dest) {
+    const selectFolderLabel = vscode.l10n.t('button.selectFolder');
+
     const ok = await vscode.window.showInformationMessage(
-      'Select the drive where BAOCHIP is mounted.\n\n' +
-      '• The board should appear as a removable drive named "BAOCHIP".\n' +
-      '• If you can’t see it, press RESET on the board.',
+      vscode.l10n.t('flash.selectDriveInstructions'),
       { modal: true },
-      'Select Folder'
+      selectFolderLabel
     );
-    if (ok !== 'Select Folder') return undefined;
+    if (ok !== selectFolderLabel) return undefined;
 
     const picked = await promptForFlashFolder();
     if (!picked) return undefined;
@@ -58,31 +58,30 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 
   // Case 2: set but missing → offer "Select New Location" or "Continue"
   if (!(await pathExists(dest))) {
+    const selectNewLabel = vscode.l10n.t('button.selectNewLocation');
+    const continueLabel = vscode.l10n.t('button.continue');
+
     const choice = await vscode.window.showWarningMessage(
-      `Device not found at ${dest}\n\n` +
-      '• Is the board plugged in?\n' +
-      '• Is the board in bootloader mode? (press RESET on the board)\n\n' +
-      'Select "Continue" if the device appears after checking cable and pressing RESET.\n\n' +
-      'Otherwise, select a new location for the BAOCHIP device.',
+      vscode.l10n.t('flash.deviceNotFoundDetailed', dest),
       { modal: true },
-      'Select New Location',
-      'Continue'
+      selectNewLabel,
+      continueLabel
     );
 
-    if (choice === 'Select New Location') {
+    if (choice === selectNewLabel) {
       const picked = await promptForFlashFolder();
       if (!picked) return undefined;
       await setFlashLocation(picked);
       dest = picked;
 
       if (!(await pathExists(dest))) {
-        vscode.window.showErrorMessage(`Selected location is not accessible: ${dest}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('flash.locationNotAccessible', dest));
         return undefined;
       }
-    } else if (choice === 'Continue') {
+    } else if (choice === continueLabel) {
       const appeared = await waitForDrive(dest, 8000, 500);
       if (!appeared) {
-        vscode.window.showErrorMessage(`Drive did not appear at: ${dest}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('flash.driveNotAppear', dest));
         return undefined;
       }
     } else {
@@ -113,7 +112,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
     async (_progress, token) => {
       try {
         let copied = 0;
-        const chan = vscode.window.createOutputChannel('Bao Flash');
+        const chan = vscode.window.createOutputChannel(vscode.l10n.t('terminal.flashName'));
         chan.show(true);
 
         for (const srcPath of files) {
@@ -127,8 +126,8 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
           const buf = fs.readFileSync(srcUri.fsPath);
           const md5 = crypto.createHash('md5').update(buf).digest('hex');
 
-          chan.appendLine(`[bao] Flashing ${fileName}`);
-          chan.appendLine(`      MD5: ${md5}`);
+          chan.appendLine(`[bao] ${vscode.l10n.t('flash.log.flashingFile', fileName)}`);
+          chan.appendLine(`      ${vscode.l10n.t('flash.log.md5', md5)}`);
 
           await vscode.workspace.fs.copy(srcUri, dstUri, { overwrite: true });
           copied++;
@@ -140,7 +139,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
         }
 
         vscode.window.showInformationMessage(vscode.l10n.t('flash.done', copied, dest));
-        chan.appendLine(`[bao] Flash complete (${copied} file${copied === 1 ? '' : 's'})`);
+        chan.appendLine(`[bao] ${vscode.l10n.t('flash.log.complete', copied)}`);
         return true;
       } catch (e: any) {
         const msg = e?.message ?? String(e);

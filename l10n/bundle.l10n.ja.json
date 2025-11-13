@@ -19,6 +19,7 @@
   "boot.failedInline": "boot コマンドに失敗しました: {0}",
   "boot.sending": "'boot' を {0}（{1}）へ送信中…",
   "boot.success": "boot コマンドに成功しました。",
+
   "build.cancelled": "ビルドはユーザーによりキャンセルされました。",
   "build.exit": "ビルドはコード {0} で終了しました。",
   "build.failed": "ビルドに失敗しました。",
@@ -27,6 +28,9 @@
   "build.progressTitle": "Baochip: ビルド中…",
   "build.selectTarget": "ターゲットを選択",
   "build.starting": "ビルド開始: cargo {0}",
+  "build.noApp": "アプリなしでターゲット「{0}」をビルドします。",
+  "build.forApp": "ターゲット「{0}」をアプリ「{1}」向けにビルドします…",
+  "build.cwd": "作業ディレクトリ: {0}",
   
   "button.addToWorkspace": "ワークスペースに追加",
   "button.cancel": "キャンセル",
@@ -43,6 +47,8 @@
   "button.useCurrentWorkspace": "現在のワークスペースを使用",
   "button.useThisFolder": "このフォルダーを使用",
   "button.useThisLocation": "この場所を使用",
+  "button.selectNewLocation": "新しい場所を選択",
+  "button.continue": "続行",
   
   "clone.chooseFolderTitle": "xous-core をクローンするフォルダーを選んでください",
   "clone.instructionsAfterOpen": "リポジトリを開き、ローカルにクローンしてから再試行してください。",
@@ -66,6 +72,12 @@
   "flash.selectDriveInstructions": "baochip がマウントされているドライブを選択する必要があります。\n\n1) baochip を接続してください。\n2) コンピューターに BAOCHIP ドライブが表示されない場合は、RESET ボタンを押して表示されるまでお待ちください。",
   "flash.selectDriveTitle": "マウントされた baochip ドライブを選択",
   "flash.selectDriveTitleUf2": "マウントされた Baochip の UF2 ドライブを選択",
+  "flash.deviceNotFoundDetailed": "デバイスが {0} に見つかりません。\n\n• ボードは接続されていますか？\n• ボードはブートローダーモードになっていますか？（ボード上の RESET を押してください）\n\nケーブルと RESET を確認してデバイスが現れた場合は「続行」を選択してください。\n\nそれ以外の場合は、BAOCHIP デバイスの新しい場所を選択してください。",
+  "flash.locationNotAccessible": "選択した場所にアクセスできません: {0}",
+  "flash.driveNotAppear": "ドライブが次の場所に現れませんでした: {0}",
+  "flash.log.flashingFile": "{0} をフラッシュしています",
+  "flash.log.md5": "MD5: {0}",
+  "flash.log.complete": "フラッシュ完了（{0} 個のファイル）",
   
   "label.bootloader": "ブートローダー",
   "label.run": "実行",
@@ -90,6 +102,7 @@
   "ports.selectBootloaderPort": "ブートローダー（ドライブモード）のシリアルポートを選択",
   "ports.selectRunPort": "実行モード（ファームウェア）のシリアルポートを選択",
   "ports.waitingRunPort": "実行モードのシリアルポートを待機中…",
+  "ports.runPortStillUnsetAbort": "実行モードのシリアルポートがまだ未設定のため、モニターを中止します。",
   
   "prereq.xousOrBaoNotSet": "xous-core / bao.py が設定されていません",
   "prereq.xousPathNotSet": "xous-core のパスが設定されていません",
@@ -134,6 +147,7 @@
   "terminal.buildName": "Bao Build",
   "terminal.cleanName": "Bao Clean",
   "terminal.monitorTitleTemplate": "Bao Monitor（{0}: {1}）",
+  "terminal.flashName": "Bao Flash",
   
   "tree.buildFlashMonitor": "ビルド・フラッシュ・モニター",
   "tree.buildXtask": "ビルド（cargo xtask）",

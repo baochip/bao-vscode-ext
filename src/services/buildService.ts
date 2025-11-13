@@ -62,12 +62,16 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
     ?? vscode.window.createTerminal({ name: vscode.l10n.t('terminal.buildName') });
 
   const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
+  const appList = appArgs.join(' ');
+
   if (appArgs.length === 0) {
     vscode.window.showInformationMessage(vscode.l10n.t('build.noApp', target));
     term.sendText(`echo [bao] ${vscode.l10n.t('build.noAppEcho', target)}`);
   } else {
-    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
-  }
+    vscode.window.showInformationMessage(
+      vscode.l10n.t('build.forApp', target, appList)
+    );
+    }
 
   term.sendText(`cd "${root}"`);
   term.sendText(`cargo xtask ${target}${app ? ` ${app}` : ''}`);
@@ -81,12 +85,15 @@ export async function runBuildAndWait(root: string, target: string, app?: string
 
   const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
   const args = ['xtask', target, ...appArgs];
+  const appList = appArgs.join(' ');
 
   if (appArgs.length === 0) {
     chan.appendLine(`[bao] ${vscode.l10n.t('build.noAppEcho', target)}`);
     vscode.window.showInformationMessage(vscode.l10n.t('build.noApp', target));
   } else {
-    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
+    vscode.window.showInformationMessage(
+      vscode.l10n.t('build.forApp', target, appList)
+    );
   }
 
   // technical context lines, partially localized but keeping code tokens literal
