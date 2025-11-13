@@ -27,14 +27,22 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
     const flashed = await decideAndFlash(pre.root);
     if (!flashed) return; 
 
+    // 2.5) Tell device to exit bootloader and run firmware
     const ok = await sendBoot(runBaoCmd, bao, root);
     if (!ok) return;
 
-    const runPort = getRunSerialPort();
+    // Ensure run-mode port is set; if not, prompt and re-check.
+    let runPort = getRunSerialPort();
     if (!runPort) {
       vscode.window.showInformationMessage(vscode.l10n.t('ports.noRunPortSet'));
       await vscode.commands.executeCommand('baochip.setRunSerialPort');
-      return;
+
+      // Re-check after the command returns.
+      runPort = getRunSerialPort();
+      if (!runPort) {
+        vscode.window.showWarningMessage('Run mode serial port is still not set. Aborting monitor.');
+        return;
+      }
     }
 
     // 3) Monitor (wait for run port to appear)
@@ -45,7 +53,7 @@ export function registerBuildFlashMonitor(context: vscode.ExtensionContext) {
         await new Promise(r => setTimeout(r, 300));
 
         progress.report({ message: vscode.l10n.t('ports.waitingRunPort') });
-        const seen = await waitForPort(runBaoCmd, runPort, { cwd: root, timeoutMs: 20000, intervalMs: 500 });
+        const seen = await waitForPort(runBaoCmd, runPort!, { cwd: root, timeoutMs: 20000, intervalMs: 500 });
 
         if (!seen) {
           vscode.window.showWarningMessage(vscode.l10n.t('ports.runPortTimeoutTryAnyway', runPort));

@@ -65,6 +65,8 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
   if (appArgs.length === 0) {
     vscode.window.showInformationMessage(vscode.l10n.t('build.noApp', target));
     term.sendText(`echo [bao] ${vscode.l10n.t('build.noAppEcho', target)}`);
+  } else {
+    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
   }
 
   term.sendText(`cd "${root}"`);
@@ -83,6 +85,8 @@ export async function runBuildAndWait(root: string, target: string, app?: string
   if (appArgs.length === 0) {
     chan.appendLine(`[bao] ${vscode.l10n.t('build.noAppEcho', target)}`);
     vscode.window.showInformationMessage(vscode.l10n.t('build.noApp', target));
+  } else {
+    vscode.window.showInformationMessage(`Building "${target}" for app "${appArgs.join(' ')}"…`);
   }
 
   // technical context lines, partially localized but keeping code tokens literal
