@@ -59,11 +59,11 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
   // Case 2: set but missing → offer "Select New Location" or "Continue"
   if (!(await pathExists(dest))) {
     const choice = await vscode.window.showWarningMessage(
-      `Flash location not found: ${dest}\n\n` +
-      '• Board plugged in?\n' +
-      '• Board in bootloader mode? (press RESET on the board)\n\n' +
-      'If the drive appears after taking corrective action, press "Continue".\n\n' +
-      'Otherwise, select a new location for the BAOCHIP drive.',
+      `Device not found at ${dest}\n\n` +
+      '• Is the board plugged in?\n' +
+      '• Is the board in bootloader mode? (press RESET on the board)\n\n' +
+      'Select "Continue" if the device appears after checking cable and pressing RESET.\n\n' +
+      'Otherwise, select a new location for the BAOCHIP device.',
       { modal: true },
       'Select New Location',
       'Continue'
