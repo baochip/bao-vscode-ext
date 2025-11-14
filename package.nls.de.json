@@ -42,7 +42,7 @@
   "cfg.build.appName": "Name der Bao-App unter xous-core/apps-dabao/. Mehrere durch Leerzeichen trennbar (z. B. 'helloworld demo_app util'); leer lassen, um nur das Ziel zu bauen.",
 
   "cfg.title.flashing": "Baochip — Flashen",
-  "cfg.flashing.location": "Speicherort des gemounteten Baochip-UF2-Laufwerks (z. B. D:\\ unter Windows).",
+  "cfg.flashing.location": "Speicherort des eingehängten Baochip-UF2-Laufwerks (D:\\ oder ein anderes Laufwerksbuchstaben-Laufwerk unter Windows, /Volumes/BAOCHIP unter macOS, /media/$(whoami)/BAOCHIP unter Linux).",
 
   "views.container.title": "Baochip",
   "views.main": "Baochip",

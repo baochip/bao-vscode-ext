@@ -42,7 +42,7 @@
   "cfg.build.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app util'）。空の場合はターゲットのみをビルド。",
 
   "cfg.title.flashing": "Baochip — フラッシュ",
-  "cfg.flashing.location": "マウント済みの Baochip UF2 ドライブの場所（例：Windows では D:\\）。",
+  "cfg.flashing.location": "マウントされた Baochip UF2 ドライブの場所（Windows では D:\\ または別のドライブレターのドライブ、macOS では /Volumes/BAOCHIP、Linux では /media/$(whoami)/BAOCHIP）。",
 
   "views.container.title": "Baochip",
   "views.main": "Baochip",

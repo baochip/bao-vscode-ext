@@ -42,7 +42,7 @@
   "cfg.build.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app util'），留白則僅建置目標。",
 
   "cfg.title.flashing": "Baochip — 燒錄",
-  "cfg.flashing.location": "已掛載的 Baochip UF2 磁碟位置（例如 Windows 為 D:\\）。",
+  "cfg.flashing.location": "已掛載的 Baochip UF2 磁碟位置（Windows 上為 D:\\ 或其他磁碟代號的磁碟，macOS 上為 /Volumes/BAOCHIP，Linux 上為 /media/$(whoami)/BAOCHIP）。",
 
   "views.container.title": "Baochip",
   "views.main": "Baochip",
