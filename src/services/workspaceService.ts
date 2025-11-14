@@ -46,27 +46,19 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   if (folders.length > 0) {
     const openPaths = folders.map(f => f.uri.fsPath).join('\n  • ');
     const choice = await vscode.window.showWarningMessage(
-      [
-        'The currently open workspace does not match your configured xous-core path.',
-        '',
-        `Configured xous-core: ${xousRoot}`,
-        `Open workspace(s):`,
-        `  • ${openPaths}`,
-        '',
-        'Choose what to do:',
-      ].join('\n'),
+      vscode.l10n.t('The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  • {1}\n\nChoose what to do:', xousRoot, openPaths),
       { modal: true },
-      'Open configured xous-core',        // opens xousRoot
-      'Use current workspace instead',    // updates setting to the open folder
-      'Cancel',
+      vscode.l10n.t('Open configured xous-core'),
+      vscode.l10n.t('Use current workspace instead'),
+      vscode.l10n.t('Cancel')
     );
 
-    if (choice === 'Open configured xous-core') {
+    if (choice === vscode.l10n.t('Open configured xous-core')) {
       await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
       return false;
     }
 
-    if (choice === 'Use current workspace instead') {
+    if (choice === vscode.l10n.t('Use current workspace instead')) {
       // Pick the first folder
       const chosen = folders[0].uri.fsPath;
       await setXousCorePath(chosen);
@@ -77,11 +69,11 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   }
 
   const openChoice = await vscode.window.showInformationMessage(
-    `xous-core is not open in this workspace. Open "${xousRoot}" to continue?`,
+    vscode.l10n.t('xous-core is not open in this workspace. Open "{0}" to continue?', xousRoot),
     { modal: true },
-    'Open',
+    vscode.l10n.t('Open')
   );
-  if (openChoice !== 'Open') return false;
+  if (openChoice !== vscode.l10n.t('Open')) return false;
 
   await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
   return false; // window reloads

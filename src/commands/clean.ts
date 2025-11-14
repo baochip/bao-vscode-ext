@@ -12,11 +12,11 @@ export function registerCleanCommand(_context: vscode.ExtensionContext) {
     try {
       root = await ensureXousCorePath(); // prompts if not set
     } catch (e: any) {
-      vscode.window.showErrorMessage(e?.message || 'xous-core path not set');
+      vscode.window.showErrorMessage(e?.message || vscode.l10n.t('xous-core path not set'));
       return;
     }
 
-    const term = ensureTerminal('Bao Clean');
+    const term = ensureTerminal(vscode.l10n.t('Bao Clean'));
     term.sendText(`cd "${root}"`);
     term.sendText(`cargo clean`);
     term.show(true);

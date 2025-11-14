@@ -9,19 +9,19 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
   return gateToolsBao('baochip.createApp', async () => {
     let root: string;
     try { root = await ensureXousCorePath(); }
-    catch (e: any) { vscode.window.showErrorMessage(e?.message || 'xous-core path not set'); return; }
+    catch (e: any) { vscode.window.showErrorMessage(e?.message || vscode.l10n.t('xous-core path not set')); return; }
 
     const ok = await ensureXousWorkspaceOpen(root);
     if (!ok) return;
 
     const nameInput = await vscode.window.showInputBox({
-      title: 'New Bao App Name',
-      prompt: 'Will be created under xous-core/apps-dabao/<name>/',
-      placeHolder: 'test_app',
+      title: vscode.l10n.t('New Bao App Name'),
+      prompt: vscode.l10n.t('Will be created under xous-core/apps-dabao/<name>/'),
+      placeHolder: vscode.l10n.t('test_app'),
       validateInput: (val) => {
         const n = (val || '').trim().toLowerCase();
-        if (!n) return 'App name is required';
-        if (!isLikelyValidAppName(n)) return 'Use lowercase letters, numbers, -, _; start with a letter';
+        if (!n) return vscode.l10n.t('App name is required');
+        if (!isLikelyValidAppName(n)) return vscode.l10n.t('Use lowercase letters, numbers, -, _; start with a letter');
         return null;
       }
     });
@@ -29,17 +29,17 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 
     const name = nameInput.trim().toLowerCase();
 
-    const progressOpts = { location: vscode.ProgressLocation.Notification, title: `Creating app "${name}"…` };
+    const progressOpts = { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t('Creating app "{0}"…', name) };
     try {
       await vscode.window.withProgress(progressOpts, async () => {
         await createBaoAppViaCli(root, name);
       });
 
       await setXousAppName(name);
-      vscode.window.showInformationMessage(`Created apps-dabao/${name} and added to workspace.`);
+      vscode.window.showInformationMessage(vscode.l10n.t('Created apps-dabao/{0} and added to workspace.', name));
       await revealAppFolder(root, name);
     } catch (e: any) {
-      vscode.window.showErrorMessage(`Create app failed: ${e?.message || String(e)}`);
+      vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', e?.message || String(e)));
     }
   });
 }

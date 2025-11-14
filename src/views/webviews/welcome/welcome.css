@@ -23,7 +23,7 @@ h1 { font-size: 24px; margin: 0; }
 
 .toolbar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: center;
   margin-top: 8px;
@@ -34,8 +34,13 @@ h1 { font-size: 24px; margin: 0; }
 
 p.muted { color: var(--muted); margin: 6px 0 0; }
 .opts { margin-top: 6px; }
-.opts label { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
-
+.opts label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  white-space: nowrap;
+}
 .grid { display:grid; gap: 12px; grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 18px; }
 
 .btn {

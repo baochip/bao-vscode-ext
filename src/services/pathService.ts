@@ -33,6 +33,7 @@ function errorToast(msg: string) {
 
 export function setExtensionContext(ctx: vscode.ExtensionContext) { _ctx = ctx; }
 function ctx(): vscode.ExtensionContext {
+  // Developer-facing; left literal on purpose.
   if (!_ctx) throw new Error('Baochip extension context not set. Call setExtensionContext(context) in activate().');
   return _ctx!;
 }
@@ -110,32 +111,33 @@ export async function ensureXousCorePath(): Promise<string> {
   }
 
   const choice = await vscode.window.showInformationMessage(
-    'Baochip needs your local xous-core folder.',
+    vscode.l10n.t('Baochip needs your local xous-core folder.'),
     { modal: true },
-    'Select Folder',
-    'Clone from GitHub',
-    'Open Repo Page'
+    vscode.l10n.t('Select Folder'),
+    vscode.l10n.t('Clone from GitHub'),
+    vscode.l10n.t('Open Repo Page')
   );
-  if (!choice) throw new Error('xous-core path not set');
+  if (!choice) throw new Error(vscode.l10n.t('xous-core path not set'));
 
-  if (choice === 'Clone from GitHub') {
+  if (choice === vscode.l10n.t('Clone from GitHub')) {
     const cloned = await cloneXousCore();
-    if (!cloned) throw new Error('Clone did not complete.');
+    if (!cloned) throw new Error(vscode.l10n.t('Clone did not complete.'));
     await setXousCorePath(cloned);
     log(`xous-core cloned to: ${cloned}`);
     return cloned;
   }
 
-  if (choice === 'Open Repo Page') {
+  if (choice === vscode.l10n.t('Open Repo Page')) {
     await vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
-    throw new Error('Open the repo, clone locally, then try again.');
+    throw new Error(vscode.l10n.t('Open the repo, clone locally, then try again.'));
   }
 
   const picked = await vscode.window.showOpenDialog({
-    title: 'Select your xous-core folder',
-    canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Use this folder'
+    title: vscode.l10n.t('Select your xous-core folder'),
+    canSelectFiles: false, canSelectFolders: true, canSelectMany: false,
+    openLabel: vscode.l10n.t('Use this folder')
   });
-  if (!picked?.length) throw new Error('xous-core path not set');
+  if (!picked?.length) throw new Error(vscode.l10n.t('xous-core path not set'));
   const chosen = picked[0].fsPath;
   await setXousCorePath(chosen);
   log(`xous-core chosen: ${chosen}`);
@@ -156,28 +158,32 @@ export async function resolveBaoPy(): Promise<string> {
 }
 
 /** Ensure the given `root` is present in the current workspace. */
-export async function ensureXousFolderOpen(root: string): Promise<'ready'|'added'|'reopen'> {
+export async function ensureXousFolderOpen(root: string): Promise<'ready' | 'added' | 'reopen'> {
   const folders = vscode.workspace.workspaceFolders ?? [];
   const hasRoot = folders.some(f => samePath(f.uri.fsPath, root));
   if (hasRoot) { log('xous-core already in workspace.'); return 'ready'; }
 
-  const choices: Array<'Open Here' | 'Add to Workspace' | 'Open in New Window'> =
-    folders.length > 0 ? ['Add to Workspace', 'Open Here', 'Open in New Window'] : ['Open Here', 'Open in New Window'];
+  const openHere = vscode.l10n.t('Open Here');
+  const addToWorkspace = vscode.l10n.t('Add to Workspace');
+  const openInNewWindow = vscode.l10n.t('Open in New Window');
+
+  const choices: string[] =
+    folders.length > 0 ? [addToWorkspace, openHere, openInNewWindow] : [openHere, openInNewWindow];
 
   const choice = await vscode.window.showInformationMessage(
-    'Baochip needs the xous-core folder opened in the workspace to build.',
+    vscode.l10n.t('Baochip needs the xous-core folder opened in the workspace to build.'),
     { modal: true },
     ...choices
   );
-  if (!choice) throw new Error('xous-core workspace not opened');
+  if (!choice) throw new Error(vscode.l10n.t('xous-core workspace not opened'));
 
   const uri = vscode.Uri.file(root);
-  if (choice === 'Add to Workspace' && folders.length > 0) {
+  if (choice === addToWorkspace && folders.length > 0) {
     vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: 'xous-core' });
     log('xous-core added to current workspace.');
     return 'added';
   }
-  const newWindow = choice === 'Open in New Window';
+  const newWindow = choice === openInNewWindow;
   await vscode.commands.executeCommand('vscode.openFolder', uri, newWindow);
   log(`xous-core opened (${newWindow ? 'new window' : 'here'}).`);
   return 'reopen';
@@ -217,7 +223,7 @@ async function pickPython(): Promise<string> {
   }
   const pick = await vscode.window.showQuickPick(
     found.map(w => ({ label: w.cmd, description: w.version })),
-    { title: 'Select Python to install uv', ignoreFocusOut: true, placeHolder: 'Pick the Python to run "pip install --user uv"' }
+    { title: vscode.l10n.t('Select Python to install uv'), ignoreFocusOut: true, placeHolder: vscode.l10n.t('Pick the Python to run "pip install --user uv"') }
   );
   if (!pick) throw new Error('Python selection cancelled.');
   log(`Python selected for uv install: ${pick.label}`);
@@ -330,8 +336,8 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
   log(`uv not found after install. PATH:\n${envPath}`);
   throw new Error(
     os.platform() === 'win32'
-      ? 'uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.'
-      : 'uv was installed but not found. Ensure your user bin directory is on PATH or select a different Python.'
+      ? vscode.l10n.t('uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.')
+      : vscode.l10n.t('uv was installed but not found. Ensure your user bin directory is on PATH or select a different Python.')
   );
 }
 
@@ -367,7 +373,7 @@ async function resolveUvBinary(): Promise<string> {
   return uvPath;
 }
 
-/* ------------------------------ public runners ------------------------------ */
+/* --------------------------- public runners --------------------------- */
 
 /** Returns `{ cmd: <uv binary>, args: ['run','python'] }` */
 export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
@@ -473,7 +479,7 @@ export async function ensureBaoPythonDeps(
   if (!quiet) info(`Baochip: ${reason} — installing Python deps…`);
 
   await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'Baochip: Installing Python deps (uv)…', cancellable: false },
+    { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t('Baochip: Installing Python deps (uv)…'), cancellable: false },
     async () => {
       const uv = await resolveUvBinary();
 

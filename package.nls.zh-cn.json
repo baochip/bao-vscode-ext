@@ -1,0 +1,50 @@
+{
+  "ext.displayName": "Baochip",
+  "ext.description": "在 VS Code 中开发、烧录并调试 Baochip 微控制器应用。",
+
+  "cmd.openWelcome": "Baochip：打开欢迎页",
+  "cmd.openSettings": "Baochip：打开设置",
+  "cmd.setBootPort": "Baochip：设置引导模式串口",
+  "cmd.setRunPort": "Baochip：设置运行模式串口",
+  "cmd.setMonitorDefaultPort": "Baochip：设置默认监视端口",
+  "cmd.setMonitorBaud": "Baochip：设置监视波特率",
+  "cmd.monitorOpen": "Baochip：打开串口监视器",
+  "cmd.monitorStop": "Baochip：停止串口监视器",
+  "cmd.setFlashLocation": "Baochip：设置烧录位置",
+  "cmd.selectBuildTarget": "Baochip：选择构建目标",
+  "cmd.clean": "Baochip：清理",
+  "cmd.build": "Baochip：构建项目",
+  "cmd.selectApp": "Baochip：选择应用",
+  "cmd.createApp": "Baochip：新建应用",
+  "cmd.flash": "Baochip：烧录到设备",
+  "cmd.buildFlashMonitor": "Baochip：构建 • 烧录 • 监视",
+  "cmd.resetUvSetup": "Baochip：重置 UV 设置",
+
+  "cfg.title.general": "Baochip — 常规",
+  "cfg.general.showWelcomeOnStartup": "扩展激活时自动打开 Baochip 欢迎页。",
+  "cfg.general.xousCorePath": "本地 xous-core 检出文件夹路径。扩展会在其中运行 tools-bao/bao.py。",
+
+  "cfg.title.ports": "Baochip — 端口",
+  "cfg.ports.bootloader": "在引导程序 / UF2 驱动器模式出现的串口。",
+  "cfg.ports.run": "运行模式（普通固件日志）下使用的串口。",
+  "cfg.ports.monitorDefault": "监视按钮默认使用的端口。",
+
+  "cfg.title.monitor": "Baochip — 监视器",
+  "cfg.monitor.defaultBaud": "串口监视器的默认波特率。",
+  "cfg.monitor.crlf": "行模式发送时使用 CRLF 作为行尾。",
+  "cfg.monitor.raw": "立即发送按键（原始模式）。",
+  "cfg.monitor.echo": "本地回显输入。",
+
+  "cfg.title.build": "Baochip — 构建",
+  "cfg.build.target": "当前选择的构建目标（例如：dabao、baosec）。",
+  "cfg.build.fallbackTargets": "当 bao.py 无法列出目标时的回退列表。",
+  "cfg.build.cwd": "构建的工作目录。",
+  "cfg.build.appName": "xous-core/apps-dabao/ 下的 Bao 应用名称。可用空格分隔多个（例如 'helloworld demo_app util'），留空则仅构建目标。",
+
+  "cfg.title.flashing": "Baochip — 烧录",
+  "cfg.flashing.location": "已挂载的 Baochip UF2 驱动器位置（Windows 上为 D:\\ 或其他盘符的驱动器，macOS 上为 /Volumes/BAOCHIP，Linux 上为 /media/$(whoami)/BAOCHIP）。",
+
+  "views.container.title": "Baochip",
+  "views.main": "Baochip",
+  "views.docs": "文档"
+}
