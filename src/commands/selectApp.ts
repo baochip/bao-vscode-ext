@@ -24,7 +24,7 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
     const current = getXousAppName();
     const pick = await vscode.window.showQuickPick(
       apps.map(a => ({ label: a, description: a === current ? vscode.l10n.t('current') : undefined })),
-      { placeHolder: vscode.l10n.t('app.select') } // reuse
+      { placeHolder: vscode.l10n.t('Select app') }
     );
     if (!pick) return;
 

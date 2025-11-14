@@ -16,7 +16,7 @@ export function registerSelectBuildTarget(context: vscode.ExtensionContext, refr
         label: t,
         description: t === current ? vscode.l10n.t('current') : undefined,
       })),
-      { placeHolder: vscode.l10n.t('target.select') } // reuse
+      { placeHolder: vscode.l10n.t('Select build target') }
     );
 
     if (!picked) return;
