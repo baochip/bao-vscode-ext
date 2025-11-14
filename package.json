@@ -227,7 +227,7 @@
           "baochip.flashLocation": {
             "type": "string",
             "default": "",
-            "description": "Location of the mounted Baochip UF2 drive (e.g., D:\\\\ on Windows).",
+            "description": "Location of the mounted Baochip UF2 drive (D:\\\\ on Windows, /Volumes/BAOCHIP on MacOS, /media/$(whoami)/BAOCHIP on Linux).",
             "order": 1
           }
         }
