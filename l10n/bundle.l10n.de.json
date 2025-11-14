@@ -163,7 +163,7 @@
   "Quick actions to get you started.": "Schnell loslegen.",
   "Welcome • Baochip": "Willkommen • Baochip",
   "The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  • {1}\n\nChoose what to do:": "Der aktuell geöffnete Arbeitsbereich entspricht nicht Ihrem konfigurierten xous-core-Pfad.\n\nKonfiguriertes xous-core: {0}\nGeöffnete Arbeitsbereiche:\n  • {1}\n\nAktion wählen:",
-  "No xous-core workspace is open. Open \"{0}\" to continue?": "Kein xous-core-Arbeitsbereich geöffnet. „{0}“ öffnen?",
+  "xous-core is not open in this workspace. Open \"{0}\" to continue?": "xous-core ist in diesem Arbeitsbereich nicht geöffnet. Öffnen Sie \"{0}\", um fortzufahren?",
   "Cannot find tools-bao/bao.py under: {0}": "tools-bao/bao.py wurde unter {0} nicht gefunden.",
   "Baochip needs your local xous-core folder.": "Baochip benötigt Ihren lokalen xous-core-Ordner.",
   "Baochip needs the xous-core folder opened in the workspace to build.": "Zum Bauen muss der xous-core-Ordner im Arbeitsbereich geöffnet sein.",

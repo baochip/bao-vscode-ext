@@ -69,7 +69,7 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
   }
 
   const openChoice = await vscode.window.showInformationMessage(
-    vscode.l10n.t('No xous-core workspace is open. Open "{0}" to continue?', xousRoot),
+    vscode.l10n.t('xous-core is not open in this workspace. Open "{0}" to continue?', xousRoot),
     { modal: true },
     vscode.l10n.t('Open')
   );

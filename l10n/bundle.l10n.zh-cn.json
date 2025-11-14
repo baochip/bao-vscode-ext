@@ -163,7 +163,7 @@
   "Quick actions to get you started.": "快速开始操作。",
   "Welcome • Baochip": "欢迎 • Baochip",
   "The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  • {1}\n\nChoose what to do:": "当前打开的工作区与配置的 xous-core 路径不匹配。\n\n已配置的 xous-core：{0}\n当前工作区：\n  • {1}\n\n请选择操作：",
-  "No xous-core workspace is open. Open \"{0}\" to continue?": "未打开 xous-core 工作区。是否打开“{0}”？",
+  "xous-core is not open in this workspace. Open \"{0}\" to continue?": "当前工作区未打开 xous-core。请打开“{0}”以继续。",
   "Cannot find tools-bao/bao.py under: {0}": "{0} 下未找到 tools-bao/bao.py。",
   "Baochip needs your local xous-core folder.": "Baochip 需要本地 xous-core 文件夹。",
   "Baochip needs the xous-core folder opened in the workspace to build.": "要构建，请在工作区中打开 xous-core 文件夹。",
