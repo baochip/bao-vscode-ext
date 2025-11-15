@@ -15,16 +15,20 @@ export class WelcomePanel {
 
     const panel = vscode.window.createWebviewPanel(
       'baoWelcome',
-      vscode.l10n.t('Welcome • Baochip'), // "Welcome • Baochip"
+      vscode.l10n.t('Welcome • Baochip'),
       vscode.ViewColumn.Active,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'src', 'views', 'webviews', 'welcome'),
-          vscode.Uri.joinPath(context.extensionUri, 'src', 'views', 'webviews', 'monitor'),
           vscode.Uri.joinPath(context.extensionUri, 'media'),
-          vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
+          vscode.Uri.joinPath(
+            context.extensionUri,
+            'node_modules',
+            '@vscode',
+            'codicons',
+            'dist'
+          ),
         ],
       }
     );
@@ -99,10 +103,17 @@ export class WelcomePanel {
     const csp = webview.cspSource;
 
     const codiconsCssUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.ctx.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+      vscode.Uri.joinPath(
+        this.ctx.extensionUri,
+        'node_modules',
+        '@vscode',
+        'codicons',
+        'dist',
+        'codicon.css'
+      )
     );
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'src', 'views', 'webviews', 'welcome', 'welcome.css'));
-    const jsUri  = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'src', 'views', 'webviews', 'welcome', 'welcome.js'));
+    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'css', 'welcome.css'));
+    const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'js', 'welcome.js'));
     const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'));
 
     // Localized strings injected into the HTML
