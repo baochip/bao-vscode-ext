@@ -58,7 +58,7 @@ export class WelcomePanel {
       if (msg?.type === 'run') {
         switch (msg.cmd) {
           case 'configure':
-            vscode.commands.executeCommand('workbench.action.openSettings', 'Baochip');
+            vscode.commands.executeCommand('baochip.openSettings');
             break;
           case 'selectApp':
             vscode.commands.executeCommand('baochip.selectApp');
