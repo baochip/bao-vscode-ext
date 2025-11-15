@@ -77,18 +77,12 @@ Clone xous-core:
 git clone https://github.com/betrusted-io/xous-core
 ```
 
-## 2. Configure the Extension
+- Open your xous-core repository in VS Code to begin writing Baochip applications.
 
-Open the settings using the command palette:
+## 2. Configuring the extension
 
-    Baochip: Open Settings
-
-Then set the following:
-
-- Path to your `xous-core` repository  
-- Run Mode serial port  
-- Bootloader Mode serial port  
-- UF2 flash location (if it is not auto-detected)
+- Prompts for paths, serial ports, and flash locations will appear during normal workflows.
+- You can additionally configure settings ad-hoc from the commands list, toolbar, or from Settings
 
 ## 3. Create or Select an App
 
@@ -97,7 +91,15 @@ Use the Welcome page or the command palette:
     Baochip: Create App
     Baochip: Select App
 
-## 4. Build, Flash, Monitor
+Applications live inside:
+
+    xous-core/apps-dabao/
+
+## 4. Write code! 
+
+- Write code for your app inside the the apps location you have selected.
+
+## 5. Build, Flash, Monitor
 
 You may use any of the following:
 
