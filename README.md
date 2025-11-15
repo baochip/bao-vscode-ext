@@ -5,11 +5,7 @@ This extension integrates building, flashing, and serial monitoring directly int
 
 ---
 
-## Screenshot
-
-<img src="https://github.com/user-attachments/assets/1cea2200-aa3f-4ebb-b25a-4e9b931d10a9"
-     width="800"
-     alt="Baochip extension UI">
+<img src="media/baochip_ext.png" width="800" alt="Baochip extension UI">
 
 ---
 

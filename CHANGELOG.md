@@ -1,3 +1,7 @@
+## [0.9.1] — 2025-11-15
+### Changed
+- Updated README with improved documentation for the Marketplace.
+
 ## [0.9.0] — 2025-11-15
 ### Added
 - Initial public preview release of the Baochip VS Code extension.
