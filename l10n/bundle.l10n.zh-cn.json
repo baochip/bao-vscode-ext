@@ -63,7 +63,7 @@
   "You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.": "请选择 baochip 挂载的磁盘。\n\n1) 确保 baochip 已插入。\n2) 如果电脑中未出现 BAOCHIP 磁盘，请按 RESET 等待出现。",
   "Select mounted baochip drive": "选择已挂载的 baochip 驱动器",
   "Select mounted Baochip UF2 drive": "选择已挂载的 Baochip UF2 驱动器",
-  "Device not found at {0}\n\n• Is the board plugged in?\n• Is the board in bootloader mode? (press RESET on the board)\n\nSelect \"Continue\" if the device appears after checking cable and pressing RESET.\n\nOtherwise, select a new location for the BAOCHIP device.": "在 {0} 未找到设备。\n\n• 板子是否已插入？\n• 板子是否处于引导模式？（请按下板子上的 RESET）\n\n如果检查线缆并按下 RESET 后设备出现，请选择“继续”。\n\n否则，请为 BAOCHIP 设备选择新的位置。",
+  "Device not found at {0}\n\n• Is the board in bootloader mode? (press RESET on the board)\n• Is the board plugged in?\n\nSelect \"Continue\" if the device appears after checking cable and pressing RESET.\n\nOtherwise, select a new location for the BAOCHIP device.": "在 {0} 未找到设备。\n\n• 板子是否处于引导模式？（请按下板子上的 RESET）\n• 板子是否已插入？\n\n如果检查线缆并按下 RESET 后设备出现，请选择“继续”。\n\n否则，请为 BAOCHIP 设备选择新的位置。",
   "Selected location is not accessible: {0}": "所选位置无法访问：{0}",
   "Drive did not appear at: {0}": "在以下位置未出现驱动器：{0}",
   "Flashing {0}": "正在烧录 {0}",

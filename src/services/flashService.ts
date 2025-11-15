@@ -62,7 +62,14 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
     const continueLabel = vscode.l10n.t('Continue');
 
     const choice = await vscode.window.showWarningMessage(
-      vscode.l10n.t('Device not found at {0}\n\n• Is the board plugged in?\n• Is the board in bootloader mode? (press RESET on the board)\n\nSelect "Continue" if the device appears after checking cable and pressing RESET.\n\nOtherwise, select a new location for the BAOCHIP device.', dest),
+        vscode.l10n.t(
+          'Device not found at {0}\n\n' +
+          '• Is the board in bootloader mode? (press RESET on the board)\n' +
+          '• Is the board plugged in?\n\n' +
+          'Select "Continue" if the device appears after checking cable and pressing RESET.\n\n' +
+          'Otherwise, select a new location for the BAOCHIP device.',
+          dest
+        ),
       { modal: true },
       selectNewLabel,
       continueLabel
