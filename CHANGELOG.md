@@ -1,3 +1,11 @@
+## [0.9.3] — 2025-11-15
+### Changed
+- Updated README.
+
+## [0.9.2] — 2025-11-15
+### Changed
+- Updated README.
+
 ## [0.9.1] — 2025-11-15
 ### Changed
 - Updated README with improved documentation for the Marketplace.

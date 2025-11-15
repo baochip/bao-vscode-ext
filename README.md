@@ -21,30 +21,25 @@ A simple start screen with:
 ### Application Workflow
 - Create new Baochip applications via tools-bao
 - Select existing apps from `xous-core/apps-dabao/`
-- Supports multiple apps per build (space-separated)
 
 ### Build Workflow
 - Select build target (e.g., `dabao`, `baosec`)
-- Build target-only or build multiple apps
 - Full clean support
 
 ### Flash Workflow
 - Flash UF2 firmware to Baochip devices
-- Auto-detects the UF2 drive when possible
-- Allows manual override
 
 ### Serial Monitor
 - Raw mode (immediate keystroke passthrough)
 - Line mode with CRLF normalization
-- Auto port re-enumeration (Run Mode ↔ Bootloader Mode)
-- Graceful disconnect handling
-- Optional local echo
+- Run Mode ↔ Bootloader Mode option for ports
 
 ### Combined Build/Flash/Monitor Command
 A single command that:
 1. Builds the firmware  
 2. Flashes via UF2  
-3. Opens the serial monitor  
+3. Prompts board to boot
+4. Opens the serial monitor connected to the board in run mode
 
 Useful for rapid development cycles.
 
