@@ -4,10 +4,11 @@
   "description": "%ext.description%",
   "publisher": "baochip",
   "website": "https://baochip.com",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "icon": "media/baochip-128x128-logo-only.png",
   "license": "Apache-2.0",
   "preview": true,
+  "pricing": "Free",
   "repository": {
     "type": "git",
     "url": "https://github.com/baochip/bao-vscode-ext.git"
@@ -32,8 +33,7 @@
   ],
   "activationEvents": [
     "onView:bao.view",
-    "onStartupFinished",
-    "onCommand:baochip.selectBuildChannel"
+    "onStartupFinished"
   ],
   "contributes": {
     "commands": [
