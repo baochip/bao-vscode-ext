@@ -1,4 +1,3 @@
-
 export const REQUIRED_TOOLS_BAO = '0.1.3';
 export const BAO_VENV_DIR = '.venv';
 export const REQUIREMENTS_FILE = 'tools-bao/requirements.txt';
