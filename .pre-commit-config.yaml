@@ -17,3 +17,9 @@ repos:
         exclude: "(^node_modules/|^out/|^\\.vscode/|^dist/)"
         pass_filenames: true
         stages: [pre-commit, manual]
+      - id: npm-audit
+        name: npm audit (prod deps)
+        entry: npm audit --omit=dev
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push, manual]

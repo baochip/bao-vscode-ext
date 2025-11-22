@@ -16,6 +16,10 @@ Thanks for helping improve the Baochip VS Code extension! 💜
     cd bao-vscode-ext
     npm install
 
+**Dev tooling**
+- Install git hooks: `pre-commit install`
+- Run local checks as needed: `pre-commit run`
+
 **Run the extension**
 1. Open the repo folder in VS Code.  
 2. `npm run compile`
@@ -57,27 +61,11 @@ Please:
 
 ---
 
-## Security & Dependency Checks (Required)
-
-Before submitting a PR, **you must run**:
-
-    npm audit
-
-- If high/critical issues exist and cannot be addressed, add a note in your PR describing:  
-  - Which advisories are outstanding  
-  - Why they can’t be upgraded/fixed yet  
-  - Any mitigations (e.g., indirect dev-only deps, awaiting upstream fix)
-
-PRs that ignore unresolved **high/critical** findings will be blocked.
-
----
-
 ## Submitting a PR
 
 **Required Checklist**
 - [ ] Code builds and runs in the Extension Development Host  
 - [ ] You verified the flows you touched (manual checks)  
-- [ ] You ran `npm audit` and addressed issues or documented why not  
 - [ ] PR description explains **what changed** and **why**  
 - [ ] Screenshots/Videos for UI changes (if applicable)
 
