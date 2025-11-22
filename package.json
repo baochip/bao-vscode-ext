@@ -1,283 +1,287 @@
 {
-  "name": "bao-vscode-ext",
-  "displayName": "%ext.displayName%",
-  "description": "%ext.description%",
-  "publisher": "baochip",
-  "website": "https://baochip.com",
-  "version": "0.9.3",
-  "icon": "media/baochip-128x128-logo-only.png",
-  "license": "Apache-2.0",
-  "preview": true,
-  "pricing": "Free",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/baochip/bao-vscode-ext.git"
-  },
-  "engines": {
-    "vscode": "^1.92.0"
-  },
-  "l10n": "./l10n",
-  "categories": [
-    "Programming Languages",
-    "Debuggers",
-    "Other"
-  ],
-  "keywords": [
-    "baochip",
-    "precursor",
-    "xous",
-    "xous-core",
-    "embedded",
-    "development",
-    "microcontroller"
-  ],
-  "activationEvents": [
-    "onView:bao.view",
-    "onStartupFinished"
-  ],
-  "contributes": {
-    "commands": [
-      {
-        "command": "baochip.openWelcome",
-        "title": "%cmd.openWelcome%"
-      },
-      {
-        "command": "baochip.openSettings",
-        "title": "%cmd.openSettings%"
-      },
-      {
-        "command": "baochip.setBootloaderSerialPort",
-        "title": "%cmd.setBootPort%"
-      },
-      {
-        "command": "baochip.setRunSerialPort",
-        "title": "%cmd.setRunPort%"
-      },
-      {
-        "command": "baochip.setMonitorDefaultPort",
-        "title": "%cmd.setMonitorDefaultPort%"
-      },
-      {
-        "command": "baochip.setMonitorBaud",
-        "title": "%cmd.setMonitorBaud%"
-      },
-      {
-        "command": "baochip.monitor.open",
-        "title": "%cmd.monitorOpen%"
-      },
-      {
-        "command": "baochip.monitor.stop",
-        "title": "%cmd.monitorStop%"
-      },
-      {
-        "command": "baochip.setFlashLocation",
-        "title": "%cmd.setFlashLocation%"
-      },
-      {
-        "command": "baochip.selectBuildTarget",
-        "title": "%cmd.selectBuildTarget%"
-      },
-      {
-        "command": "baochip.clean",
-        "title": "%cmd.clean%"
-      },
-      {
-        "command": "baochip.build",
-        "title": "%cmd.build%"
-      },
-      {
-        "command": "baochip.selectApp",
-        "title": "%cmd.selectApp%"
-      },
-      {
-        "command": "baochip.createApp",
-        "title": "%cmd.createApp%"
-      },
-      {
-        "command": "baochip.flash",
-        "title": "%cmd.flash%"
-      },
-      {
-        "command": "baochip.buildFlashMonitor",
-        "title": "%cmd.buildFlashMonitor%"
-      },
-      {
-        "command": "baochip.resetUvSetup",
-        "title": "%cmd.resetUvSetup%"
-      }
-    ],
-    "menus": {},
-    "configuration": [
-      {
-        "title": "%cfg.title.general%",
-        "scope": "resource",
-        "properties": {
-          "baochip.showWelcomeOnStartup": {
-            "type": "boolean",
-            "default": true,
-            "description": "%cfg.general.showWelcomeOnStartup%",
-            "order": 1
-          },
-          "baochip.xousCorePath": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.general.xousCorePath%",
-            "order": 2
-          }
-        }
-      },
-      {
-        "title": "%cfg.title.ports%",
-        "scope": "resource",
-        "properties": {
-          "baochip.serialPortBootloader": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.ports.bootloader%",
-            "order": 1
-          },
-          "baochip.serialPortRun": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.ports.run%",
-            "order": 2
-          },
-          "baochip.monitorDefaultPort": {
-            "type": "string",
-            "enum": [
-              "run",
-              "bootloader"
-            ],
-            "default": "run",
-            "description": "%cfg.ports.monitorDefault%",
-            "order": 3
-          }
-        }
-      },
-      {
-        "title": "%cfg.title.monitor%",
-        "scope": "resource",
-        "properties": {
-          "baochip.monitor.defaultBaud": {
-            "type": "number",
-            "default": 1000000,
-            "minimum": 1,
-            "description": "%cfg.monitor.defaultBaud%",
-            "order": 1
-          },
-          "baochip.monitor.crlf": {
-            "type": "boolean",
-            "default": true,
-            "description": "%cfg.monitor.crlf%",
-            "order": 2
-          },
-          "baochip.monitor.raw": {
-            "type": "boolean",
-            "default": true,
-            "description": "%cfg.monitor.raw%",
-            "order": 3
-          },
-          "baochip.monitor.echo": {
-            "type": "boolean",
-            "default": false,
-            "description": "%cfg.monitor.echo%",
-            "order": 4
-          }
-        }
-      },
-      {
-        "title": "%cfg.title.build%",
-        "scope": "resource",
-        "properties": {
-          "baochip.buildTarget": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.build.target%",
-            "order": 1
-          },
-          "baochip.buildTargets": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "default": [
-              "dabao",
-              "baosec"
-            ],
-            "description": "%cfg.build.fallbackTargets%",
-            "order": 2
-          },
-          "baochip.build.cwd": {
-            "type": "string",
-            "default": "${workspaceFolder}",
-            "description": "%cfg.build.cwd%",
-            "order": 3
-          },
-          "baochip.xousAppName": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.build.appName%",
-            "order": 4
-          }
-        }
-      },
-      {
-        "title": "%cfg.title.flashing%",
-        "scope": "resource",
-        "properties": {
-          "baochip.flashLocation": {
-            "type": "string",
-            "default": "",
-            "description": "%cfg.flashing.location%",
-            "order": 1
-          }
-        }
-      }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "bao-container",
-          "title": "%views.container.title%",
-          "icon": "media/bao-icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "bao-container": [
-        {
-          "id": "bao-view",
-          "name": "%views.main%"
-        },
-        {
-          "id": "bao-docs",
-          "name": "%views.docs%"
-        }
-      ]
-    },
-    "keybindings": [
-      {
-        "command": "baochip.build",
-        "key": "ctrl+alt+b",
-        "when": "editorTextFocus"
-      }
-    ]
-  },
-  "main": "./out/extension.js",
-  "scripts": {
-    "compile": "tsc -p . && tsc-alias -p tsconfig.json",
-    "watch": "tsc -w -p .",
-    "vscode:prepublish": "npm run compile",
-    "package": "npx vsce package"
-  },
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@types/vscode": "^1.92.0",
-    "@vscode/vsce": "^3.7.0",
-    "tsc-alias": "^1.8.16",
-    "typescript": "^5.5.0"
-  },
-  "dependencies": {
-    "@vscode/codicons": "^0.0.42"
-  }
+	"name": "bao-vscode-ext",
+	"displayName": "%ext.displayName%",
+	"description": "%ext.description%",
+	"publisher": "baochip",
+	"website": "https://baochip.com",
+	"version": "0.9.3",
+	"icon": "media/baochip-128x128-logo-only.png",
+	"license": "Apache-2.0",
+	"preview": true,
+	"pricing": "Free",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/baochip/bao-vscode-ext.git"
+	},
+	"engines": {
+		"vscode": "^1.92.0"
+	},
+	"l10n": "./l10n",
+	"categories": [
+		"Programming Languages",
+		"Debuggers",
+		"Other"
+	],
+	"keywords": [
+		"baochip",
+		"precursor",
+		"xous",
+		"xous-core",
+		"embedded",
+		"development",
+		"microcontroller"
+	],
+	"activationEvents": [
+		"onView:bao.view",
+		"onStartupFinished"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "baochip.openWelcome",
+				"title": "%cmd.openWelcome%"
+			},
+			{
+				"command": "baochip.openSettings",
+				"title": "%cmd.openSettings%"
+			},
+			{
+				"command": "baochip.setBootloaderSerialPort",
+				"title": "%cmd.setBootPort%"
+			},
+			{
+				"command": "baochip.setRunSerialPort",
+				"title": "%cmd.setRunPort%"
+			},
+			{
+				"command": "baochip.setMonitorDefaultPort",
+				"title": "%cmd.setMonitorDefaultPort%"
+			},
+			{
+				"command": "baochip.setMonitorBaud",
+				"title": "%cmd.setMonitorBaud%"
+			},
+			{
+				"command": "baochip.monitor.open",
+				"title": "%cmd.monitorOpen%"
+			},
+			{
+				"command": "baochip.monitor.stop",
+				"title": "%cmd.monitorStop%"
+			},
+			{
+				"command": "baochip.setFlashLocation",
+				"title": "%cmd.setFlashLocation%"
+			},
+			{
+				"command": "baochip.selectBuildTarget",
+				"title": "%cmd.selectBuildTarget%"
+			},
+			{
+				"command": "baochip.clean",
+				"title": "%cmd.clean%"
+			},
+			{
+				"command": "baochip.build",
+				"title": "%cmd.build%"
+			},
+			{
+				"command": "baochip.selectApp",
+				"title": "%cmd.selectApp%"
+			},
+			{
+				"command": "baochip.createApp",
+				"title": "%cmd.createApp%"
+			},
+			{
+				"command": "baochip.flash",
+				"title": "%cmd.flash%"
+			},
+			{
+				"command": "baochip.buildFlashMonitor",
+				"title": "%cmd.buildFlashMonitor%"
+			},
+			{
+				"command": "baochip.resetUvSetup",
+				"title": "%cmd.resetUvSetup%"
+			}
+		],
+		"menus": {},
+		"configuration": [
+			{
+				"title": "%cfg.title.general%",
+				"scope": "resource",
+				"properties": {
+					"baochip.showWelcomeOnStartup": {
+						"type": "boolean",
+						"default": true,
+						"description": "%cfg.general.showWelcomeOnStartup%",
+						"order": 1
+					},
+					"baochip.xousCorePath": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.general.xousCorePath%",
+						"order": 2
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.ports%",
+				"scope": "resource",
+				"properties": {
+					"baochip.serialPortBootloader": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.ports.bootloader%",
+						"order": 1
+					},
+					"baochip.serialPortRun": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.ports.run%",
+						"order": 2
+					},
+					"baochip.monitorDefaultPort": {
+						"type": "string",
+						"enum": [
+							"run",
+							"bootloader"
+						],
+						"default": "run",
+						"description": "%cfg.ports.monitorDefault%",
+						"order": 3
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.monitor%",
+				"scope": "resource",
+				"properties": {
+					"baochip.monitor.defaultBaud": {
+						"type": "number",
+						"default": 1000000,
+						"minimum": 1,
+						"description": "%cfg.monitor.defaultBaud%",
+						"order": 1
+					},
+					"baochip.monitor.crlf": {
+						"type": "boolean",
+						"default": true,
+						"description": "%cfg.monitor.crlf%",
+						"order": 2
+					},
+					"baochip.monitor.raw": {
+						"type": "boolean",
+						"default": true,
+						"description": "%cfg.monitor.raw%",
+						"order": 3
+					},
+					"baochip.monitor.echo": {
+						"type": "boolean",
+						"default": false,
+						"description": "%cfg.monitor.echo%",
+						"order": 4
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.build%",
+				"scope": "resource",
+				"properties": {
+					"baochip.buildTarget": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.build.target%",
+						"order": 1
+					},
+					"baochip.buildTargets": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [
+							"dabao",
+							"baosec"
+						],
+						"description": "%cfg.build.fallbackTargets%",
+						"order": 2
+					},
+					"baochip.build.cwd": {
+						"type": "string",
+						"default": "${workspaceFolder}",
+						"description": "%cfg.build.cwd%",
+						"order": 3
+					},
+					"baochip.xousAppName": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.build.appName%",
+						"order": 4
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.flashing%",
+				"scope": "resource",
+				"properties": {
+					"baochip.flashLocation": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.flashing.location%",
+						"order": 1
+					}
+				}
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "bao-container",
+					"title": "%views.container.title%",
+					"icon": "media/bao-icon.svg"
+				}
+			]
+		},
+		"views": {
+			"bao-container": [
+				{
+					"id": "bao-view",
+					"name": "%views.main%"
+				},
+				{
+					"id": "bao-docs",
+					"name": "%views.docs%"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "baochip.build",
+				"key": "ctrl+alt+b",
+				"when": "editorTextFocus"
+			}
+		]
+	},
+	"main": "./out/extension.js",
+	"scripts": {
+		"compile": "tsc -p . && tsc-alias -p tsconfig.json",
+		"watch": "tsc -w -p .",
+		"vscode:prepublish": "npm run compile",
+		"package": "npx vsce package",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write --unsafe .",
+		"format": "biome format --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.0",
+		"@types/node": "^24.10.1",
+		"@types/vscode": "^1.92.0",
+		"@vscode/vsce": "^3.7.0",
+		"tsc-alias": "^1.8.16",
+		"typescript": "^5.5.0"
+	},
+	"dependencies": {
+		"@vscode/codicons": "^0.0.42"
+	}
 }

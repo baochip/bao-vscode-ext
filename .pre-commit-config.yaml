@@ -1,0 +1,19 @@
+repos:
+  - repo: local
+    hooks:
+      - id: biome-check
+        name: biome check
+        entry: npx biome check
+        language: system
+        files: "\\.(ts|tsx|js|mjs|cjs|json)$"
+        exclude: "(^node_modules/|^out/|^\\.vscode/|^dist/)"
+        pass_filenames: true
+        stages: [pre-commit, manual, pre-push]
+      - id: biome-fix
+        name: biome fix (commit stage)
+        entry: npx biome check --write --unsafe
+        language: system
+        files: "\\.(ts|tsx|js|mjs|cjs|json)$"
+        exclude: "(^node_modules/|^out/|^\\.vscode/|^dist/)"
+        pass_filenames: true
+        stages: [pre-commit, manual]

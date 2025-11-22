@@ -1,138 +1,163 @@
+import {
+	getBootloaderSerialPort,
+	getBuildTarget,
+	getDefaultBaud,
+	getFlashLocation,
+	getRunSerialPort,
+	getXousCorePath,
+} from '@services/configService';
 import * as vscode from 'vscode';
-import { getXousCorePath, getDefaultBaud, getBuildTarget, getFlashLocation, getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
 
 export class WelcomePanel {
-  public static current: WelcomePanel | undefined;
-  private panel: vscode.WebviewPanel;
-  private disposables: vscode.Disposable[] = [];
+	public static current: WelcomePanel | undefined;
+	private panel: vscode.WebviewPanel;
+	private disposables: vscode.Disposable[] = [];
 
-  static show(context: vscode.ExtensionContext) {
-    if (WelcomePanel.current) {
-      WelcomePanel.current.panel.reveal(vscode.ViewColumn.Active);
-      WelcomePanel.current.refreshState();
-      return;
-    }
+	static show(context: vscode.ExtensionContext) {
+		if (WelcomePanel.current) {
+			WelcomePanel.current.panel.reveal(vscode.ViewColumn.Active);
+			WelcomePanel.current.refreshState();
+			return;
+		}
 
-    const panel = vscode.window.createWebviewPanel(
-      'baoWelcome',
-      vscode.l10n.t('Welcome • Baochip'),
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'media'),
-          vscode.Uri.joinPath(
-            context.extensionUri,
-            'node_modules',
-            '@vscode',
-            'codicons',
-            'dist'
-          ),
-        ],
-      }
-    );
+		const panel = vscode.window.createWebviewPanel(
+			'baoWelcome',
+			vscode.l10n.t('Welcome • Baochip'),
+			vscode.ViewColumn.Active,
+			{
+				enableScripts: true,
+				retainContextWhenHidden: true,
+				localResourceRoots: [
+					vscode.Uri.joinPath(context.extensionUri, 'media'),
+					vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist'),
+				],
+			},
+		);
 
-    WelcomePanel.current = new WelcomePanel(panel, context);
-  }
+		WelcomePanel.current = new WelcomePanel(panel, context);
+	}
 
-  private constructor(panel: vscode.WebviewPanel, private readonly ctx: vscode.ExtensionContext) {
-    this.panel = panel;
-    this.panel.webview.html = this.getHtml();
-    const logoUri = vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg');
-    this.panel.iconPath = logoUri;
-    this.refreshState();
+	private constructor(
+		panel: vscode.WebviewPanel,
+		private readonly ctx: vscode.ExtensionContext,
+	) {
+		this.panel = panel;
+		this.panel.webview.html = this.getHtml();
+		const logoUri = vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg');
+		this.panel.iconPath = logoUri;
+		this.refreshState();
 
-    this.panel.webview.onDidReceiveMessage(async (msg) => {
-      if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
-        await vscode.workspace.getConfiguration()
-          .update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Workspace);
-        return;
-      }
+		this.panel.webview.onDidReceiveMessage(
+			async (msg) => {
+				if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
+					await vscode.workspace
+						.getConfiguration()
+						.update(
+							'baochip.showWelcomeOnStartup',
+							msg.value,
+							vscode.ConfigurationTarget.Workspace,
+						);
+					return;
+				}
 
-      if (msg?.type === 'xousSite') {
-        vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
-        return;
-      }
-      if (msg?.type === 'extRepo') {
-        vscode.env.openExternal(vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'));
-        return;
-      }
+				if (msg?.type === 'xousSite') {
+					vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
+					return;
+				}
+				if (msg?.type === 'extRepo') {
+					vscode.env.openExternal(
+						vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'),
+					);
+					return;
+				}
 
-      if (msg?.type === 'run') {
-        switch (msg.cmd) {
-          case 'configure':
-            vscode.commands.executeCommand('baochip.openSettings');
-            break;
-          case 'selectApp':
-            vscode.commands.executeCommand('baochip.selectApp');
-            break;
-          case 'createApp':
-            vscode.commands.executeCommand('baochip.createApp');
-            break;
-        }
-        return;
-      }
-    }, null, this.disposables);
+				if (msg?.type === 'run') {
+					switch (msg.cmd) {
+						case 'configure':
+							vscode.commands.executeCommand('baochip.openSettings');
+							break;
+						case 'selectApp':
+							vscode.commands.executeCommand('baochip.selectApp');
+							break;
+						case 'createApp':
+							vscode.commands.executeCommand('baochip.createApp');
+							break;
+					}
+					return;
+				}
+			},
+			null,
+			this.disposables,
+		);
 
-    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
-  }
+		this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+	}
 
-  private refreshState() {
-    const cfg = vscode.workspace.getConfiguration();
-    const state = {
-      xousCorePath: getXousCorePath(),
-      bootloaderSerialPort: getBootloaderSerialPort(),
-      runSerialPort: getRunSerialPort(),
-      baud: getDefaultBaud(),
-      flashLocation: getFlashLocation(),
-      target: getBuildTarget(),
-      showOnStartup: cfg.get<boolean>('baochip.showWelcomeOnStartup', true),
-    };
-    this.panel.webview.postMessage({ type: 'init', state });
-  }
+	private refreshState() {
+		const cfg = vscode.workspace.getConfiguration();
+		const state = {
+			xousCorePath: getXousCorePath(),
+			bootloaderSerialPort: getBootloaderSerialPort(),
+			runSerialPort: getRunSerialPort(),
+			baud: getDefaultBaud(),
+			flashLocation: getFlashLocation(),
+			target: getBuildTarget(),
+			showOnStartup: cfg.get<boolean>('baochip.showWelcomeOnStartup', true),
+		};
+		this.panel.webview.postMessage({ type: 'init', state });
+	}
 
-  dispose() {
-    this.disposables.forEach(d => d.dispose());
-    try { this.panel.dispose(); } catch {}
-    WelcomePanel.current = undefined;
-  }
+	dispose() {
+		for (const disposable of this.disposables) {
+			disposable.dispose();
+		}
+		try {
+			this.panel.dispose();
+		} catch {}
+		WelcomePanel.current = undefined;
+	}
 
-  private getHtml(): string {
-    const webview = this.panel.webview;
-    const csp = webview.cspSource;
+	private getHtml(): string {
+		const webview = this.panel.webview;
+		const csp = webview.cspSource;
 
-    const codiconsCssUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this.ctx.extensionUri,
-        'node_modules',
-        '@vscode',
-        'codicons',
-        'dist',
-        'codicon.css'
-      )
-    );
-    const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'css', 'welcome.css'));
-    const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'js', 'welcome.js'));
-    const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'));
+		const codiconsCssUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(
+				this.ctx.extensionUri,
+				'node_modules',
+				'@vscode',
+				'codicons',
+				'dist',
+				'codicon.css',
+			),
+		);
+		const cssUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'css', 'welcome.css'),
+		);
+		const jsUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'js', 'welcome.js'),
+		);
+		const logoUri = webview.asWebviewUri(
+			vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'),
+		);
 
-    // Localized strings injected into the HTML
-    const titleBar = vscode.l10n.t('Welcome • Baochip'); // "Welcome • Baochip"
-    const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
-    const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
-    const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"
-    const xousLinkTitle = vscode.l10n.t('Open xous-core on GitHub'); // "Open xous-core on GitHub"
-    const xousLinkText = 'betrusted-io/xous-core'; // keep repo slug literal
-    const btnConfigureTitle = vscode.l10n.t('Configure extension');
-    const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
-    const btnCreateTitle = vscode.l10n.t('Create new app');
-    const btnCreateSub = vscode.l10n.t('Scaffold in apps-dabao/');
-    const btnSelectTitle = vscode.l10n.t('Select app');
-    const btnSelectSub = vscode.l10n.t('Choose from apps-dabao/');
-    const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
-    const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
+		// Localized strings injected into the HTML
+		const titleBar = vscode.l10n.t('Welcome • Baochip'); // "Welcome • Baochip"
+		const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
+		const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
+		const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"
+		const xousLinkTitle = vscode.l10n.t('Open xous-core on GitHub'); // "Open xous-core on GitHub"
+		const xousLinkText = 'betrusted-io/xous-core'; // keep repo slug literal
+		const btnConfigureTitle = vscode.l10n.t('Configure extension');
+		const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
+		const btnCreateTitle = vscode.l10n.t('Create new app');
+		const btnCreateSub = vscode.l10n.t('Scaffold in apps-dabao/');
+		const btnSelectTitle = vscode.l10n.t('Select app');
+		const btnSelectSub = vscode.l10n.t('Choose from apps-dabao/');
+		const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
+		const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
 
-    return /* html */`
+		return /* html */ `
       <!doctype html>
       <html>
       <head>
@@ -208,5 +233,5 @@ export class WelcomePanel {
         </div>
       </body>
       </html>`;
-  }
+	}
 }
