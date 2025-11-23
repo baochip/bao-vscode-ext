@@ -4,7 +4,7 @@
 	"description": "%ext.description%",
 	"publisher": "baochip",
 	"website": "https://baochip.com",
-	"version": "0.9.3",
+	"version": "0.9.4",
 	"icon": "media/baochip-128x128-logo-only.png",
 	"license": "Apache-2.0",
 	"preview": true,

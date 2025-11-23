@@ -1,3 +1,9 @@
+## [0.9.4] - 2025-11-25
+### Changed
+- Less aggressive about installing requirements on extension launch
+- pre-commit ensures proper formatting in project
+- updated required VS Code version to 106.1
+
 ## [0.9.3] — 2025-11-15
 ### Changed
 - Updated README.
