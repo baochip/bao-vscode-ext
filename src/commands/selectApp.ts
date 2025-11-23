@@ -1,12 +1,11 @@
 import { listBaoApps } from '@services/appService';
 import { getXousAppName, setXousAppName } from '@services/configService';
 import { ensureXousCorePath } from '@services/pathService';
-import { gateToolsBao } from '@services/versionGate';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import * as vscode from 'vscode';
 
 export function registerSelectApp(_context: vscode.ExtensionContext) {
-	return gateToolsBao('baochip.selectApp', async () => {
+	return vscode.commands.registerCommand('baochip.selectApp', async () => {
 		let root: string;
 		try {
 			root = await ensureXousCorePath();

@@ -1,9 +1,8 @@
 import { setFlashLocation } from '@services/configService';
-import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 
 export function registerSetFlashLocation(_context: vscode.ExtensionContext, refreshUI: () => void) {
-	return gateToolsBao('baochip.setFlashLocation', async () => {
+	return vscode.commands.registerCommand('baochip.setFlashLocation', async () => {
 		const selectFolderBtn = vscode.l10n.t('Select Folder');
 		const ok = await vscode.window.showInformationMessage(
 			vscode.l10n.t(

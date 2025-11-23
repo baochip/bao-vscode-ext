@@ -1,12 +1,11 @@
 import { getBuildTarget, getBuildTargetsFallback, setBuildTarget } from '@services/configService';
-import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 
 export function registerSelectBuildTarget(
 	_context: vscode.ExtensionContext,
 	refreshUI: () => void,
 ) {
-	return gateToolsBao('baochip.selectBuildTarget', async () => {
+	return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
 		const targets = getBuildTargetsFallback();
 		if (!targets || targets.length === 0) {
 			vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));

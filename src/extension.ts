@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -8,13 +7,7 @@ import {
 	getRunSerialPort,
 	getXousAppName,
 } from '@services/configService';
-import {
-	ensureBaoPythonDeps,
-	ensureXousCorePath,
-	resetUvSetup,
-	setExtensionContext,
-} from '@services/pathService';
-import { checkToolsBaoVersion } from '@services/versionService';
+import { resetUvSetup, setExtensionContext } from '@services/pathService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import * as vscode from 'vscode';
@@ -25,11 +18,6 @@ const shouldShowWelcome = () =>
 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
-	// Kick off a single xous-core path resolution so we don't prompt twice
-	const xousRootPromise = ensureXousCorePath();
-
-	// Check on activation (non-blocking) using the shared promise
-	checkToolsBaoVersion(xousRootPromise).catch(() => {});
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
@@ -38,29 +26,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Documentation tree
 	const docsTree = new DocsTreeProvider();
 	vscode.window.registerTreeDataProvider('bao-docs', docsTree);
-
-	// --- Prep Python deps once on activation (quiet) and watch requirements.txt for changes ---
-	try {
-		const root = await xousRootPromise; // user may cancel; that's OK
-		await ensureBaoPythonDeps(root, { quiet: true });
-		wireRequirementsWatcher(context, root);
-	} catch {
-		// No xous-core yet — skip for now; we’ll catch it when the user sets the path.
-	}
-
-	// Re-run deps once when the user updates xous-core path later
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration(async (e) => {
-			if (!e.affectsConfiguration('baochip.xousCorePath')) return;
-			try {
-				const newRoot = await ensureXousCorePath();
-				await ensureBaoPythonDeps(newRoot, { quiet: true });
-				wireRequirementsWatcher(context, newRoot);
-			} catch {
-				/* ignore */
-			}
-		}),
-	);
 
 	// --- Status bar items (left side) ---
 	// Higher priority number = appears more to the left
@@ -236,23 +201,3 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
-function wireRequirementsWatcher(context: vscode.ExtensionContext, xousRoot: string) {
-	const reqAbs = path.join(xousRoot, 'tools-bao', 'requirements.txt');
-	const watcher = vscode.workspace.createFileSystemWatcher(reqAbs);
-
-	const reinstallQuietly = async () => {
-		try {
-			await ensureBaoPythonDeps(xousRoot, { quiet: true });
-		} catch {
-			/* ignore — user will see errors if they actually run a command */
-		}
-	};
-
-	context.subscriptions.push(
-		watcher,
-		watcher.onDidCreate(reinstallQuietly),
-		watcher.onDidChange(reinstallQuietly),
-		watcher.onDidDelete(reinstallQuietly),
-	);
-}
