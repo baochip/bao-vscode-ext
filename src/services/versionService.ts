@@ -57,11 +57,11 @@ async function runBaoVersion(
  * Ensure uv (auto-bootstraps if missing), ensure requirements via uv,
  * then run bao --version and compare against REQUIRED_TOOLS_BAO.
  */
-export async function checkToolsBaoVersion(): Promise<boolean> {
-	const xousRoot = await ensureXousCorePath().catch(() => undefined);
+export async function checkToolsBaoVersion(xousRootPromise?: Promise<string>): Promise<boolean> {
+	const xousRoot = await (xousRootPromise ?? ensureXousCorePath()).catch(() => undefined);
 	if (!xousRoot) return false;
 
-	const baoPy = await resolveBaoPy().catch(() => undefined);
+	const baoPy = await resolveBaoPy(xousRoot).catch(() => undefined);
 	if (!baoPy) return false;
 
 	try {
