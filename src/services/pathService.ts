@@ -172,8 +172,8 @@ export async function ensureXousCorePath(): Promise<string> {
 }
 
 /** Return full path to tools-bao/bao.py after verifying xous-core path */
-export async function resolveBaoPy(): Promise<string> {
-	const root = await ensureXousCorePath();
+export async function resolveBaoPy(xousRoot?: string): Promise<string> {
+	const root = xousRoot ?? (await ensureXousCorePath());
 	const p = path.join(root, 'tools-bao', 'bao.py');
 	if (!fs.existsSync(p)) {
 		const msg = `Cannot find tools-bao/bao.py under: ${root}`;

@@ -25,8 +25,11 @@ const shouldShowWelcome = () =>
 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
-	// Check on activation (non-blocking)
-	checkToolsBaoVersion();
+	// Kick off a single xous-core path resolution so we don't prompt twice
+	const xousRootPromise = ensureXousCorePath();
+
+	// Check on activation (non-blocking) using the shared promise
+	checkToolsBaoVersion(xousRootPromise).catch(() => {});
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
@@ -38,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// --- Prep Python deps once on activation (quiet) and watch requirements.txt for changes ---
 	try {
-		const root = await ensureXousCorePath(); // user may cancel; that's OK
+		const root = await xousRootPromise; // user may cancel; that's OK
 		await ensureBaoPythonDeps(root, { quiet: true });
 		wireRequirementsWatcher(context, root);
 	} catch {
