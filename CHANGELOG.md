@@ -1,3 +1,7 @@
+## [0.9.5] - 2025-12-13
+### Changed
+- Made the Welcome page setting user-scoped, migrating any existing workspace values and cleaning them from workspace configs.
+
 ## [0.9.4] - 2025-11-25
 ### Changed
 - Less aggressive about installing requirements on extension launch

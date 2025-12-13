@@ -16,8 +16,48 @@ import { registerCommands } from './index';
 const shouldShowWelcome = () =>
 	vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
+const migrateWelcomeSettingToGlobal = async () => {
+	const cfg = vscode.workspace.getConfiguration();
+	const showInspect = cfg.inspect<boolean>('baochip.showWelcomeOnStartup');
+	if (!showInspect) return;
+
+	const workspaceShowValues = [showInspect.workspaceValue, showInspect.workspaceFolderValue].filter(
+		(v) => v !== undefined,
+	) as boolean[];
+	const hasWorkspaceShow = workspaceShowValues.length > 0;
+
+	const globalShowSet = showInspect.globalValue !== undefined;
+
+	// Derive global show from workspace/folder show if no global set
+	if (!globalShowSet && hasWorkspaceShow) {
+		const chosen = workspaceShowValues.find((v) => v !== undefined);
+		if (chosen !== undefined) {
+			await cfg.update('baochip.showWelcomeOnStartup', chosen, vscode.ConfigurationTarget.Global);
+		}
+	}
+
+	// Clean workspace/folder show entries
+	if (hasWorkspaceShow) {
+		await cfg.update(
+			'baochip.showWelcomeOnStartup',
+			undefined,
+			vscode.ConfigurationTarget.Workspace,
+		);
+
+		for (const folder of vscode.workspace.workspaceFolders ?? []) {
+			const folderCfg = vscode.workspace.getConfiguration(undefined, folder.uri);
+			await folderCfg.update(
+				'baochip.showWelcomeOnStartup',
+				undefined,
+				vscode.ConfigurationTarget.WorkspaceFolder,
+			);
+		}
+	}
+};
+
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
+	await migrateWelcomeSettingToGlobal();
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();

@@ -52,11 +52,7 @@ export class WelcomePanel {
 				if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
 					await vscode.workspace
 						.getConfiguration()
-						.update(
-							'baochip.showWelcomeOnStartup',
-							msg.value,
-							vscode.ConfigurationTarget.Workspace,
-						);
+						.update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Global);
 					return;
 				}
 

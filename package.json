@@ -4,7 +4,7 @@
 	"description": "%ext.description%",
 	"publisher": "baochip",
 	"website": "https://baochip.com",
-	"version": "0.9.4",
+	"version": "0.9.5",
 	"icon": "media/baochip-128x128-logo-only.png",
 	"license": "Apache-2.0",
 	"preview": true,
@@ -110,14 +110,20 @@
 		"configuration": [
 			{
 				"title": "%cfg.title.general%",
-				"scope": "resource",
+				"scope": "application",
 				"properties": {
 					"baochip.showWelcomeOnStartup": {
 						"type": "boolean",
 						"default": true,
 						"description": "%cfg.general.showWelcomeOnStartup%",
 						"order": 1
-					},
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.general%",
+				"scope": "resource",
+				"properties": {
 					"baochip.xousCorePath": {
 						"type": "string",
 						"default": "",
