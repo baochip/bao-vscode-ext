@@ -117,6 +117,12 @@ export async function gatherArtifacts(root: string) {
 	return { byRole, all };
 }
 
+let _flashChan: vscode.OutputChannel | undefined;
+function getFlashChannel(): vscode.OutputChannel {
+	if (!_flashChan) _flashChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Flash'));
+	return _flashChan;
+}
+
 export async function flashFiles(dest: string, files: string[]): Promise<boolean> {
 	return vscode.window.withProgress(
 		{
@@ -127,7 +133,8 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 		async (_progress, token) => {
 			try {
 				let copied = 0;
-				const chan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Flash'));
+				const chan = getFlashChannel();
+				chan.clear();
 				chan.show(true);
 
 				for (const srcPath of files) {
