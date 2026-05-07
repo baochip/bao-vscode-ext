@@ -7,14 +7,14 @@
 		"strict": true,
 		"sourceMap": true,
 		"lib": ["ES2020"],
-		"baseUrl": ".",
+		"types": ["node"],
 		"paths": {
-			"@constants": ["src/constants"],
-			"@commands/*": ["src/commands/*"],
-			"@services/*": ["src/services/*"],
-			"@views/*": ["src/views/*"],
-			"@tree/*": ["src/views/tree/*"],
-			"@webviews/*": ["src/views/webviews/*"]
+			"@constants": ["./src/constants"],
+			"@commands/*": ["./src/commands/*"],
+			"@services/*": ["./src/services/*"],
+			"@views/*": ["./src/views/*"],
+			"@tree/*": ["./src/views/tree/*"],
+			"@webviews/*": ["./src/views/webviews/*"]
 		}
 	},
 	"exclude": ["node_modules", ".vscode-test"]
