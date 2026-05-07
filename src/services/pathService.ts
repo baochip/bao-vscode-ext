@@ -71,7 +71,8 @@ function run(
 				resolve({ stdout, stderr, code });
 			} else {
 				const msg = `${cmd} failed (exit ${code})\n${stderr || stdout || ''}`.trim();
-				errorToast(msg);
+				log(`ERROR: ${msg}`);
+				chan.show(true);
 				reject(new Error(msg));
 			}
 		});
@@ -359,7 +360,13 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	const parts = pythonCmd.split(' ').filter(Boolean);
 	const exe = parts[0];
 	const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
-	await run(exe, args);
+	try {
+		await run(exe, args);
+	} catch (e: unknown) {
+		const message = e instanceof Error ? e.message : String(e);
+		errorToast(`Baochip: Failed to install uv via pip.\n${message}`);
+		throw e;
+	}
 
 	const cands = expectedUvPathsFromPython(pythonCmd);
 	for (const c of cands) {
