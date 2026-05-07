@@ -368,7 +368,7 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 		await run(exe, args);
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		errorToast(`Baochip: Failed to install uv via pip.\n${message}`);
+		errorToast(vscode.l10n.t('Baochip: Failed to install uv via pip.\n{0}', message));
 		throw e;
 	}
 
@@ -461,7 +461,7 @@ export async function runBaoCmd(
 		await ensureBaoPythonDeps(xousRoot, { quiet: true });
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		warn(`Baochip: dependency check failed, proceeding anyway.\n${message}`);
+		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
 	}
 
 	const fullArgs = [...args, baoPath, ...baoArgs];
@@ -488,7 +488,7 @@ export async function runBaoCmd(
 			log(`bao.py EXIT ${code}`);
 			if (code === 0) return resolve(opts.capture ? out.trim() : '');
 			const msg = (err || out || `bao.py exited ${code}`).trim();
-			errorToast(`Baochip: bao.py failed.\n${msg}`);
+			errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
 			reject(new Error(msg));
 		});
 	});
@@ -556,7 +556,7 @@ export async function ensureBaoPythonDeps(
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
 				log(`uv venv failed: ${message}`);
-				errorToast(`Failed to create uv venv:\n${message}`);
+				errorToast(vscode.l10n.t('Failed to create uv venv:\n{0}', message));
 				throw e;
 			}
 
@@ -565,7 +565,7 @@ export async function ensureBaoPythonDeps(
 				await run(uv, ['pip', 'install', '-r', reqPath], xousRoot);
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
-				errorToast(`Baochip: Failed installing Python deps via uv.\n${message}`);
+				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
 				throw e;
 			}
 
