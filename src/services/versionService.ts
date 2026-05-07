@@ -17,7 +17,7 @@ function parseSemver(s: string): [number, number, number] | null {
 function cmpSemver(a: string, b: string): number {
 	const A = parseSemver(a);
 	const B = parseSemver(b);
-	if (!A || !B) return Number.NaN as unknown as number;
+	if (!A || !B) return -1;
 	for (let i = 0; i < 3; i++) {
 		if (A[i] !== B[i]) return A[i] - B[i];
 	}
