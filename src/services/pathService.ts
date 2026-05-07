@@ -253,7 +253,11 @@ async function pickPython(): Promise<string> {
 	const found = detectWorkingPythons();
 	if (found.length === 0) {
 		const envPath = process.env.PATH || '';
-		errorToast('No working Python interpreters detected on PATH. Please install Python and retry.');
+		errorToast(
+			vscode.l10n.t(
+				'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
+			),
+		);
 		log(`PATH at failure:\n${envPath}`);
 		throw new Error(
 			'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
@@ -356,7 +360,7 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
-	info('Baochip: Installing uv…');
+	info(vscode.l10n.t('Baochip: Installing uv…'));
 	const parts = pythonCmd.split(' ').filter(Boolean);
 	const exe = parts[0];
 	const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
@@ -406,7 +410,7 @@ async function resolveUvBinary(): Promise<string> {
 	const fromPath = whichUvFromPath();
 	if (fromPath) {
 		await wsSet(WS_KEY_UV_PATH, fromPath);
-		info('Baochip: uv ready.');
+		info(vscode.l10n.t('Baochip: uv ready.'));
 		return fromPath;
 	}
 
@@ -414,8 +418,9 @@ async function resolveUvBinary(): Promise<string> {
 	if (process.platform === 'win32') {
 		const sys = pyEval(pythonCmd, 'import platform; print(platform.system())');
 		if (sys.ok && sys.out.toLowerCase() === 'linux') {
-			const msg =
-				'That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).';
+			const msg = vscode.l10n.t(
+				'That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).',
+			);
 			errorToast(msg);
 			throw new Error(msg);
 		}
@@ -425,7 +430,7 @@ async function resolveUvBinary(): Promise<string> {
 
 	const uvPath = await installUvAndFindBinary(pythonCmd);
 	await wsSet(WS_KEY_UV_PATH, uvPath);
-	info('Baochip: uv ready.');
+	info(vscode.l10n.t('Baochip: uv ready.'));
 	return uvPath;
 }
 
@@ -569,13 +574,15 @@ export async function ensureBaoPythonDeps(
 		},
 	);
 
-	if (!quiet) info('Baochip: Python dependencies installed (uv).');
+	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
 /* --------------------------- maintenance helpers --------------------------- */
 export async function resetUvSetup() {
 	await wsSet<string | undefined>(WS_KEY_UV_PATH, undefined);
 	await wsSet<string | undefined>(WS_KEY_UV_PYTHON, undefined);
-	info('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.');
+	info(
+		vscode.l10n.t('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.'),
+	);
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
 }
