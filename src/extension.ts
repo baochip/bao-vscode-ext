@@ -223,7 +223,6 @@ export async function activate(context: vscode.ExtensionContext) {
 			e.affectsConfiguration('baochip.serialPortBootloader') ||
 			e.affectsConfiguration('baochip.serialPortRun') ||
 			e.affectsConfiguration('baochip.monitor.defaultBaud') ||
-			e.affectsConfiguration('baochip.flashPort') ||
 			e.affectsConfiguration('baochip.buildTarget') ||
 			e.affectsConfiguration('baochip.xousAppName') ||
 			e.affectsConfiguration('baochip.flashLocation')
