@@ -3,7 +3,7 @@ import { ensureBuildPrereqs, runBuildAndWait } from '@services/buildService';
 import { getRunSerialPort } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { openMonitorTTYOnMode } from '@services/monitorService';
-import { ensureXousCorePath, resolveBaoPy, runBaoCmd } from '@services/pathService';
+import { resolveBaoPy, runBaoCmd } from '@services/pathService';
 import { waitForPort } from '@services/portsService';
 import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
@@ -14,15 +14,13 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 
-		// Also resolve bao.py (root)
-		let root: string;
+		// Resolve bao.py using the root already confirmed by ensureBuildPrereqs
 		let bao: string;
 		try {
-			root = await ensureXousCorePath();
-			bao = await resolveBaoPy();
+			bao = await resolveBaoPy(pre.root);
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core / bao.py not set'));
+			vscode.window.showErrorMessage(message || vscode.l10n.t('bao.py not found'));
 			return;
 		}
 
@@ -38,7 +36,7 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		if (!flashed) return;
 
 		// 2.5) Tell device to exit bootloader and run firmware
-		const ok = await sendBoot(runBaoCmd, bao, root);
+		const ok = await sendBoot(runBaoCmd, bao, pre.root);
 		if (!ok) return;
 
 		// Ensure run-mode port is set; if not, prompt and re-check.
@@ -72,7 +70,7 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 
 				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port…') });
 				const seen = await waitForPort(runBaoCmd, runPort, {
-					cwd: root,
+					cwd: pre.root,
 					timeoutMs: 20000,
 					intervalMs: 500,
 				});
