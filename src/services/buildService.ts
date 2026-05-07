@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { appExists, listBaoApps, missingApps } from '@services/appService';
+import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -58,8 +58,6 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 			);
 			return;
 		}
-	} else {
-		await listBaoApps(root);
 	}
 
 	return { root, target, app: app || undefined };
