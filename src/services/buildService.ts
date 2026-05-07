@@ -63,6 +63,11 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	return { root, target, app: app || undefined };
 }
 
+function shellCd(dir: string): string {
+	if (process.platform === 'win32') return `cd "${dir}"`;
+	return `cd '${dir.replace(/'/g, "'\\''")}'`;
+}
+
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export function runBuildInTerminal(root: string, target: string, app?: string) {
 	const term =
@@ -83,7 +88,7 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 		);
 	}
 
-	term.sendText(`cd "${root}"`);
+	term.sendText(shellCd(root));
 	term.sendText(`cargo xtask ${target}${app ? ` ${app}` : ''}`);
 	term.show(true);
 }
