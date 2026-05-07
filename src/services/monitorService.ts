@@ -8,6 +8,7 @@ import { ensureXousCorePath, getBaoRunner, resolveBaoPy } from '@services/pathSe
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
+let monitorTermListener: vscode.Disposable | undefined;
 
 function q(s: string) {
 	return /\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
@@ -66,9 +67,17 @@ export async function openMonitorTTY(_context?: vscode.ExtensionContext) {
 	try {
 		monitorTerm?.dispose();
 	} catch {}
+	monitorTermListener?.dispose();
 	const label = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 	const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
 	monitorTerm = vscode.window.createTerminal({ name: termName, cwd: root });
+	monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
+		if (t === monitorTerm) {
+			monitorTerm = undefined;
+			monitorTermListener?.dispose();
+			monitorTermListener = undefined;
+		}
+	});
 	monitorTerm.sendText(full);
 	monitorTerm.show();
 }
@@ -128,9 +137,17 @@ export async function openMonitorTTYOnMode(mode: 'run' | 'bootloader') {
 	try {
 		monitorTerm?.dispose();
 	} catch {}
+	monitorTermListener?.dispose();
 	const label = mode === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 	const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
 	monitorTerm = vscode.window.createTerminal({ name: termName, cwd: root });
+	monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
+		if (t === monitorTerm) {
+			monitorTerm = undefined;
+			monitorTermListener?.dispose();
+			monitorTermListener = undefined;
+		}
+	});
 	monitorTerm.sendText(full);
 	monitorTerm.show();
 }
