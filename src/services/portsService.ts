@@ -1,4 +1,5 @@
 import type {} from 'node:child_process'; // keep file type-safe; no direct spawn needed
+import * as vscode from 'vscode';
 
 export async function listPorts(
 	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
@@ -33,4 +34,50 @@ export async function waitForPort(
 		await new Promise((r) => setTimeout(r, intervalMs));
 	}
 	return false;
+}
+
+/**
+ * Show a confirmation modal, enumerate serial ports via bao, and present a quick pick.
+ * Returns the chosen port string, or undefined if the user cancelled at any step.
+ */
+export async function pickSerialPort(
+	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
+	cwd: string,
+	opts: {
+		confirmTitle: string;
+		confirmDetail: string;
+		placeholder: string;
+	},
+): Promise<string | undefined> {
+	const okLabel = vscode.l10n.t('OK');
+	const clicked = await vscode.window.showInformationMessage(
+		opts.confirmTitle,
+		{ modal: true, detail: opts.confirmDetail },
+		okLabel,
+	);
+	if (clicked !== okLabel) return undefined;
+
+	const lines = await runBao(['ports'], cwd, { capture: true }).catch((err: unknown) => {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t('Could not list ports: {0}', (err as Error)?.message || String(err)),
+		);
+		return '';
+	});
+
+	const items = (lines || '')
+		.split(/\r?\n/)
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.map((line) => {
+			const [port, desc] = line.split('\t');
+			return { label: port, description: desc || undefined };
+		});
+
+	if (items.length === 0) {
+		vscode.window.showWarningMessage(vscode.l10n.t('No serial ports found.'));
+		return undefined;
+	}
+
+	const picked = await vscode.window.showQuickPick(items, { placeHolder: opts.placeholder });
+	return picked?.label;
 }
