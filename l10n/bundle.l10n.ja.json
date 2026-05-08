@@ -12,7 +12,6 @@
 	"No apps found under {0}. Create one first.": "{0} 配下にアプリが見つかりません。先に作成してください。",
 	"No app selected.": "アプリが選択されていません。",
 	"Bao app set to {0}": "Bao アプリを {0} に設定しました。",
-	"artifacts JSON parse failed": "artifacts の JSON 解析に失敗しました。",
 	"Boot command failed: {0}": "boot コマンドに失敗しました: {0}",
 	"Sending 'boot' to {0} @ {1}…": "'boot' を {0}（{1}）へ送信中…",
 	"boot command succeeded.": "boot コマンドに成功しました。",

@@ -12,7 +12,6 @@
 	"No apps found under {0}. Create one first.": "Keine Apps unter {0} gefunden. Bitte zuerst eine erstellen.",
 	"No app selected.": "Keine App ausgewählt.",
 	"Bao app set to {0}": "Bao-App auf {0} gesetzt.",
-	"artifacts JSON parse failed": "Fehler beim Parsen der artifacts-JSON.",
 	"Boot command failed: {0}": "Boot-Befehl fehlgeschlagen: {0}",
 	"Sending 'boot' to {0} @ {1}…": "'boot' wird an {0} @ {1} gesendet…",
 	"boot command succeeded.": "Boot-Befehl erfolgreich ausgeführt.",

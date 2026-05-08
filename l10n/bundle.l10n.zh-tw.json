@@ -12,7 +12,6 @@
 	"No apps found under {0}. Create one first.": "{0} 下未找到應用，請先建立一個。",
 	"No app selected.": "尚未選擇應用。",
 	"Bao app set to {0}": "已將 Bao 應用設定為 {0}",
-	"artifacts JSON parse failed": "解析 artifacts JSON 失敗。",
 	"Boot command failed: {0}": "Boot 指令執行失敗：{0}",
 	"Sending 'boot' to {0} @ {1}…": "正在傳送 'boot' 至 {0}（{1}）…",
 	"boot command succeeded.": "Boot 指令執行成功。",
