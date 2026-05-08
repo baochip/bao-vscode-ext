@@ -1,7 +1,0 @@
-import * as vscode from 'vscode';
-
-export function registerOpenSettings(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.openSettings', async () => {
-		await vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'Baochip');
-	});
-}

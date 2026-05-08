@@ -2,7 +2,7 @@ import { sendBoot } from '@services/bootService';
 import { ensureBuildPrereqs, runBuildAndWait } from '@services/buildService';
 import { getRunSerialPort } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
-import { openMonitorTTYOnMode } from '@services/monitorService';
+import { openMonitorTTY } from '@services/monitorService';
 import { resolveBaoPy, runBaoCmd } from '@services/pathService';
 import { waitForPort } from '@services/portsService';
 import { gateToolsBao } from '@services/versionGate';
@@ -81,7 +81,7 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 					);
 				}
 
-				await openMonitorTTYOnMode('run');
+				await openMonitorTTY('run');
 			},
 		);
 	});
