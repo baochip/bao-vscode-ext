@@ -18,13 +18,19 @@ export async function listPorts(
 export async function waitForPort(
 	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
 	targetPort: string,
-	opts?: { cwd?: string; timeoutMs?: number; intervalMs?: number },
+	opts?: {
+		cwd?: string;
+		timeoutMs?: number;
+		intervalMs?: number;
+		token?: vscode.CancellationToken;
+	},
 ): Promise<boolean> {
 	const timeoutMs = opts?.timeoutMs ?? 20000;
 	const intervalMs = opts?.intervalMs ?? 500;
 	const start = Date.now();
 
 	while (Date.now() - start < timeoutMs) {
+		if (opts?.token?.isCancellationRequested) return false;
 		try {
 			const ports = await listPorts(runBao, opts?.cwd);
 			if (ports.includes(targetPort)) return true;

@@ -62,9 +62,9 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 			{
 				location: vscode.ProgressLocation.Notification,
 				title: vscode.l10n.t('Baochip: waiting for {0}…', runPort),
-				cancellable: false,
+				cancellable: true,
 			},
-			async (progress) => {
+			async (progress, token) => {
 				// small grace period so the bootloader can drop cleanly
 				await new Promise((r) => setTimeout(r, 300));
 
@@ -73,7 +73,10 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 					cwd: pre.root,
 					timeoutMs: 20000,
 					intervalMs: 500,
+					token,
 				});
+
+				if (token.isCancellationRequested) return;
 
 				if (!seen) {
 					vscode.window.showWarningMessage(
