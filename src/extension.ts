@@ -69,46 +69,24 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// --- Status bar items (left side) ---
 	// Higher priority number = appears more to the left
-	const bootloaderSerialPortItem = vscode.window.createStatusBarItem(
-		vscode.StatusBarAlignment.Left,
-		100,
-	);
-	const runSerialPortItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
-	const flashLocationItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
-	const targetItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 97);
-	const appItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 96);
-	const cleanItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 95);
-	const buildItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 94);
-	const flashItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 93);
-	const monitorBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 92);
-	const bfmItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 91);
-	const settingsItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90);
+	function makeStatusItem(priority: number, command: string): vscode.StatusBarItem {
+		const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
+		item.command = command;
+		context.subscriptions.push(item);
+		return item;
+	}
 
-	bootloaderSerialPortItem.command = 'baochip.setBootloaderSerialPort';
-	runSerialPortItem.command = 'baochip.setRunSerialPort';
-	monitorBtn.command = 'baochip.openMonitor';
-	flashLocationItem.command = 'baochip.setFlashLocation';
-	targetItem.command = 'baochip.selectBuildTarget';
-	cleanItem.command = 'baochip.clean';
-	buildItem.command = 'baochip.build';
-	appItem.command = 'baochip.selectApp';
-	flashItem.command = 'baochip.flash';
-	bfmItem.command = 'baochip.buildFlashMonitor';
-	settingsItem.command = 'baochip.openSettings';
-
-	context.subscriptions.push(
-		bootloaderSerialPortItem,
-		runSerialPortItem,
-		monitorBtn,
-		flashLocationItem,
-		targetItem,
-		cleanItem,
-		buildItem,
-		appItem,
-		flashItem,
-		bfmItem,
-		settingsItem,
-	);
+	const bootloaderSerialPortItem = makeStatusItem(100, 'baochip.setBootloaderSerialPort');
+	const runSerialPortItem = makeStatusItem(99, 'baochip.setRunSerialPort');
+	const flashLocationItem = makeStatusItem(98, 'baochip.setFlashLocation');
+	const targetItem = makeStatusItem(97, 'baochip.selectBuildTarget');
+	const appItem = makeStatusItem(96, 'baochip.selectApp');
+	const cleanItem = makeStatusItem(95, 'baochip.clean');
+	const buildItem = makeStatusItem(94, 'baochip.build');
+	const flashItem = makeStatusItem(93, 'baochip.flash');
+	const monitorBtn = makeStatusItem(92, 'baochip.openMonitor');
+	const bfmItem = makeStatusItem(91, 'baochip.buildFlashMonitor');
+	const settingsItem = makeStatusItem(90, 'baochip.openSettings');
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('baochip.resetUvSetup', async () => {
