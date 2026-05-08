@@ -1,9 +1,88 @@
+import { spawnSync } from 'node:child_process';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 import * as vscode from 'vscode';
+
+/** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
+function findBaochipDrives(): string[] {
+	const platform = os.platform();
+
+	if (platform === 'darwin') {
+		try {
+			return fs
+				.readdirSync('/Volumes')
+				.filter((n) => n === 'BAOCHIP' || n.startsWith('BAOCHIP '))
+				.map((n) => `/Volumes/${n}`)
+				.filter((p) => fs.statSync(p).isDirectory());
+		} catch {
+			return [];
+		}
+	}
+
+	if (platform === 'linux') {
+		const user = os.userInfo().username;
+		const roots = [`/media/${user}`, `/run/media/${user}`];
+		const found: string[] = [];
+		for (const root of roots) {
+			try {
+				for (const n of fs.readdirSync(root)) {
+					if (n === 'BAOCHIP' || n.startsWith('BAOCHIP ')) {
+						const p = `${root}/${n}`;
+						if (fs.statSync(p).isDirectory()) found.push(p);
+					}
+				}
+			} catch {
+				// root may not exist on this distro
+			}
+		}
+		return found;
+	}
+
+	if (platform === 'win32') {
+		try {
+			const r = spawnSync(
+				'powershell',
+				[
+					'-NoProfile',
+					'-Command',
+					'Get-Volume -FileSystemLabel BAOCHIP -ErrorAction SilentlyContinue | Select-Object -ExpandProperty DriveLetter',
+				],
+				{ encoding: 'utf8' },
+			);
+			if (r.status === 0 && r.stdout) {
+				return r.stdout
+					.split(/\r?\n/)
+					.map((l) => l.trim())
+					.filter(Boolean)
+					.map((letter) => `${letter}:\\`);
+			}
+		} catch {
+			return [];
+		}
+	}
+
+	return [];
+}
+
+/** If drives are found, auto-select (1 drive) or show a picker (multiple). Returns path or undefined. */
+async function pickFromDetectedDrives(): Promise<string | undefined> {
+	const found = findBaochipDrives();
+	if (found.length === 0) return undefined;
+	if (found.length === 1) return found[0];
+
+	const pick = await vscode.window.showQuickPick(
+		found.map((p) => ({ label: p })),
+		{
+			title: vscode.l10n.t('Multiple BAOCHIP drives found — select one to flash'),
+			ignoreFocusOut: true,
+		},
+	);
+	return pick?.label;
+}
 
 async function pathExists(absPath: string): Promise<boolean> {
 	try {
@@ -38,8 +117,14 @@ async function waitForDrive(absPath: string, timeoutMs = 8000, intervalMs = 500)
 export async function ensureFlashLocation(): Promise<string | undefined> {
 	let dest = getFlashLocation();
 
-	// Case 1: not set yet → prompt to pick & save
+	// Case 1: not set yet → try auto-detect, then prompt to pick & save
 	if (!dest) {
+		const detected = await pickFromDetectedDrives();
+		if (detected) {
+			await setFlashLocation(detected);
+			return detected;
+		}
+
 		const selectFolderLabel = vscode.l10n.t('Select Folder');
 
 		const ok = await vscode.window.showInformationMessage(
@@ -58,8 +143,14 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 		dest = picked;
 	}
 
-	// Case 2: set but missing → offer "Select New Location" or "Continue"
+	// Case 2: set but missing → try auto-detect first, then offer "Select New Location" or "Continue"
 	if (!(await pathExists(dest))) {
+		const detected = await pickFromDetectedDrives();
+		if (detected) {
+			await setFlashLocation(detected);
+			return detected;
+		}
+
 		const selectNewLabel = vscode.l10n.t('Select New Location');
 		const continueLabel = vscode.l10n.t('Continue');
 
