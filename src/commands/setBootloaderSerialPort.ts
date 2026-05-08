@@ -1,5 +1,6 @@
 import { setBootloaderSerialPort as saveBootPort } from '@services/configService';
 import { ensureXousCorePath, runBaoCmd } from '@services/pathService';
+import { pickSerialPort } from '@services/portsService';
 import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 
@@ -17,46 +18,18 @@ export function registerSetBootloaderSerialPort(
 			return;
 		}
 
-		const clicked = await vscode.window.showInformationMessage(
-			'Is your Baochip board in bootloader mode?',
-			{
-				modal: true,
-				detail:
-					'Press RESET on the board if you do not\n' + 'see a removable drive named "BAOCHIP".',
-			},
-			'OK',
-		);
-		if (clicked !== 'OK') return;
-
-		const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch((err) => {
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Could not list ports: {0}', err?.message || String(err)),
-			);
-			return '' as string;
+		const port = await pickSerialPort(runBaoCmd, cwd, {
+			confirmTitle: vscode.l10n.t('Is your Baochip board in bootloader mode?'),
+			confirmDetail: vscode.l10n.t(
+				'Press RESET on the board if you do not\nsee a removable drive named "BAOCHIP".',
+			),
+			placeholder: vscode.l10n.t('Select bootloader (drive mode) serial port'),
 		});
+		if (!port) return;
 
-		const items = (lines || '')
-			.split(/\r?\n/)
-			.map((s) => s.trim())
-			.filter(Boolean)
-			.map((line) => {
-				const [port, desc] = line.split('\t');
-				return { label: port, description: desc || undefined };
-			});
-
-		if (items.length === 0) {
-			vscode.window.showWarningMessage(vscode.l10n.t('No serial ports found.'));
-			return;
-		}
-
-		const picked = await vscode.window.showQuickPick(items, {
-			placeHolder: vscode.l10n.t('Select bootloader (drive mode) serial port'),
-		});
-		if (!picked) return;
-
-		await saveBootPort(picked.label); // store only the bare port
+		await saveBootPort(port); // store only the bare port
 		vscode.window.showInformationMessage(
-			vscode.l10n.t('Bootloader (drive mode) serial port set to: {0}', picked.label),
+			vscode.l10n.t('Bootloader (drive mode) serial port set to: {0}', port),
 		);
 		try {
 			refreshUI();

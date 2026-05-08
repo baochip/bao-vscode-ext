@@ -3,12 +3,13 @@ import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
 import { registerCleanCommand } from '@commands/clean';
 import { registerCreateApp } from '@commands/createApp';
 import { registerFlashCommand } from '@commands/flash';
-import { registerOpenSettings } from '@commands/openSettings';
 import { registerSelectApp } from '@commands/selectApp';
+import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
+import { openMonitorTTY } from '@services/monitorService';
+import { gateToolsBao } from '@services/versionGate';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
-import { registerOpenMonitor } from './commands/openMonitor';
 import { registerSelectBuildTarget } from './commands/selectBuildTarget';
 import { registerSetBootloaderSerialPort } from './commands/setBootloaderSerialPort';
 import { registerSetFlashLocation } from './commands/setFlashLocation';
@@ -18,8 +19,9 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 	context.subscriptions.push(
 		registerSetBootloaderSerialPort(context, refreshUI),
 		registerSetRunSerialPort(context, refreshUI),
+		registerSetMonitorBaud(context),
 		registerSetMonitorDefaultPort(context, refreshUI),
-		registerOpenMonitor(context),
+		gateToolsBao('baochip.openMonitor', () => openMonitorTTY()),
 		registerSetFlashLocation(context, refreshUI),
 		registerSelectBuildTarget(context, refreshUI),
 		registerBuildCommand(context),
@@ -28,7 +30,9 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerCleanCommand(context),
 		registerFlashCommand(context),
 		registerBuildFlashMonitor(context),
-		registerOpenSettings(context),
+		vscode.commands.registerCommand('baochip.openSettings', async () => {
+			await vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'Baochip');
+		}),
 		vscode.commands.registerCommand('baochip.openWelcome', () => WelcomePanel.show(context)),
 	);
 }

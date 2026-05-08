@@ -1,5 +1,6 @@
 import { setRunSerialPort as saveRunPort } from '@services/configService';
 import { ensureXousCorePath, runBaoCmd } from '@services/pathService';
+import { pickSerialPort } from '@services/portsService';
 import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 
@@ -14,48 +15,17 @@ export function registerSetRunSerialPort(_context: vscode.ExtensionContext, refr
 			return;
 		}
 
-		const clicked = await vscode.window.showInformationMessage(
-			'Is your Baochip board in run mode?',
-			{
-				modal: true,
-				detail:
-					'If you still see a removable drive named "BAOCHIP",\n' +
-					'press PROG on the board to enter run mode.',
-			},
-			'OK',
-		);
-		if (clicked !== 'OK') return;
-
-		const lines = await runBaoCmd(['ports'], cwd, { capture: true }).catch((err) => {
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Could not list ports: {0}', err?.message || String(err)),
-			);
-			return '' as string;
+		const port = await pickSerialPort(runBaoCmd, cwd, {
+			confirmTitle: vscode.l10n.t('Is your Baochip board in run mode?'),
+			confirmDetail: vscode.l10n.t(
+				'If you still see a removable drive named "BAOCHIP",\npress PROG on the board to enter run mode.',
+			),
+			placeholder: vscode.l10n.t('Select run mode (firmware) serial port'),
 		});
+		if (!port) return;
 
-		const items = (lines || '')
-			.split(/\r?\n/)
-			.map((s) => s.trim())
-			.filter(Boolean)
-			.map((line) => {
-				const [port, desc] = line.split('\t');
-				return { label: port, description: desc || undefined };
-			});
-
-		if (items.length === 0) {
-			vscode.window.showWarningMessage(vscode.l10n.t('No serial ports found.'));
-			return;
-		}
-
-		const picked = await vscode.window.showQuickPick(items, {
-			placeHolder: vscode.l10n.t('Select run mode (firmware) serial port'),
-		});
-		if (!picked) return;
-
-		await saveRunPort(picked.label); // store only the bare port (e.g., "COM7")
-		vscode.window.showInformationMessage(
-			vscode.l10n.t('Run mode serial port set to: {0}', picked.label),
-		);
+		await saveRunPort(port); // store only the bare port (e.g., "COM7")
+		vscode.window.showInformationMessage(vscode.l10n.t('Run mode serial port set to: {0}', port));
 		try {
 			refreshUI();
 		} catch {}

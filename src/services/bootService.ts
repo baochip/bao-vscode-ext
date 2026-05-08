@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { getBootloaderSerialPort, getDefaultBaud } from '@services/configService';
-import { getBaoRunner } from '@services/pathService';
+import { getBaoRunner } from '@services/uvService';
 import * as vscode from 'vscode';
 
 const _q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);

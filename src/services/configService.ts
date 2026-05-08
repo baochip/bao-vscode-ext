@@ -7,6 +7,7 @@ async function updateSetting<T>(key: string, value: T) {
 }
 
 export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 1000000;
+export const setDefaultBaud = (baud: number) => updateSetting('baochip.monitor.defaultBaud', baud);
 
 export const getMonitorDefaultPort = (): 'run' | 'bootloader' =>
 	cfg().get<'run' | 'bootloader'>('baochip.monitorDefaultPort') ?? 'run';

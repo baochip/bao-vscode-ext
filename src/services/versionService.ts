@@ -1,11 +1,7 @@
 import { spawn } from 'node:child_process';
 import { REQUIRED_TOOLS_BAO } from '@constants';
-import {
-	ensureBaoPythonDeps,
-	ensureXousCorePath,
-	getBaoRunner,
-	resolveBaoPy,
-} from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy } from '@services/pathService';
+import { ensureBaoPythonDeps, getBaoRunner } from '@services/uvService';
 import * as vscode from 'vscode';
 
 function parseSemver(s: string): [number, number, number] | null {
