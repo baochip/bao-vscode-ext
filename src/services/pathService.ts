@@ -16,12 +16,43 @@ function samePath(a: string, b: string) {
 
 /* ------------------------------ xous-core helpers ------------------------------ */
 
+/** Check each open workspace folder for tools-bao/bao.py and return the root if found. */
+function detectXousCoreInWorkspace(): string | undefined {
+	for (const folder of vscode.workspace.workspaceFolders ?? []) {
+		const candidate = path.join(folder.uri.fsPath, 'tools-bao', 'bao.py');
+		if (fs.existsSync(candidate)) return folder.uri.fsPath;
+	}
+	return undefined;
+}
+
+/**
+ * If xousCorePath is not yet configured, scan the open workspace for xous-core
+ * and save it automatically. Safe to call on activation.
+ */
+export async function autoDetectXousCore(): Promise<void> {
+	const existing = vscode.workspace.getConfiguration('').get<string>('baochip.xousCorePath') || '';
+	if (existing && fs.existsSync(existing)) return; // already configured
+	const found = detectXousCoreInWorkspace();
+	if (found) {
+		await setXousCorePath(found);
+		log(`xous-core auto-detected: ${found}`);
+	}
+}
+
 export async function ensureXousCorePath(): Promise<string> {
 	const cfg = vscode.workspace.getConfiguration('');
 	const p = cfg.get<string>('baochip.xousCorePath') || '';
 	if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) {
 		log(`xous-core path (cached): ${p}`);
 		return p;
+	}
+
+	// Try workspace auto-detection before prompting
+	const detected = detectXousCoreInWorkspace();
+	if (detected) {
+		await setXousCorePath(detected);
+		log(`xous-core auto-detected: ${detected}`);
+		return detected;
 	}
 
 	const choice = await vscode.window.showInformationMessage(
