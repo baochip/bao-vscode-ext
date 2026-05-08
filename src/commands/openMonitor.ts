@@ -9,6 +9,7 @@ import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
+let monitorTermListener: vscode.Disposable | undefined;
 const q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
 
 export function registerOpenMonitor(_context: vscode.ExtensionContext) {
@@ -57,9 +58,17 @@ export function registerOpenMonitor(_context: vscode.ExtensionContext) {
 		try {
 			monitorTerm?.dispose();
 		} catch {}
+		monitorTermListener?.dispose();
 		const label = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 		const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
 		monitorTerm = vscode.window.createTerminal({ name: termName, cwd: root });
+		monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
+			if (t === monitorTerm) {
+				monitorTerm = undefined;
+				monitorTermListener?.dispose();
+				monitorTermListener = undefined;
+			}
+		});
 
 		const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 		const full = [

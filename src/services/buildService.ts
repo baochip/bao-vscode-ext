@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { appExists, listBaoApps, missingApps } from '@services/appService';
+import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -58,11 +58,14 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 			);
 			return;
 		}
-	} else {
-		await listBaoApps(root);
 	}
 
 	return { root, target, app: app || undefined };
+}
+
+function shellCd(dir: string): string {
+	if (process.platform === 'win32') return `cd "${dir}"`;
+	return `cd '${dir.replace(/'/g, "'\\''")}'`;
 }
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
@@ -85,14 +88,21 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 		);
 	}
 
-	term.sendText(`cd "${root}"`);
+	term.sendText(shellCd(root));
 	term.sendText(`cargo xtask ${target}${app ? ` ${app}` : ''}`);
 	term.show(true);
 }
 
+let _buildChan: vscode.OutputChannel | undefined;
+function getBuildChannel(): vscode.OutputChannel {
+	if (!_buildChan) _buildChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Build'));
+	return _buildChan;
+}
+
 /** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */
 export async function runBuildAndWait(root: string, target: string, app?: string): Promise<number> {
-	const chan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Build'));
+	const chan = getBuildChannel();
+	chan.clear();
 	chan.show(true);
 
 	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];

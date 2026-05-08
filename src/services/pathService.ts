@@ -71,7 +71,8 @@ function run(
 				resolve({ stdout, stderr, code });
 			} else {
 				const msg = `${cmd} failed (exit ${code})\n${stderr || stdout || ''}`.trim();
-				errorToast(msg);
+				log(`ERROR: ${msg}`);
+				chan.show(true);
 				reject(new Error(msg));
 			}
 		});
@@ -252,7 +253,11 @@ async function pickPython(): Promise<string> {
 	const found = detectWorkingPythons();
 	if (found.length === 0) {
 		const envPath = process.env.PATH || '';
-		errorToast('No working Python interpreters detected on PATH. Please install Python and retry.');
+		errorToast(
+			vscode.l10n.t(
+				'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
+			),
+		);
 		log(`PATH at failure:\n${envPath}`);
 		throw new Error(
 			'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
@@ -355,11 +360,17 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
-	info('Baochip: Installing uv…');
+	info(vscode.l10n.t('Baochip: Installing uv…'));
 	const parts = pythonCmd.split(' ').filter(Boolean);
 	const exe = parts[0];
 	const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
-	await run(exe, args);
+	try {
+		await run(exe, args);
+	} catch (e: unknown) {
+		const message = e instanceof Error ? e.message : String(e);
+		errorToast(vscode.l10n.t('Baochip: Failed to install uv via pip.\n{0}', message));
+		throw e;
+	}
 
 	const cands = expectedUvPathsFromPython(pythonCmd);
 	for (const c of cands) {
@@ -399,7 +410,7 @@ async function resolveUvBinary(): Promise<string> {
 	const fromPath = whichUvFromPath();
 	if (fromPath) {
 		await wsSet(WS_KEY_UV_PATH, fromPath);
-		info('Baochip: uv ready.');
+		info(vscode.l10n.t('Baochip: uv ready.'));
 		return fromPath;
 	}
 
@@ -407,8 +418,9 @@ async function resolveUvBinary(): Promise<string> {
 	if (process.platform === 'win32') {
 		const sys = pyEval(pythonCmd, 'import platform; print(platform.system())');
 		if (sys.ok && sys.out.toLowerCase() === 'linux') {
-			const msg =
-				'That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).';
+			const msg = vscode.l10n.t(
+				'That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., "py -3" or a Windows python.exe).',
+			);
 			errorToast(msg);
 			throw new Error(msg);
 		}
@@ -418,7 +430,7 @@ async function resolveUvBinary(): Promise<string> {
 
 	const uvPath = await installUvAndFindBinary(pythonCmd);
 	await wsSet(WS_KEY_UV_PATH, uvPath);
-	info('Baochip: uv ready.');
+	info(vscode.l10n.t('Baochip: uv ready.'));
 	return uvPath;
 }
 
@@ -449,7 +461,7 @@ export async function runBaoCmd(
 		await ensureBaoPythonDeps(xousRoot, { quiet: true });
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
-		warn(`Baochip: dependency check failed, proceeding anyway.\n${message}`);
+		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
 	}
 
 	const fullArgs = [...args, baoPath, ...baoArgs];
@@ -476,7 +488,7 @@ export async function runBaoCmd(
 			log(`bao.py EXIT ${code}`);
 			if (code === 0) return resolve(opts.capture ? out.trim() : '');
 			const msg = (err || out || `bao.py exited ${code}`).trim();
-			errorToast(`Baochip: bao.py failed.\n${msg}`);
+			errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
 			reject(new Error(msg));
 		});
 	});
@@ -544,7 +556,7 @@ export async function ensureBaoPythonDeps(
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
 				log(`uv venv failed: ${message}`);
-				errorToast(`Failed to create uv venv:\n${message}`);
+				errorToast(vscode.l10n.t('Failed to create uv venv:\n{0}', message));
 				throw e;
 			}
 
@@ -553,7 +565,7 @@ export async function ensureBaoPythonDeps(
 				await run(uv, ['pip', 'install', '-r', reqPath], xousRoot);
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
-				errorToast(`Baochip: Failed installing Python deps via uv.\n${message}`);
+				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
 				throw e;
 			}
 
@@ -562,13 +574,15 @@ export async function ensureBaoPythonDeps(
 		},
 	);
 
-	if (!quiet) info('Baochip: Python dependencies installed (uv).');
+	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
 /* --------------------------- maintenance helpers --------------------------- */
 export async function resetUvSetup() {
 	await wsSet<string | undefined>(WS_KEY_UV_PATH, undefined);
 	await wsSet<string | undefined>(WS_KEY_UV_PYTHON, undefined);
-	info('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.');
+	info(
+		vscode.l10n.t('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.'),
+	);
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
 }
