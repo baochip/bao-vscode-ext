@@ -7,6 +7,7 @@ import {
 	getRunSerialPort,
 	getXousAppName,
 } from '@services/configService';
+import { autoDetectXousCore } from '@services/pathService';
 import { resetUvSetup, setExtensionContext } from '@services/uvService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
@@ -58,6 +59,7 @@ const migrateWelcomeSettingToGlobal = async () => {
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
 	await migrateWelcomeSettingToGlobal();
+	await autoDetectXousCore();
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
