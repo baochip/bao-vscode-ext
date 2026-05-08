@@ -4,7 +4,8 @@ import {
 	getMonitorDefaultPort,
 	getRunSerialPort,
 } from '@services/configService';
-import { ensureXousCorePath, getBaoRunner, resolveBaoPy } from '@services/pathService';
+import { ensureXousCorePath, resolveBaoPy } from '@services/pathService';
+import { getBaoRunner } from '@services/uvService';
 import { gateToolsBao } from '@services/versionGate';
 import * as vscode from 'vscode';
 

@@ -7,7 +7,7 @@ import {
 	getRunSerialPort,
 	getXousAppName,
 } from '@services/configService';
-import { resetUvSetup, setExtensionContext } from '@services/pathService';
+import { resetUvSetup, setExtensionContext } from '@services/uvService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import * as vscode from 'vscode';
