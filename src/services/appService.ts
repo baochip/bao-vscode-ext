@@ -45,7 +45,7 @@ export function missingApps(xousRoot: string, appNames: string): string[] {
 	return missing;
 }
 
-// lightweight validator for UX; final validation happens in tools-bao
+// lightweight validator for UX
 export function isLikelyValidAppName(name: string): boolean {
 	return /^[a-z][a-z0-9_-]*$/.test(name); // lowercase, start with letter
 }

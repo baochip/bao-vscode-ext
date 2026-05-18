@@ -21,11 +21,11 @@ function samePath(a: string, b: string) {
 
 /* ------------------------------ xous-core helpers ------------------------------ */
 
-/** Check each open workspace folder for tools-bao/bao.py and return the root if found. */
+/** Check each open workspace folder for apps-dabao/ and return the root if found. */
 function detectXousCoreInWorkspace(): string | undefined {
 	for (const folder of vscode.workspace.workspaceFolders ?? []) {
-		const candidate = path.join(folder.uri.fsPath, 'tools-bao', 'bao.py');
-		if (fs.existsSync(candidate)) return folder.uri.fsPath;
+		const candidate = path.join(folder.uri.fsPath, 'apps-dabao');
+		if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return folder.uri.fsPath;
 	}
 	return undefined;
 }
