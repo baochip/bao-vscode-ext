@@ -4,8 +4,8 @@ import {
 	getMonitorDefaultPort,
 	getRunSerialPort,
 } from '@services/configService';
-import { ensureXousCorePath, resolveBaoPy } from '@services/pathService';
-import { getBaoRunner } from '@services/uvService';
+import { resolveBaoPy } from '@services/pathService';
+import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
@@ -36,19 +36,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 		return;
 	}
 
-	// 2) Resolve paths
-	let root: string;
-	let bao: string;
-	try {
-		root = await ensureXousCorePath();
-		bao = await resolveBaoPy();
-	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		vscode.window.showWarningMessage(message ?? vscode.l10n.t('xous-core / bao.py not set'));
-		return;
-	}
-
-	// 3) Settings -> flags (do not localize CLI flags)
+	// 2) Settings -> flags (do not localize CLI flags)
 	const cfg = vscode.workspace.getConfiguration('baochip.monitor');
 	const baud = getDefaultBaud();
 	const flags: string[] = [];
@@ -60,7 +48,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	const full = [
 		q(cmd),
 		...args.map(q),
-		q(bao),
+		q(resolveBaoPy()),
 		'monitor',
 		'-p',
 		q(port),
@@ -69,14 +57,14 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 		...flags,
 	].join(' ');
 
-	// 4) Launch terminal
+	// 3) Launch terminal
 	try {
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTermListener?.dispose();
 	const label = resolvedMode === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 	const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
-	monitorTerm = vscode.window.createTerminal({ name: termName, cwd: root });
+	monitorTerm = vscode.window.createTerminal({ name: termName, cwd: getGlobalVenvRoot() });
 	monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
 		if (t === monitorTerm) {
 			monitorTerm = undefined;

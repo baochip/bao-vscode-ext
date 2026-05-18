@@ -1,21 +1,12 @@
 import { setRunSerialPort as saveRunPort } from '@services/configService';
-import { ensureXousCorePath, runBaoCmd } from '@services/pathService';
+import { runBaoCmd } from '@services/pathService';
 import { pickSerialPort } from '@services/portsService';
-import { gateToolsBao } from '@services/versionGate';
+import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
 export function registerSetRunSerialPort(_context: vscode.ExtensionContext, refreshUI: () => void) {
-	return gateToolsBao('baochip.setRunSerialPort', async () => {
-		let cwd: string;
-		try {
-			cwd = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showWarningMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
-
-		const port = await pickSerialPort(runBaoCmd, cwd, {
+	return vscode.commands.registerCommand('baochip.setRunSerialPort', async () => {
+		const port = await pickSerialPort(runBaoCmd, getGlobalVenvRoot(), {
 			confirmTitle: vscode.l10n.t('Is your Baochip board in run mode?'),
 			confirmDetail: vscode.l10n.t(
 				'If you still see a removable drive named "BAOCHIP",\npress PROG on the board to enter run mode.',

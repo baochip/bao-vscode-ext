@@ -1,19 +1,16 @@
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
-import { ensureXousCorePath, resolveBaoPy } from '@services/pathService';
-import { gateToolsBao } from '@services/versionGate';
+import { ensureXousCorePath } from '@services/pathService';
 import * as vscode from 'vscode';
 
 export function registerFlashCommand(_context: vscode.ExtensionContext) {
-	return gateToolsBao('baochip.flash', async () => {
+	return vscode.commands.registerCommand('baochip.flash', async () => {
 		let root: string;
-		let _bao: string;
 		try {
 			root = await ensureXousCorePath();
-			_bao = await resolveBaoPy();
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core / bao.py not set'));
+			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
 			return;
 		}
 

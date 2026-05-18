@@ -22,7 +22,7 @@
 
 	"cfg.title.general": "Baochip — 常规",
 	"cfg.general.showWelcomeOnStartup": "扩展激活时自动打开 Baochip 欢迎页。",
-	"cfg.general.xousCorePath": "本地 xous-core 检出文件夹路径。扩展会在其中运行 tools-bao/bao.py。",
+	"cfg.general.xousCorePath": "本地 xous-core 检出文件夹路径。构建时需要此路径。",
 
 	"cfg.title.ports": "Baochip — 端口",
 	"cfg.ports.bootloader": "在引导程序 / UF2 驱动器模式出现的串口。",
@@ -37,7 +37,7 @@
 
 	"cfg.title.build": "Baochip — 构建",
 	"cfg.build.target": "当前选择的构建目标（例如：dabao、baosec）。",
-	"cfg.build.fallbackTargets": "当 bao.py 无法列出目标时的回退列表。",
+	"cfg.build.fallbackTargets": "自动检测不可用时使用的构建目标回退列表。",
 	"cfg.build.cwd": "构建的工作目录。",
 	"cfg.build.appName": "xous-core/apps-dabao/ 下的 Bao 应用名称。可用空格分隔多个（例如 'helloworld demo_app util'），留空则仅构建目标。",
 

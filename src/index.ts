@@ -7,7 +7,6 @@ import { registerSelectApp } from '@commands/selectApp';
 import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
 import { openMonitorTTY } from '@services/monitorService';
-import { gateToolsBao } from '@services/versionGate';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
 import { registerSelectBuildTarget } from './commands/selectBuildTarget';
@@ -21,7 +20,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerSetRunSerialPort(context, refreshUI),
 		registerSetMonitorBaud(context),
 		registerSetMonitorDefaultPort(context, refreshUI),
-		gateToolsBao('baochip.openMonitor', () => openMonitorTTY()),
+		vscode.commands.registerCommand('baochip.openMonitor', () => openMonitorTTY()),
 		registerSetFlashLocation(context, refreshUI),
 		registerSelectBuildTarget(context, refreshUI),
 		registerBuildCommand(context),

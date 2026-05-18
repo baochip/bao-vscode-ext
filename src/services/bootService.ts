@@ -1,15 +1,14 @@
 import { spawn } from 'node:child_process';
 import { getBootloaderSerialPort, getDefaultBaud } from '@services/configService';
-import { getBaoRunner } from '@services/uvService';
+import { resolveBaoPy } from '@services/pathService';
+import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
 const _q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
 
-export async function sendBoot(
-	_runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
-	bao: string,
-	root: string,
-): Promise<boolean> {
+export async function sendBoot(): Promise<boolean> {
+	const bao = resolveBaoPy();
+	const root = getGlobalVenvRoot();
 	// Ensure bootloader port is set; if not, prompt and re-check.
 	let port = getBootloaderSerialPort();
 	if (!port) {

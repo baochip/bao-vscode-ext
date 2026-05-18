@@ -22,7 +22,7 @@
 
 	"cfg.title.general": "Baochip — Allgemein",
 	"cfg.general.showWelcomeOnStartup": "Beim Aktivieren der Erweiterung automatisch die Willkommensseite öffnen.",
-	"cfg.general.xousCorePath": "Pfad zu Ihrem lokalen xous-core-Checkout (Ordner). Die Erweiterung führt darin tools-bao/bao.py aus.",
+	"cfg.general.xousCorePath": "Pfad zu Ihrem lokalen xous-core-Checkout (Ordner). Wird zum Bauen benötigt.",
 
 	"cfg.title.ports": "Baochip — Ports",
 	"cfg.ports.bootloader": "Seriellport, der im Bootloader-/UF2-Laufwerksmodus erscheint.",
@@ -37,7 +37,7 @@
 
 	"cfg.title.build": "Baochip — Build",
 	"cfg.build.target": "Aktuell ausgewähltes Build-Ziel (z. B. dabao, baosec).",
-	"cfg.build.fallbackTargets": "Fallback-Liste, wenn bao.py keine Ziele liefern kann.",
+	"cfg.build.fallbackTargets": "Fallback-Liste der Build-Ziele, wenn die automatische Erkennung nicht verfügbar ist.",
 	"cfg.build.cwd": "Arbeitsverzeichnis für den Build.",
 	"cfg.build.appName": "Name der Bao-App unter xous-core/apps-dabao/. Mehrere durch Leerzeichen trennbar (z. B. 'helloworld demo_app util'); leer lassen, um nur das Ziel zu bauen.",
 
