@@ -19,7 +19,7 @@ A simple start screen with:
 - Optional "show on startup" toggle
 
 ### Application Workflow
-- Create new Baochip applications via tools-bao
+- Create new Baochip applications (scaffolded under `xous-core/apps-dabao/`)
 - Select existing apps from `xous-core/apps-dabao/`
 
 ### Build Workflow
@@ -63,7 +63,6 @@ The extension user interface supports:
 ### 1. Install Requirements
 - Python 3  
 - A local checkout of `xous-core`  
-- `tools-bao` (`bao.py`) inside that repository  
 - Baochip hardware for flashing and serial monitoring
 
 Clone xous-core:

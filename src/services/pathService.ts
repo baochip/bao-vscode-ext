@@ -5,7 +5,12 @@ import * as path from 'node:path';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { setXousCorePath } from '@services/configService';
 import { errorToast, log, warn } from '@services/logService';
-import { ensureBaoPythonDeps, getBaoRunner } from '@services/uvService';
+import {
+	ensureBaoPythonDeps,
+	getBaoRunner,
+	getBundledToolsRoot,
+	getGlobalVenvRoot,
+} from '@services/uvService';
 import * as vscode from 'vscode';
 
 /* ------------------------------ utilities ------------------------------ */
@@ -16,11 +21,11 @@ function samePath(a: string, b: string) {
 
 /* ------------------------------ xous-core helpers ------------------------------ */
 
-/** Check each open workspace folder for tools-bao/bao.py and return the root if found. */
+/** Check each open workspace folder for apps-dabao/ and return the root if found. */
 function detectXousCoreInWorkspace(): string | undefined {
 	for (const folder of vscode.workspace.workspaceFolders ?? []) {
-		const candidate = path.join(folder.uri.fsPath, 'tools-bao', 'bao.py');
-		if (fs.existsSync(candidate)) return folder.uri.fsPath;
+		const candidate = path.join(folder.uri.fsPath, 'apps-dabao');
+		if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return folder.uri.fsPath;
 	}
 	return undefined;
 }
@@ -91,15 +96,9 @@ export async function ensureXousCorePath(): Promise<string> {
 	return chosen;
 }
 
-/** Return full path to tools-bao/bao.py after verifying xous-core path */
-export async function resolveBaoPy(xousRoot?: string): Promise<string> {
-	const root = xousRoot ?? (await ensureXousCorePath());
-	const p = path.join(root, 'tools-bao', 'bao.py');
-	if (!fs.existsSync(p)) {
-		const msg = `Cannot find tools-bao/bao.py under: ${root}`;
-		errorToast(msg);
-		throw new Error(msg);
-	}
+/** Return full path to the bundled bao.py inside the installed extension. */
+export function resolveBaoPy(): string {
+	const p = path.join(getBundledToolsRoot(), 'bao.py');
 	log(`bao.py resolved: ${p}`);
 	return p;
 }
@@ -143,7 +142,7 @@ export async function ensureXousFolderOpen(root: string): Promise<'ready' | 'add
 
 /**
  * Run tools-bao via uv, never direct Python.
- * Ensures Python deps are installed first and uses repo root as default CWD so uv finds .venv.
+ * Ensures Python deps are installed first and uses global storage as default CWD so uv finds .venv.
  */
 export async function runBaoCmd(
 	baoArgs: string[],
@@ -151,12 +150,11 @@ export async function runBaoCmd(
 	opts: { capture?: boolean } = {},
 ): Promise<string> {
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
-	const baoPath = await resolveBaoPy();
+	const baoPath = resolveBaoPy();
 
 	// Ensure deps before we run anything
 	try {
-		const xousRoot = path.dirname(path.dirname(baoPath)); // <root>/tools-bao/bao.py
-		await ensureBaoPythonDeps(xousRoot, { quiet: true });
+		await ensureBaoPythonDeps({ quiet: true });
 	} catch (e: unknown) {
 		const message = e instanceof Error ? e.message : String(e);
 		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
@@ -165,9 +163,8 @@ export async function runBaoCmd(
 	const fullArgs = [...args, baoPath, ...baoArgs];
 	const shell = os.platform() === 'win32';
 
-	// Default CWD to repo root (so uv discovers .venv at <root>/.venv)
-	const xousRoot = path.dirname(path.dirname(baoPath));
-	const effectiveCwd = cwd ?? xousRoot;
+	// Default CWD to global storage so uv discovers .venv there
+	const effectiveCwd = cwd ?? getGlobalVenvRoot();
 
 	log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
 

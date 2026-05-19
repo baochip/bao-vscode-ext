@@ -1,12 +1,11 @@
-import { createBaoAppViaCli, isLikelyValidAppName } from '@services/appService';
+import { createBaoApp, isLikelyValidAppName } from '@services/appService';
 import { setXousAppName } from '@services/configService';
 import { ensureXousCorePath } from '@services/pathService';
-import { gateToolsBao } from '@services/versionGate';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
-	return gateToolsBao('baochip.createApp', async () => {
+	return vscode.commands.registerCommand('baochip.createApp', async () => {
 		let root: string;
 		try {
 			root = await ensureXousCorePath();
@@ -41,7 +40,7 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 		};
 		try {
 			await vscode.window.withProgress(progressOpts, async () => {
-				await createBaoAppViaCli(root, name);
+				await createBaoApp(root, name);
 			});
 
 			await setXousAppName(name);

@@ -22,7 +22,7 @@
 
 	"cfg.title.general": "Baochip — 全般",
 	"cfg.general.showWelcomeOnStartup": "拡張機能の起動時に「ようこそ」ページを自動で開きます。",
-	"cfg.general.xousCorePath": "ローカルの xous-core チェックアウト先（フォルダー）へのパス。拡張機能はこの中の tools-bao/bao.py を実行します。",
+	"cfg.general.xousCorePath": "ローカルの xous-core チェックアウト先（フォルダー）へのパス。ビルドに必要です。",
 
 	"cfg.title.ports": "Baochip — ポート",
 	"cfg.ports.bootloader": "ブートローダー / UF2 ドライブモードで現れるシリアルポート。",
@@ -37,7 +37,7 @@
 
 	"cfg.title.build": "Baochip — ビルド",
 	"cfg.build.target": "現在選択中のビルドターゲット（例：dabao、baosec）。",
-	"cfg.build.fallbackTargets": "bao.py がターゲット一覧を取得できない場合のフォールバックリスト。",
+	"cfg.build.fallbackTargets": "自動検出が利用できない場合に使用するビルドターゲットのフォールバックリスト。",
 	"cfg.build.cwd": "ビルドの作業ディレクトリ。",
 	"cfg.build.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app util'）。空の場合はターゲットのみをビルド。",
 

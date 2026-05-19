@@ -1,2 +1,4 @@
 out/
 node_modules/
+resources/tools-bao/**/__pycache__/
+resources/tools-bao/**/*.pyc

@@ -22,7 +22,7 @@
 
 	"cfg.title.general": "Baochip — General",
 	"cfg.general.showWelcomeOnStartup": "Automatically open the Baochip Welcome page when the extension activates.",
-	"cfg.general.xousCorePath": "Path to your local xous-core checkout (folder). The extension will run tools-bao/bao.py inside it.",
+	"cfg.general.xousCorePath": "Path to your local xous-core checkout (folder). Required for building.",
 
 	"cfg.title.ports": "Baochip — Ports",
 	"cfg.ports.bootloader": "Serial port that appears in bootloader / UF2 drive mode.",
@@ -37,7 +37,7 @@
 
 	"cfg.title.build": "Baochip — Build",
 	"cfg.build.target": "Currently selected build target (e.g., dabao, baosec).",
-	"cfg.build.fallbackTargets": "Fallback list if bao.py cannot list targets.",
+	"cfg.build.fallbackTargets": "Fallback list of build targets used when auto-detection is unavailable.",
 	"cfg.build.cwd": "Working directory for the build.",
 	"cfg.build.appName": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only.",
 

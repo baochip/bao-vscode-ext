@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { BAO_VENV_DIR, REQUIREMENTS_FILE } from '@constants';
 import { chan, errorToast, info, log } from '@services/logService';
 import * as vscode from 'vscode';
 
@@ -23,11 +22,21 @@ function ctx(): vscode.ExtensionContext {
 	return _ctx;
 }
 
+/** Absolute path to the bundled tools-bao directory inside the installed extension. */
+export function getBundledToolsRoot(): string {
+	return path.join(ctx().extensionUri.fsPath, 'resources', 'tools-bao');
+}
+
+/** Absolute path to the extension's global storage directory, used as the uv venv root. */
+export function getGlobalVenvRoot(): string {
+	return ctx().globalStorageUri.fsPath;
+}
+
 /* ------------------------------ workspace state ------------------------------ */
 
 const WS_KEY_UV_PYTHON = 'baochip.ws.uvPythonCommand';
 const WS_KEY_UV_PATH = 'baochip.ws.uvBinaryPath';
-const WS_KEY_REQ_HASH = 'baochip.ws.reqHashMap'; // per-root { normalizedRoot => sha256(requirements.txt) }
+const WS_KEY_REQ_HASH = 'baochip.ws.reqHash'; // sha256 of bundled requirements.txt
 
 function wsGet<T>(key: string, def: T): T {
 	return ctx().workspaceState.get<T>(key, def) ?? def;
@@ -110,11 +119,6 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 		const message = e instanceof Error ? e.message : String(e);
 		return { ok: false, out: message };
 	}
-}
-
-function normalizeRootKey(root: string): string {
-	const p = path.resolve(root);
-	return os.platform() === 'win32' ? p.toLowerCase() : p;
 }
 
 /* ------------------------------ uv bootstrap ------------------------------ */
@@ -330,22 +334,26 @@ export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 
-export async function ensureBaoPythonDeps(
-	xousRoot: string,
-	{ quiet = false }: { quiet?: boolean } = {},
-): Promise<void> {
-	const reqPath = path.isAbsolute(REQUIREMENTS_FILE)
-		? REQUIREMENTS_FILE
-		: path.join(xousRoot, REQUIREMENTS_FILE || path.join('tools-bao', 'requirements.txt'));
-	const venvDir = path.join(xousRoot, BAO_VENV_DIR || '.venv');
+export async function ensureBaoPythonDeps({
+	quiet = false,
+}: {
+	quiet?: boolean;
+} = {}): Promise<void> {
+	const toolsRoot = getBundledToolsRoot();
+	const venvRoot = getGlobalVenvRoot();
+	const reqPath = path.join(toolsRoot, 'requirements.txt');
+	const venvDir = path.join(venvRoot, '.venv');
 
 	if (!fs.existsSync(reqPath)) {
 		log(`No requirements file found at: ${reqPath} (skipping install)`);
 		return;
 	}
 
+	// Ensure the global storage directory exists before creating the venv there.
+	fs.mkdirSync(venvRoot, { recursive: true });
+
 	const currentHash = createHash('sha256').update(fs.readFileSync(reqPath)).digest('hex');
-	const prevHash = getReqHashMap()[normalizeRootKey(xousRoot)];
+	const prevHash = wsGet<string>(WS_KEY_REQ_HASH, '');
 	log(`requirements.txt path: ${reqPath}`);
 	log(`requirements current hash: ${currentHash}`);
 	log(`requirements previous hash: ${prevHash || '(none)'}`);
@@ -371,9 +379,9 @@ export async function ensureBaoPythonDeps(
 		async () => {
 			const uv = await resolveUvBinary();
 
-			// 1) Ensure (or recreate) the venv at <xousRoot>/.venv (idempotent)
+			// 1) Ensure (or recreate) the venv in global storage (idempotent)
 			try {
-				await run(uv, ['venv'], xousRoot);
+				await run(uv, ['venv'], venvRoot);
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
 				log(`uv venv failed: ${message}`);
@@ -383,7 +391,7 @@ export async function ensureBaoPythonDeps(
 
 			// 2) Install requirements into that venv
 			try {
-				await run(uv, ['pip', 'install', '-r', reqPath], xousRoot);
+				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot);
 			} catch (e: unknown) {
 				const message = e instanceof Error ? e.message : String(e);
 				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
@@ -391,7 +399,8 @@ export async function ensureBaoPythonDeps(
 			}
 
 			// 3) Cache the current hash
-			await setReqHashForRoot(xousRoot, currentHash);
+			await wsSet(WS_KEY_REQ_HASH, currentHash);
+			log(`requirements hash updated: ${currentHash}`);
 		},
 	);
 
@@ -405,17 +414,4 @@ export async function resetUvSetup() {
 		vscode.l10n.t('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.'),
 	);
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
-}
-
-/* ------------------------------ private helpers ------------------------------ */
-
-function getReqHashMap(): Record<string, string> {
-	return wsGet<Record<string, string>>(WS_KEY_REQ_HASH, {});
-}
-
-async function setReqHashForRoot(xousRoot: string, hash: string): Promise<void> {
-	const map = getReqHashMap();
-	map[normalizeRootKey(xousRoot)] = hash;
-	await wsSet(WS_KEY_REQ_HASH, map);
-	log(`requirements hash updated for ${xousRoot}: ${hash}`);
 }
