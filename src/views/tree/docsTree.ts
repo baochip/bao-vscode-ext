@@ -11,7 +11,7 @@ export class DocsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
 		{ label: 'The Xous Operating System', url: 'https://betrusted.io/xous-book/' },
 		{ label: 'Documentation for Baochip-1x SoC', url: 'https://ci.betrusted.io/bao1x/' },
 		{
-			label: 'Documentation for Cramium SoC (RISC-V Core Complex)',
+			label: 'Documentation for Crossbar SoC (RISC-V Core Complex)',
 			url: 'https://ci.betrusted.io/bao1x-cpu/',
 		},
 	];
