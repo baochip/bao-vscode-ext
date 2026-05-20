@@ -20,6 +20,7 @@
 	"Build failed.": "构建失败。",
 	"No apps specified — building target \"{0}\" only.": "未指定应用 — 仅构建目标“{0}”。",
 	"No build target set.": "未设置构建目标。",
+	"No workspace folder open.": "未打开工作区文件夹。",
 	"Baochip: Building…": "Baochip：正在构建…",
 	"Select Target": "选择目标",
 	"Building: cargo {0}": "开始构建：cargo {0}",

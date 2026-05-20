@@ -20,6 +20,7 @@
 	"Build failed.": "ビルドに失敗しました。",
 	"No apps specified — building target \"{0}\" only.": "アプリが指定されていません—ターゲット「{0}」のみをビルドします。",
 	"No build target set.": "ビルドターゲットが設定されていません。",
+	"No workspace folder open.": "ワークスペースフォルダーが開かれていません。",
 	"Baochip: Building…": "Baochip: ビルド中…",
 	"Select Target": "ターゲットを選択",
 	"Building: cargo {0}": "ビルド開始: cargo {0}",

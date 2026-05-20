@@ -2,12 +2,13 @@ import { spawn } from 'node:child_process';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
-import { getProjectMode } from '@services/projectModeService';
+import { getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs = {
+	mode: ProjectMode;
 	root: string;
 	target: string;
 	app?: string;
@@ -20,7 +21,13 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	if (getProjectMode() === 'out-of-tree') {
 		const hasUf2Tool = await checkXousAppUf2();
 		if (!hasUf2Tool) return;
-		return;
+
+		const folder = vscode.workspace.workspaceFolders?.[0];
+		if (!folder) {
+			vscode.window.showErrorMessage(vscode.l10n.t('No workspace folder open.'));
+			return;
+		}
+		return { mode: 'out-of-tree', root: folder.uri.fsPath, target: '' };
 	}
 
 	let root: string;
@@ -68,12 +75,24 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 		}
 	}
 
-	return { root, target, app: app || undefined };
+	return { mode: 'xous-core', root, target, app: app || undefined };
 }
 
 function shellCd(dir: string): string {
 	if (process.platform === 'win32') return `cd "${dir}"`;
 	return `cd '${dir.replace(/'/g, "'\\''")}'`;
+}
+
+/** Out-of-tree standalone build: open a terminal and run cargo build with Baochip flags. */
+export function runOutOfTreeBuildInTerminal(root: string) {
+	const term =
+		vscode.window.terminals.find((t) => t.name === vscode.l10n.t('Bao Build')) ??
+		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
+	term.sendText(shellCd(root));
+	term.sendText(
+		'cargo build --release --target riscv32imac-unknown-xous-elf --features board-dabao --features bao1x --features utralib/bao1x',
+	);
+	term.show(true);
 }
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
@@ -105,6 +124,56 @@ let _buildChan: vscode.OutputChannel | undefined;
 function getBuildChannel(): vscode.OutputChannel {
 	if (!_buildChan) _buildChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Build'));
 	return _buildChan;
+}
+
+/** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */
+export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
+	const chan = getBuildChannel();
+	chan.clear();
+	chan.show(true);
+
+	const args = [
+		'build',
+		'--release',
+		'--target',
+		'riscv32imac-unknown-xous-elf',
+		'--features',
+		'board-dabao',
+		'--features',
+		'bao1x',
+		'--features',
+		'utralib/bao1x',
+	];
+
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building…'));
+	chan.appendLine(`[bao] ${vscode.l10n.t('Building: cargo {0}', args.join(' '))}`);
+	chan.appendLine(`[bao] cwd: ${root}`);
+
+	return vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Notification,
+			title: vscode.l10n.t('Baochip: Building…'),
+			cancellable: true,
+		},
+		(_progress, token) =>
+			new Promise<number>((resolve) => {
+				const child = spawn('cargo', args, { cwd: root, shell: process.platform === 'win32' });
+
+				token.onCancellationRequested(() => {
+					try {
+						child.kill();
+					} catch {}
+					chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
+				});
+
+				child.stdout.on('data', (d) => chan.append(d.toString()));
+				child.stderr.on('data', (d) => chan.append(d.toString()));
+				child.on('close', (code) => {
+					chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code ?? 1)}`);
+					resolve(code ?? 1);
+				});
+			}),
+	);
 }
 
 /** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */

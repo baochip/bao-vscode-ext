@@ -20,6 +20,7 @@
 	"Build failed.": "Build fehlgeschlagen.",
 	"No apps specified — building target \"{0}\" only.": "Keine App angegeben — Ziel „{0}“ wird allein gebaut.",
 	"No build target set.": "Kein Build-Ziel festgelegt.",
+	"No workspace folder open.": "Kein Arbeitsbereich-Ordner geöffnet.",
 	"Baochip: Building…": "Baochip: Wird gebaut…",
 	"Select Target": "Ziel auswählen",
 	"Building: cargo {0}": "Starte Build: cargo {0}",
