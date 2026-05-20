@@ -8,6 +8,7 @@ import {
 	getXousAppName,
 } from '@services/configService';
 import { autoDetectXousCore } from '@services/pathService';
+import { getProjectMode } from '@services/projectModeService';
 import { resetUvSetup, setExtensionContext } from '@services/uvService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
@@ -89,6 +90,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const monitorBtn = makeStatusItem(92, 'baochip.openMonitor');
 	const bfmItem = makeStatusItem(91, 'baochip.buildFlashMonitor');
 	const settingsItem = makeStatusItem(90, 'baochip.openSettings');
+	const modeItem = makeStatusItem(89, 'baochip.openSettings');
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('baochip.resetUvSetup', async () => {
@@ -104,6 +106,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		const flLoc = getFlashLocation();
 		const target = getBuildTarget();
 		const app = getXousAppName();
+		const mode = getProjectMode();
 
 		const def = getMonitorDefaultPort(); // "run" | "bootloader"
 		const chosenPort = def === 'run' ? runSerPort : bootloaderSerPort;
@@ -169,9 +172,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		cleanItem.tooltip = vscode.l10n.t('Full clean (cargo clean)'); // "Full clean (cargo clean)"
 		cleanItem.show();
 
-		// Status bar: Build (keep cargo literal)
+		// Status bar: Build
 		buildItem.text = '$(tools)';
-		buildItem.tooltip = vscode.l10n.t('Build (cargo xtask)'); // "Build (cargo xtask)"
+		buildItem.tooltip =
+			mode === 'xous-core'
+				? vscode.l10n.t('Build (cargo xtask)')
+				: vscode.l10n.t('Build (cargo build)');
 		buildItem.show();
 
 		// Status bar: Flash
@@ -189,6 +195,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		settingsItem.tooltip = vscode.l10n.t('Open Baochip Settings');
 		settingsItem.show();
 
+		// Status bar: Project mode indicator
+		modeItem.text = `$(circuit-board) ${mode}`;
+		modeItem.tooltip = vscode.l10n.t('Build mode: {0} (click to change in settings)', mode);
+		modeItem.show();
+
 		tree.refresh();
 		tree.refreshMonitor();
 		docsTree.refresh();
@@ -205,12 +216,16 @@ export async function activate(context: vscode.ExtensionContext) {
 			e.affectsConfiguration('baochip.monitor.defaultBaud') ||
 			e.affectsConfiguration('baochip.buildTarget') ||
 			e.affectsConfiguration('baochip.xousAppName') ||
-			e.affectsConfiguration('baochip.flashLocation')
+			e.affectsConfiguration('baochip.flashLocation') ||
+			e.affectsConfiguration('baochip.buildMode')
 		) {
 			refreshUI();
 		}
 	});
 	context.subscriptions.push(cfgWatcher);
+
+	// Re-evaluate mode when workspace folders change (e.g. user opens a different project)
+	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => refreshUI()));
 
 	registerCommands(context, refreshUI);
 

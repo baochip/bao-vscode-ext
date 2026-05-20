@@ -36,6 +36,7 @@
 	"cfg.monitor.echo": "本地回显输入。",
 
 	"cfg.title.build": "Baochip — 构建",
+	"cfg.build.buildMode": "构建模式。'auto' 从工作区自动检测（若存在 apps-dabao/ 则为 xous-core 模式，否则为 out-of-tree）。可覆盖以强制指定模式。",
 	"cfg.build.target": "当前选择的构建目标（例如：dabao、baosec）。",
 	"cfg.build.fallbackTargets": "自动检测不可用时使用的构建目标回退列表。",
 	"cfg.build.cwd": "构建的工作目录。",

@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { setXousCorePath } from '@services/configService';
 import { errorToast, log, warn } from '@services/logService';
+import { findXousCoreInWorkspace } from '@services/projectModeService';
 import {
 	ensureBaoPythonDeps,
 	getBaoRunner,
@@ -23,11 +24,7 @@ function samePath(a: string, b: string) {
 
 /** Check each open workspace folder for apps-dabao/ and return the root if found. */
 function detectXousCoreInWorkspace(): string | undefined {
-	for (const folder of vscode.workspace.workspaceFolders ?? []) {
-		const candidate = path.join(folder.uri.fsPath, 'apps-dabao');
-		if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return folder.uri.fsPath;
-	}
-	return undefined;
+	return findXousCoreInWorkspace();
 }
 
 /**

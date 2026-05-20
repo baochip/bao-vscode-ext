@@ -195,6 +195,17 @@
 				"title": "%cfg.title.build%",
 				"scope": "resource",
 				"properties": {
+					"baochip.buildMode": {
+						"type": "string",
+						"enum": [
+							"auto",
+							"xous-core",
+							"out-of-tree"
+						],
+						"default": "auto",
+						"description": "%cfg.build.buildMode%",
+						"order": 0
+					},
 					"baochip.buildTarget": {
 						"type": "string",
 						"default": "",

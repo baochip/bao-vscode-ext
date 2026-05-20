@@ -106,6 +106,8 @@
 	"App: (not set)": "App: (nicht gesetzt)",
 	"Click to select xous-core app": "xous-core-App auswählen",
 	"Build (cargo xtask)": "Build (cargo xtask)",
+	"Build (cargo build)": "Build (cargo build)",
+	"Build mode: {0} (click to change in settings)": "Build-Modus: {0} (in Einstellungen ändern)",
 	"Full clean (cargo clean)": "Vollständiges Aufräumen (cargo clean)",
 	"Flash to device": "Auf Gerät flashen",
 	"Baochip Location: (not set)": "Baochip-Speicherort: (nicht gesetzt)",

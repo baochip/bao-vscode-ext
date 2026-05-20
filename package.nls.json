@@ -36,6 +36,7 @@
 	"cfg.monitor.echo": "Local echo of typed input.",
 
 	"cfg.title.build": "Baochip — Build",
+	"cfg.build.buildMode": "Build mode. 'auto' detects from the workspace (xous-core mode if apps-dabao/ is present, otherwise out-of-tree). Override to force a specific mode.",
 	"cfg.build.target": "Currently selected build target (e.g., dabao, baosec).",
 	"cfg.build.fallbackTargets": "Fallback list of build targets used when auto-detection is unavailable.",
 	"cfg.build.cwd": "Working directory for the build.",

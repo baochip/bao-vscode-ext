@@ -36,6 +36,7 @@
 	"cfg.monitor.echo": "Lokales Echo der Eingabe.",
 
 	"cfg.title.build": "Baochip — Build",
+	"cfg.build.buildMode": "Build-Modus. 'auto' erkennt automatisch (xous-core-Modus wenn apps-dabao/ vorhanden, sonst out-of-tree). Überschreiben, um einen bestimmten Modus zu erzwingen.",
 	"cfg.build.target": "Aktuell ausgewähltes Build-Ziel (z. B. dabao, baosec).",
 	"cfg.build.fallbackTargets": "Fallback-Liste der Build-Ziele, wenn die automatische Erkennung nicht verfügbar ist.",
 	"cfg.build.cwd": "Arbeitsverzeichnis für den Build.",

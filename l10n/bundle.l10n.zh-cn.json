@@ -106,6 +106,8 @@
 	"App: (not set)": "应用：（未设置）",
 	"Click to select xous-core app": "选择 xous-core 应用",
 	"Build (cargo xtask)": "构建（cargo xtask）",
+	"Build (cargo build)": "构建（cargo build）",
+	"Build mode: {0} (click to change in settings)": "构建模式：{0}（点击在设置中更改）",
 	"Full clean (cargo clean)": "完全清理（cargo clean）",
 	"Flash to device": "烧录到设备",
 	"Baochip Location: (not set)": "Baochip 位置：（未设置）",

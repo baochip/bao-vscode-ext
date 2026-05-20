@@ -36,6 +36,7 @@
 	"cfg.monitor.echo": "入力のローカルエコー。",
 
 	"cfg.title.build": "Baochip — ビルド",
+	"cfg.build.buildMode": "ビルドモード。'auto' はワークスペースから自動検出します（apps-dabao/ があれば xous-core モード、なければ out-of-tree）。特定のモードを強制するには上書きしてください。",
 	"cfg.build.target": "現在選択中のビルドターゲット（例：dabao、baosec）。",
 	"cfg.build.fallbackTargets": "自動検出が利用できない場合に使用するビルドターゲットのフォールバックリスト。",
 	"cfg.build.cwd": "ビルドの作業ディレクトリ。",
