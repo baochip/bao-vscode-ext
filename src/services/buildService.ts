@@ -2,7 +2,9 @@ import { spawn } from 'node:child_process';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
+import { getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
+import { checkXousAppUf2 } from '@services/xousToolsService';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs = {
@@ -14,6 +16,12 @@ export type BuildPrereqs = {
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	const ok = await checkRustToolchain();
 	if (!ok) return;
+
+	if (getProjectMode() === 'out-of-tree') {
+		const hasUf2Tool = await checkXousAppUf2();
+		if (!hasUf2Tool) return;
+		return;
+	}
 
 	let root: string;
 	try {
