@@ -89,8 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
 	const flashItem = makeStatusItem(93, 'baochip.flash');
 	const monitorBtn = makeStatusItem(92, 'baochip.openMonitor');
 	const bfmItem = makeStatusItem(91, 'baochip.buildFlashMonitor');
-	const settingsItem = makeStatusItem(90, 'baochip.openSettings');
-	const modeItem = makeStatusItem(89, 'baochip.openSettings');
+	const modeItem = makeStatusItem(90, 'baochip.setBuildMode');
+	const settingsItem = makeStatusItem(89, 'baochip.openSettings');
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('baochip.resetUvSetup', async () => {

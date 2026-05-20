@@ -12,6 +12,7 @@
 	"cmd.monitorStop": "Baochip：停止串口监视器",
 	"cmd.setFlashLocation": "Baochip：设置烧录位置",
 	"cmd.selectBuildTarget": "Baochip：选择构建目标",
+	"cmd.setBuildMode": "Baochip：设置构建模式",
 	"cmd.clean": "Baochip：清理",
 	"cmd.build": "Baochip：构建项目",
 	"cmd.selectApp": "Baochip：选择应用",

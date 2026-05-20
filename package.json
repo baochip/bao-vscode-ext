@@ -78,6 +78,10 @@
 				"title": "%cmd.selectBuildTarget%"
 			},
 			{
+				"command": "baochip.setBuildMode",
+				"title": "%cmd.setBuildMode%"
+			},
+			{
 				"command": "baochip.clean",
 				"title": "%cmd.clean%"
 			},

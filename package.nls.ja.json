@@ -12,6 +12,7 @@
 	"cmd.monitor.stop": "Baochip: シリアルモニターを停止",
 	"cmd.setFlashLocation": "Baochip: フラッシュ先を設定",
 	"cmd.selectBuildTarget": "Baochip: ビルドターゲットを選択",
+	"cmd.setBuildMode": "Baochip: ビルドモードを設定",
 	"cmd.clean": "Baochip: クリーン",
 	"cmd.build": "Baochip: プロジェクトをビルド",
 	"cmd.selectApp": "Baochip: アプリを選択",

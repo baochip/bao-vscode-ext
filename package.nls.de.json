@@ -12,6 +12,7 @@
 	"cmd.monitorStop": "Baochip: Seriellen Monitor stoppen",
 	"cmd.setFlashLocation": "Baochip: Flash-Speicherort festlegen",
 	"cmd.selectBuildTarget": "Baochip: Build-Ziel auswählen",
+	"cmd.setBuildMode": "Baochip: Build-Modus festlegen",
 	"cmd.clean": "Baochip: Aufräumen",
 	"cmd.build": "Baochip: Projekt bauen",
 	"cmd.selectApp": "Baochip: App auswählen",

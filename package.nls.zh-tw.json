@@ -12,6 +12,7 @@
 	"cmd.monitorStop": "Baochip：停止串列監視器",
 	"cmd.setFlashLocation": "Baochip：設定燒錄位置",
 	"cmd.selectBuildTarget": "Baochip：選擇建置目標",
+	"cmd.setBuildMode": "Baochip：設定建置模式",
 	"cmd.clean": "Baochip：清理",
 	"cmd.build": "Baochip：建置專案",
 	"cmd.selectApp": "Baochip：選擇應用程式",
