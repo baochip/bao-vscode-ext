@@ -3,6 +3,7 @@ import {
 	runBuildInTerminal,
 	runOutOfTreeBuildInTerminal,
 } from '@services/buildService';
+import { ensureOutOfTreeBuildSetup } from '@services/kernelService';
 import * as vscode from 'vscode';
 
 export function registerBuildCommand(_context: vscode.ExtensionContext) {
@@ -10,6 +11,8 @@ export function registerBuildCommand(_context: vscode.ExtensionContext) {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 		if (pre.mode === 'out-of-tree') {
+			const ok = await ensureOutOfTreeBuildSetup(pre.root);
+			if (!ok) return;
 			runOutOfTreeBuildInTerminal(pre.root);
 		} else {
 			runBuildInTerminal(pre.root, pre.target, pre.app);

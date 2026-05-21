@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import { sendBoot } from '@services/bootService';
 import {
 	ensureBuildPrereqs,
@@ -7,11 +6,7 @@ import {
 } from '@services/buildService';
 import { getRunSerialPort } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
-import {
-	ensureKernelModeConfigured,
-	fetchLatestXousCoreRev,
-	resolveKernelFiles,
-} from '@services/kernelService';
+import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
 import { openMonitorTTY } from '@services/monitorService';
 import { runBaoCmd } from '@services/pathService';
 import { waitForPort } from '@services/portsService';
@@ -24,39 +19,9 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 
-		// PO-6a: kernel mode setup + optional Cargo.toml rev sync (out-of-tree only)
 		if (pre.mode === 'out-of-tree') {
-			const kernelMode = await ensureKernelModeConfigured();
-			if (!kernelMode) return;
-
-			if (kernelMode === 'ci-sync') {
-				let rev: string;
-				try {
-					rev = await fetchLatestXousCoreRev();
-				} catch (e: unknown) {
-					const message = e instanceof Error ? e.message : String(e);
-					vscode.window.showErrorMessage(
-						vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
-					);
-					return;
-				}
-				try {
-					await runBaoCmd([
-						'app',
-						'update-rev',
-						'--file',
-						path.join(pre.root, 'Cargo.toml'),
-						'--rev',
-						rev,
-					]);
-				} catch (e: unknown) {
-					const message = e instanceof Error ? e.message : String(e);
-					vscode.window.showErrorMessage(
-						vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message),
-					);
-					return;
-				}
-			}
+			const ok = await ensureOutOfTreeBuildSetup(pre.root);
+			if (!ok) return;
 		}
 
 		// 1) Build
@@ -75,7 +40,7 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 			if (!converted) return;
 		}
 
-		// PO-6b: resolve kernel files (out-of-tree only)
+		// Resolve kernel files for flashing (out-of-tree only)
 		let kernelFiles: { loader: string; xous: string } | null = null;
 		if (pre.mode === 'out-of-tree') {
 			kernelFiles = await resolveKernelFiles();

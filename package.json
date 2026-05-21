@@ -253,6 +253,30 @@
 						"order": 1
 					}
 				}
+			},
+			{
+				"title": "%cfg.title.outOfTree%",
+				"scope": "resource",
+				"properties": {
+					"baochip.outOfTree.kernelMode": {
+						"type": "string",
+						"enum": [
+							"ask",
+							"ci-sync",
+							"ci-only",
+							"manual"
+						],
+						"default": "ask",
+						"description": "%cfg.outOfTree.kernelMode%",
+						"order": 1
+					},
+					"baochip.outOfTree.kernelFilesPath": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.outOfTree.kernelFilesPath%",
+						"order": 2
+					}
+				}
 			}
 		],
 		"viewsContainers": {

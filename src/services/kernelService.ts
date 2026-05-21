@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as https from 'node:https';
 import * as path from 'node:path';
+import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
@@ -233,4 +234,38 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 	);
 
 	return picked.mode;
+}
+
+/**
+ * Ensures kernel mode is configured and, for ci-sync mode, fetches and applies
+ * the latest xous-core rev to Cargo.toml before building.
+ * Returns false if the user cancels or any step fails.
+ */
+export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> {
+	const kernelMode = await ensureKernelModeConfigured();
+	if (!kernelMode) return false;
+
+	if (kernelMode === 'ci-sync') {
+		let rev: string;
+		try {
+			rev = await fetchLatestXousCoreRev();
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
+			);
+			return false;
+		}
+		try {
+			await runBaoCmd(['app', 'update-rev', '--file', path.join(root, 'Cargo.toml'), '--rev', rev]);
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : String(e);
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message),
+			);
+			return false;
+		}
+	}
+
+	return true;
 }

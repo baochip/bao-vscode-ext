@@ -44,6 +44,9 @@
 	"cfg.build.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app util'），留白則僅建置目標。",
 
 	"cfg.title.flashing": "Baochip — 燒錄",
+	"cfg.title.outOfTree": "Baochip — Out-of-Tree 建置",
+	"cfg.outOfTree.kernelMode": "擴充功能取得 out-of-tree 燒錄用 loader.uf2 和 xous.uf2 的方式。'ask' 首次顯示設定提示。'ci-sync' 從 GitHub 取得最新 xous-core 提交並更新 Cargo.toml，再從 CI 下載對應核心檔案。'ci-only' 從 CI 下載但不修改 Cargo.toml。'manual' 使用 baochip.outOfTree.kernelFilesPath 指定資料夾中的檔案。",
+	"cfg.outOfTree.kernelFilesPath": "包含 loader.uf2 和 xous.uf2 的資料夾，用於手動 out-of-tree 燒錄。僅在 baochip.outOfTree.kernelMode 為 'manual' 時使用。",
 	"cfg.flashing.location": "已掛載的 Baochip UF2 磁碟位置（Windows 上為 D:\\ 或其他磁碟代號的磁碟，macOS 上為 /Volumes/BAOCHIP，Linux 上為 /media/$(whoami)/BAOCHIP）。",
 
 	"views.container.title": "Baochip",

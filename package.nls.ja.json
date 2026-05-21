@@ -44,6 +44,9 @@
 	"cfg.build.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app util'）。空の場合はターゲットのみをビルド。",
 
 	"cfg.title.flashing": "Baochip — フラッシュ",
+	"cfg.title.outOfTree": "Baochip — アウトオブツリービルド",
+	"cfg.outOfTree.kernelMode": "out-of-tree フラッシュ用に loader.uf2 と xous.uf2 を取得する方法。'ask' は初回セットアップダイアログを表示します。'ci-sync' は GitHub から最新の xous-core コミットを取得して Cargo.toml を更新し、CI から対応するカーネルファイルをダウンロードします。'ci-only' は Cargo.toml を変更せずに CI からダウンロードします。'manual' は baochip.outOfTree.kernelFilesPath で指定したフォルダのファイルを使用します。",
+	"cfg.outOfTree.kernelFilesPath": "手動 out-of-tree フラッシュ用の loader.uf2 と xous.uf2 が含まれるフォルダ。baochip.outOfTree.kernelMode が 'manual' の場合のみ使用されます。",
 	"cfg.flashing.location": "マウントされた Baochip UF2 ドライブの場所（Windows では D:\\ または別のドライブレターのドライブ、macOS では /Volumes/BAOCHIP、Linux では /media/$(whoami)/BAOCHIP）。",
 
 	"views.container.title": "Baochip",
