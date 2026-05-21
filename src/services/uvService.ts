@@ -22,6 +22,11 @@ function ctx(): vscode.ExtensionContext {
 	return _ctx;
 }
 
+/** Absolute path to the installed extension root. */
+export function getExtensionRoot(): string {
+	return ctx().extensionUri.fsPath;
+}
+
 /** Absolute path to the bundled tools-bao directory inside the installed extension. */
 export function getBundledToolsRoot(): string {
 	return path.join(ctx().extensionUri.fsPath, 'resources', 'tools-bao');
