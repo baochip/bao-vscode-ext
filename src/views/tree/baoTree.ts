@@ -4,6 +4,7 @@ import {
 	getMonitorDefaultPort,
 	getRunSerialPort,
 } from '@services/configService';
+import { getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
 export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
@@ -71,10 +72,22 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 				'baochip.selectBuildTarget',
 				'target',
 			);
+			const mode = getProjectMode();
+			const modeItem = new TreeItem(
+				vscode.l10n.t('Build mode: {0}', mode),
+				'baochip.setBuildMode',
+				'circuit-board',
+			);
 			const newApp = new TreeItem(vscode.l10n.t('New app'), 'baochip.createApp', 'add');
 			const selectApp = new TreeItem(vscode.l10n.t('Select app'), 'baochip.selectApp', 'search');
 			const clean = new TreeItem(vscode.l10n.t('Clean (cargo clean)'), 'baochip.clean', 'trash');
-			const build = new TreeItem(vscode.l10n.t('Build (cargo xtask)'), 'baochip.build', 'tools');
+			const build = new TreeItem(
+				mode === 'xous-core'
+					? vscode.l10n.t('Build (cargo xtask)')
+					: vscode.l10n.t('Build (cargo build)'),
+				'baochip.build',
+				'tools',
+			);
 			const flash = new TreeItem(vscode.l10n.t('Flash device'), 'baochip.flash', 'rocket');
 			const bfm = new TreeItem(
 				vscode.l10n.t('Build • Flash • Monitor'),
@@ -83,20 +96,22 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 			);
 			const settings = new TreeItem(vscode.l10n.t('Open Settings'), 'baochip.openSettings', 'gear');
 
-			return Promise.resolve([
+			const items = [
 				setBootloaderPort,
 				setRunPort,
 				setFlashLoc,
 				target,
+				modeItem,
 				newApp,
-				selectApp,
+				...(mode === 'xous-core' ? [selectApp] : []),
 				clean,
 				build,
 				flash,
 				this.monitorNode,
 				bfm,
 				settings,
-			]);
+			];
+			return Promise.resolve(items);
 		}
 
 		if (element === this.monitorNode) {

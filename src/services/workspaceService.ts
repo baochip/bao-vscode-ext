@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { getAppsDir } from '@constants';
 import { setXousCorePath } from '@services/configService';
 import * as vscode from 'vscode';
 
@@ -86,9 +87,9 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 	return false; // window reloads
 }
 
-export async function revealAppFolder(xousRoot: string, appName: string) {
+export async function revealAppFolder(xousRoot: string, appName: string, target: string) {
 	await vscode.commands.executeCommand('workbench.view.explorer');
-	const appDir = path.join(xousRoot, 'apps-dabao', appName);
+	const appDir = path.join(xousRoot, getAppsDir(target), appName);
 	try {
 		await vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
 	} catch {}

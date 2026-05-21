@@ -12,6 +12,7 @@
 	"cmd.monitorStop": "Baochip: Seriellen Monitor stoppen",
 	"cmd.setFlashLocation": "Baochip: Flash-Speicherort festlegen",
 	"cmd.selectBuildTarget": "Baochip: Build-Ziel auswählen",
+	"cmd.setBuildMode": "Baochip: Build-Modus festlegen",
 	"cmd.clean": "Baochip: Aufräumen",
 	"cmd.build": "Baochip: Projekt bauen",
 	"cmd.selectApp": "Baochip: App auswählen",
@@ -36,12 +37,17 @@
 	"cfg.monitor.echo": "Lokales Echo der Eingabe.",
 
 	"cfg.title.build": "Baochip — Build",
+	"cfg.build.buildMode": "Build-Modus. 'auto' erkennt automatisch (xous-core-Modus wenn apps-dabao/ vorhanden, sonst out-of-tree). Überschreiben, um einen bestimmten Modus zu erzwingen.",
 	"cfg.build.target": "Aktuell ausgewähltes Build-Ziel (z. B. dabao, baosec).",
 	"cfg.build.fallbackTargets": "Fallback-Liste der Build-Ziele, wenn die automatische Erkennung nicht verfügbar ist.",
 	"cfg.build.cwd": "Arbeitsverzeichnis für den Build.",
 	"cfg.build.appName": "Name der Bao-App unter xous-core/apps-dabao/. Mehrere durch Leerzeichen trennbar (z. B. 'helloworld demo_app util'); leer lassen, um nur das Ziel zu bauen.",
 
 	"cfg.title.flashing": "Baochip — Flashen",
+	"cfg.title.outOfTree": "Baochip — Out-of-Tree-Builds",
+	"cfg.outOfTree.kernelMode": "Wie die Erweiterung loader.uf2 und xous.uf2 für Out-of-Tree-Flashing bezieht. 'ask' zeigt beim ersten Mal einen Einrichtungsdialog. 'ci-sync' holt den neuesten xous-core-Commit von GitHub, aktualisiert Cargo.toml und lädt passende Kernel-Dateien von CI. 'manual' verwendet Dateien aus dem in baochip.outOfTree.kernelFilesPath angegebenen Ordner.",
+	"cfg.outOfTree.kernelFilesPath": "Ordner mit loader.uf2 und xous.uf2 für manuelles Out-of-Tree-Flashing. Wird nur verwendet, wenn baochip.outOfTree.kernelMode auf 'manual' gesetzt ist.",
+	"cfg.outOfTree.extraFeatures": "Zusätzliche Cargo-Feature-Flags für Out-of-Tree-App-Builds, über das Standard-Set board-dabao/bao1x hinaus (z. B. [\"usb\", \"my-feature\"]).",
 	"cfg.flashing.location": "Speicherort des eingehängten Baochip-UF2-Laufwerks (D:\\ oder ein anderes Laufwerksbuchstaben-Laufwerk unter Windows, /Volumes/BAOCHIP unter macOS, /media/$(whoami)/BAOCHIP unter Linux).",
 
 	"views.container.title": "Baochip",

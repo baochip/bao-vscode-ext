@@ -12,6 +12,7 @@
 	"cmd.monitorStop": "Baochip: Stop Serial Monitor",
 	"cmd.setFlashLocation": "Baochip: Set Flash Location",
 	"cmd.selectBuildTarget": "Baochip: Select Build Target",
+	"cmd.setBuildMode": "Baochip: Set Build Mode",
 	"cmd.clean": "Baochip: Full Clean",
 	"cmd.build": "Baochip: Build Project",
 	"cmd.selectApp": "Baochip: Select App",
@@ -36,12 +37,17 @@
 	"cfg.monitor.echo": "Local echo of typed input.",
 
 	"cfg.title.build": "Baochip — Build",
+	"cfg.build.buildMode": "Build mode. 'auto' detects from the workspace (xous-core mode if apps-dabao/ is present, otherwise out-of-tree). Override to force a specific mode.",
 	"cfg.build.target": "Currently selected build target (e.g., dabao, baosec).",
 	"cfg.build.fallbackTargets": "Fallback list of build targets used when auto-detection is unavailable.",
 	"cfg.build.cwd": "Working directory for the build.",
 	"cfg.build.appName": "Name of the Bao app under xous-core/apps-dabao/. You can list multiple apps separated by spaces (e.g., 'helloworld demo_app util'), or leave blank to build the target only.",
 
 	"cfg.title.flashing": "Baochip — Flashing",
+	"cfg.title.outOfTree": "Baochip — Out-of-Tree Builds",
+	"cfg.outOfTree.kernelMode": "How the extension sources loader.uf2 and xous.uf2 for out-of-tree flashing. 'ask' shows a one-time setup prompt. 'ci-sync' fetches the latest xous-core rev from GitHub, updates Cargo.toml to match, then downloads matching kernel files from CI. 'manual' uses files from the folder set in baochip.outOfTree.kernelFilesPath.",
+	"cfg.outOfTree.kernelFilesPath": "Folder containing loader.uf2 and xous.uf2 for manual out-of-tree flashing. Only used when baochip.outOfTree.kernelMode is 'manual'.",
+	"cfg.outOfTree.extraFeatures": "Additional cargo feature flags to pass when building out-of-tree apps, beyond the standard board-dabao/bao1x set (e.g. [\"usb\", \"my-feature\"]).",
 	"cfg.flashing.location": "Location of the mounted Baochip UF2 drive (D:\\ or another letter drive on Windows, /Volumes/BAOCHIP on MacOS, /media/$(whoami)/BAOCHIP on Linux).",
 
 	"views.container.title": "Baochip",

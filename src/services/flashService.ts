@@ -265,17 +265,36 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 	);
 }
 
-export async function decideAndFlash(root: string): Promise<boolean> {
+export async function decideAndFlash(
+	root: string,
+	kernelFiles?: { loader: string; xous: string },
+): Promise<boolean> {
 	const dest = await ensureFlashLocation();
 	if (!dest) return false;
 
-	const { all } = await gatherArtifacts(root);
-	if (all.length === 0) {
-		vscode.window.showWarningMessage(
-			vscode.l10n.t('No UF2s found (loader/xous/apps). Build first, then flash.'),
-		);
-		return false;
+	let files: string[];
+
+	if (kernelFiles) {
+		// Out-of-tree: flash kernel files + apps.uf2 from project root
+		const appsUf2 = path.join(root, 'apps.uf2');
+		if (!fs.existsSync(appsUf2)) {
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('apps.uf2 not found in {0}. Run a build first.', root),
+			);
+			return false;
+		}
+		files = [kernelFiles.loader, kernelFiles.xous, appsUf2];
+	} else {
+		// xous-core mode: discover artifacts from the build output
+		const { all } = await gatherArtifacts(root);
+		if (all.length === 0) {
+			vscode.window.showWarningMessage(
+				vscode.l10n.t('No UF2s found (loader/xous/apps). Build first, then flash.'),
+			);
+			return false;
+		}
+		files = all;
 	}
 
-	return flashFiles(dest, all);
+	return flashFiles(dest, files);
 }

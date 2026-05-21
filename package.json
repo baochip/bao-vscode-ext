@@ -78,6 +78,10 @@
 				"title": "%cmd.selectBuildTarget%"
 			},
 			{
+				"command": "baochip.setBuildMode",
+				"title": "%cmd.setBuildMode%"
+			},
+			{
 				"command": "baochip.clean",
 				"title": "%cmd.clean%"
 			},
@@ -195,6 +199,17 @@
 				"title": "%cfg.title.build%",
 				"scope": "resource",
 				"properties": {
+					"baochip.buildMode": {
+						"type": "string",
+						"enum": [
+							"auto",
+							"xous-core",
+							"out-of-tree"
+						],
+						"default": "auto",
+						"description": "%cfg.build.buildMode%",
+						"order": 0
+					},
 					"baochip.buildTarget": {
 						"type": "string",
 						"default": "",
@@ -236,6 +251,38 @@
 						"default": "",
 						"description": "%cfg.flashing.location%",
 						"order": 1
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.outOfTree%",
+				"scope": "resource",
+				"properties": {
+					"baochip.outOfTree.kernelMode": {
+						"type": "string",
+						"enum": [
+							"ask",
+							"ci-sync",
+							"manual"
+						],
+						"default": "ask",
+						"description": "%cfg.outOfTree.kernelMode%",
+						"order": 1
+					},
+					"baochip.outOfTree.kernelFilesPath": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.outOfTree.kernelFilesPath%",
+						"order": 2
+					},
+					"baochip.outOfTree.extraFeatures": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [],
+						"description": "%cfg.outOfTree.extraFeatures%",
+						"order": 3
 					}
 				}
 			}

@@ -34,3 +34,10 @@ export const setXousAppName = (n: string) => updateSetting('baochip.xousAppName'
 
 export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
 export const setXousCorePath = (p: string) => updateSetting('baochip.xousCorePath', p);
+
+export type BuildMode = 'auto' | 'xous-core' | 'out-of-tree';
+export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('baochip.buildMode') ?? 'auto';
+export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMode', mode);
+
+export const getExtraFeatures = (): string[] =>
+	cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? [];

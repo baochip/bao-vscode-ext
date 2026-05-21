@@ -12,6 +12,7 @@
 	"cmd.monitor.stop": "Baochip: シリアルモニターを停止",
 	"cmd.setFlashLocation": "Baochip: フラッシュ先を設定",
 	"cmd.selectBuildTarget": "Baochip: ビルドターゲットを選択",
+	"cmd.setBuildMode": "Baochip: ビルドモードを設定",
 	"cmd.clean": "Baochip: クリーン",
 	"cmd.build": "Baochip: プロジェクトをビルド",
 	"cmd.selectApp": "Baochip: アプリを選択",
@@ -36,12 +37,17 @@
 	"cfg.monitor.echo": "入力のローカルエコー。",
 
 	"cfg.title.build": "Baochip — ビルド",
+	"cfg.build.buildMode": "ビルドモード。'auto' はワークスペースから自動検出します（apps-dabao/ があれば xous-core モード、なければ out-of-tree）。特定のモードを強制するには上書きしてください。",
 	"cfg.build.target": "現在選択中のビルドターゲット（例：dabao、baosec）。",
 	"cfg.build.fallbackTargets": "自動検出が利用できない場合に使用するビルドターゲットのフォールバックリスト。",
 	"cfg.build.cwd": "ビルドの作業ディレクトリ。",
 	"cfg.build.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app util'）。空の場合はターゲットのみをビルド。",
 
 	"cfg.title.flashing": "Baochip — フラッシュ",
+	"cfg.title.outOfTree": "Baochip — アウトオブツリービルド",
+	"cfg.outOfTree.kernelMode": "out-of-tree フラッシュ用に loader.uf2 と xous.uf2 を取得する方法。'ask' は初回セットアップダイアログを表示します。'ci-sync' は GitHub から最新の xous-core コミットを取得して Cargo.toml を更新し、CI から対応するカーネルファイルをダウンロードします。'manual' は baochip.outOfTree.kernelFilesPath で指定したフォルダのファイルを使用します。",
+	"cfg.outOfTree.kernelFilesPath": "手動 out-of-tree フラッシュ用の loader.uf2 と xous.uf2 が含まれるフォルダ。baochip.outOfTree.kernelMode が 'manual' の場合のみ使用されます。",
+	"cfg.outOfTree.extraFeatures": "out-of-tree アプリビルド時に標準の board-dabao/bao1x セットに加えて渡す追加の Cargo フィーチャーフラグ（例：[\"usb\", \"my-feature\"]）。",
 	"cfg.flashing.location": "マウントされた Baochip UF2 ドライブの場所（Windows では D:\\ または別のドライブレターのドライブ、macOS では /Volumes/BAOCHIP、Linux では /media/$(whoami)/BAOCHIP）。",
 
 	"views.container.title": "Baochip",

@@ -11,11 +11,13 @@ import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
 import { registerSelectBuildTarget } from './commands/selectBuildTarget';
 import { registerSetBootloaderSerialPort } from './commands/setBootloaderSerialPort';
+import { registerSetBuildMode } from './commands/setBuildMode';
 import { registerSetFlashLocation } from './commands/setFlashLocation';
 import { registerSetRunSerialPort } from './commands/setRunSerialPort';
 
 export function registerCommands(context: vscode.ExtensionContext, refreshUI: () => void) {
 	context.subscriptions.push(
+		registerSetBuildMode(context, refreshUI),
 		registerSetBootloaderSerialPort(context, refreshUI),
 		registerSetRunSerialPort(context, refreshUI),
 		registerSetMonitorBaud(context),
