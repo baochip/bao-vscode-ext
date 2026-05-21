@@ -47,6 +47,7 @@
 	"cfg.title.outOfTree": "Baochip — Out-of-Tree 构建",
 	"cfg.outOfTree.kernelMode": "扩展为 out-of-tree 烧录获取 loader.uf2 和 xous.uf2 的方式。'ask' 首次显示设置提示。'ci-sync' 从 GitHub 获取最新 xous-core 提交并更新 Cargo.toml，然后从 CI 下载匹配的内核文件。'ci-only' 从 CI 下载但不修改 Cargo.toml。'manual' 使用 baochip.outOfTree.kernelFilesPath 指定文件夹中的文件。",
 	"cfg.outOfTree.kernelFilesPath": "包含 loader.uf2 和 xous.uf2 的文件夹，用于手动 out-of-tree 烧录。仅在 baochip.outOfTree.kernelMode 为 'manual' 时使用。",
+	"cfg.outOfTree.extraFeatures": "构建 out-of-tree 应用时，除标准 board-dabao/bao1x 集之外的额外 Cargo 特性标志（例如 [\"usb\", \"my-feature\"]）。",
 	"cfg.flashing.location": "已挂载的 Baochip UF2 驱动器位置（Windows 上为 D:\\ 或其他盘符的驱动器，macOS 上为 /Volumes/BAOCHIP，Linux 上为 /media/$(whoami)/BAOCHIP）。",
 
 	"views.container.title": "Baochip",

@@ -38,3 +38,6 @@ export const setXousCorePath = (p: string) => updateSetting('baochip.xousCorePat
 export type BuildMode = 'auto' | 'xous-core' | 'out-of-tree';
 export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('baochip.buildMode') ?? 'auto';
 export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMode', mode);
+
+export const getExtraFeatures = (): string[] =>
+	cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? [];

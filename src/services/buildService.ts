@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
-import { getBuildTarget, getXousAppName } from '@services/configService';
+import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -81,6 +81,19 @@ function shellCd(dir: string): string {
 	return `cd '${dir.replace(/'/g, "'\\''")}'`;
 }
 
+function outOfTreeFeatureArgs(): string[] {
+	const boardFeature = `board-${getBuildTarget() || 'dabao'}`;
+	return [
+		'--features',
+		boardFeature,
+		'--features',
+		'bao1x',
+		'--features',
+		'utralib/bao1x',
+		...getExtraFeatures().flatMap((f) => ['--features', f]),
+	];
+}
+
 /** Out-of-tree standalone build: open a terminal and run cargo build with Baochip flags. */
 export function runOutOfTreeBuildInTerminal(root: string) {
 	const term =
@@ -88,7 +101,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
 	term.sendText(shellCd(root));
 	term.sendText(
-		`cargo build --release --target ${XOUS_TARGET_TRIPLE} --features board-dabao --features bao1x --features utralib/bao1x`,
+		`cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().join(' ')}`,
 	);
 	term.show(true);
 }
@@ -130,18 +143,7 @@ export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
 	chan.clear();
 	chan.show(true);
 
-	const args = [
-		'build',
-		'--release',
-		'--target',
-		XOUS_TARGET_TRIPLE,
-		'--features',
-		'board-dabao',
-		'--features',
-		'bao1x',
-		'--features',
-		'utralib/bao1x',
-	];
+	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
 
 	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building…'));
 	chan.appendLine(`[bao] ${vscode.l10n.t('Building: cargo {0}', args.join(' '))}`);

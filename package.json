@@ -275,6 +275,15 @@
 						"default": "",
 						"description": "%cfg.outOfTree.kernelFilesPath%",
 						"order": 2
+					},
+					"baochip.outOfTree.extraFeatures": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [],
+						"description": "%cfg.outOfTree.extraFeatures%",
+						"order": 3
 					}
 				}
 			}
