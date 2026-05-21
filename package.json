@@ -263,7 +263,6 @@
 						"enum": [
 							"ask",
 							"ci-sync",
-							"ci-only",
 							"manual"
 						],
 						"default": "ask",

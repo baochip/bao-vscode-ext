@@ -28,11 +28,11 @@ async function pickName(suggestion?: string): Promise<string | undefined> {
 
 async function pickParentFolder(): Promise<string | undefined> {
 	const picked = await vscode.window.showOpenDialog({
-		title: vscode.l10n.t('Select parent folder for new app'),
+		title: vscode.l10n.t('Select project folder'),
 		canSelectFiles: false,
 		canSelectFolders: true,
 		canSelectMany: false,
-		openLabel: vscode.l10n.t('Create here'),
+		openLabel: vscode.l10n.t('Use this folder'),
 	});
 	return picked?.[0]?.fsPath;
 }
@@ -57,20 +57,18 @@ export async function scaffoldOutOfTreeApp(): Promise<void> {
 			// Scaffold into the open folder, using name only for Cargo.toml package name
 			return scaffoldInto(projectDir, name);
 		} else {
-			const parent = await pickParentFolder();
-			if (!parent) return;
-			const name = await pickName(path.basename(parent));
+			const picked = await pickParentFolder();
+			if (!picked) return;
+			const name = await pickName(path.basename(picked));
 			if (!name) return;
-			projectDir = path.join(parent, name);
-			return scaffoldInto(projectDir, name);
+			return scaffoldInto(picked, name);
 		}
 	} else {
-		const parent = await pickParentFolder();
-		if (!parent) return;
-		const name = await pickName(path.basename(parent));
+		const picked = await pickParentFolder();
+		if (!picked) return;
+		const name = await pickName(path.basename(picked));
 		if (!name) return;
-		projectDir = path.join(parent, name);
-		return scaffoldInto(projectDir, name);
+		return scaffoldInto(picked, name);
 	}
 }
 

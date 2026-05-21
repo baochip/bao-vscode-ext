@@ -45,7 +45,7 @@
 
 	"cfg.title.flashing": "Baochip — Flashing",
 	"cfg.title.outOfTree": "Baochip — Out-of-Tree Builds",
-	"cfg.outOfTree.kernelMode": "How the extension sources loader.uf2 and xous.uf2 for out-of-tree flashing. 'ask' shows a one-time setup prompt. 'ci-sync' fetches the latest xous-core rev from GitHub and updates Cargo.toml to match, then downloads matching kernel files from CI. 'ci-only' downloads from CI without changing Cargo.toml. 'manual' uses files from the folder set in baochip.outOfTree.kernelFilesPath.",
+	"cfg.outOfTree.kernelMode": "How the extension sources loader.uf2 and xous.uf2 for out-of-tree flashing. 'ask' shows a one-time setup prompt. 'ci-sync' fetches the latest xous-core rev from GitHub, updates Cargo.toml to match, then downloads matching kernel files from CI. 'manual' uses files from the folder set in baochip.outOfTree.kernelFilesPath.",
 	"cfg.outOfTree.kernelFilesPath": "Folder containing loader.uf2 and xous.uf2 for manual out-of-tree flashing. Only used when baochip.outOfTree.kernelMode is 'manual'.",
 	"cfg.outOfTree.extraFeatures": "Additional cargo feature flags to pass when building out-of-tree apps, beyond the standard board-dabao/bao1x set (e.g. [\"usb\", \"my-feature\"]).",
 	"cfg.flashing.location": "Location of the mounted Baochip UF2 drive (D:\\ or another letter drive on Windows, /Volumes/BAOCHIP on MacOS, /media/$(whoami)/BAOCHIP on Linux).",

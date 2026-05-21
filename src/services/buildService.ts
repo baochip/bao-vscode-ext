@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
@@ -94,15 +96,29 @@ function outOfTreeFeatureArgs(): string[] {
 	];
 }
 
-/** Out-of-tree standalone build: open a terminal and run cargo build with Baochip flags. */
+/** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
 export function runOutOfTreeBuildInTerminal(root: string) {
 	const term =
 		vscode.window.terminals.find((t) => t.name === vscode.l10n.t('Bao Build')) ??
 		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
 	term.sendText(shellCd(root));
-	term.sendText(
-		`cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().join(' ')}`,
-	);
+
+	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().join(' ')}`;
+
+	// Read package name to construct ELF path for xous-app-uf2
+	try {
+		const cargo = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
+		const m = cargo.match(/^name\s*=\s*"([^"]+)"/m);
+		if (m) {
+			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${m[1]}`;
+			term.sendText(`${buildCmd} && xous-app-uf2 --elf ${elfPath}`);
+		} else {
+			term.sendText(buildCmd);
+		}
+	} catch {
+		term.sendText(buildCmd);
+	}
+
 	term.show(true);
 }
 

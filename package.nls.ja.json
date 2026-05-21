@@ -45,7 +45,7 @@
 
 	"cfg.title.flashing": "Baochip — フラッシュ",
 	"cfg.title.outOfTree": "Baochip — アウトオブツリービルド",
-	"cfg.outOfTree.kernelMode": "out-of-tree フラッシュ用に loader.uf2 と xous.uf2 を取得する方法。'ask' は初回セットアップダイアログを表示します。'ci-sync' は GitHub から最新の xous-core コミットを取得して Cargo.toml を更新し、CI から対応するカーネルファイルをダウンロードします。'ci-only' は Cargo.toml を変更せずに CI からダウンロードします。'manual' は baochip.outOfTree.kernelFilesPath で指定したフォルダのファイルを使用します。",
+	"cfg.outOfTree.kernelMode": "out-of-tree フラッシュ用に loader.uf2 と xous.uf2 を取得する方法。'ask' は初回セットアップダイアログを表示します。'ci-sync' は GitHub から最新の xous-core コミットを取得して Cargo.toml を更新し、CI から対応するカーネルファイルをダウンロードします。'manual' は baochip.outOfTree.kernelFilesPath で指定したフォルダのファイルを使用します。",
 	"cfg.outOfTree.kernelFilesPath": "手動 out-of-tree フラッシュ用の loader.uf2 と xous.uf2 が含まれるフォルダ。baochip.outOfTree.kernelMode が 'manual' の場合のみ使用されます。",
 	"cfg.outOfTree.extraFeatures": "out-of-tree アプリビルド時に標準の board-dabao/bao1x セットに加えて渡す追加の Cargo フィーチャーフラグ（例：[\"usb\", \"my-feature\"]）。",
 	"cfg.flashing.location": "マウントされた Baochip UF2 ドライブの場所（Windows では D:\\ または別のドライブレターのドライブ、macOS では /Volumes/BAOCHIP、Linux では /media/$(whoami)/BAOCHIP）。",

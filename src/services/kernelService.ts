@@ -5,7 +5,7 @@ import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
-export type KernelMode = 'ci-sync' | 'ci-only' | 'manual';
+export type KernelMode = 'ci-sync' | 'manual';
 
 const KERNEL_MODE_KEY = 'baochip.outOfTree.kernelMode';
 
@@ -114,7 +114,7 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 
 /**
  * Resolves the paths to loader.uf2 and xous.uf2 for out-of-tree flashing.
- * Downloads from CI if needed (ci-sync / ci-only), or reads from the user's folder (manual).
+ * Downloads from CI if needed (ci-sync), or reads from the user's folder (manual).
  * Returns null on failure.
  */
 export async function resolveKernelFiles(): Promise<{ loader: string; xous: string } | null> {
@@ -144,7 +144,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 		return { loader, xous };
 	}
 
-	// ci-sync or ci-only: use cached files, downloading if not yet present
+	// ci-sync: use cached files, downloading if not yet present
 	const cacheDir = path.join(getGlobalVenvRoot(), 'kernel');
 	const loader = path.join(cacheDir, 'loader.uf2');
 	const xous = path.join(cacheDir, 'xous.uf2');
@@ -173,45 +173,31 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 	const saved = getSavedKernelMode();
 	if (saved !== 'ask') return saved as KernelMode;
 
-	type Item = vscode.QuickPickItem & { mode: KernelMode };
+	const syncLabel = vscode.l10n.t('Sync to latest');
+	const manualLabel = vscode.l10n.t('Manage my own files');
 
-	const items: Item[] = [
+	const result = await vscode.window.showInformationMessage(
+		vscode.l10n.t('Set Up Kernel Files for Out-of-Tree Build'),
 		{
-			label: vscode.l10n.t('Sync to latest'),
-			description: 'ci-sync',
+			modal: true,
 			detail: vscode.l10n.t(
-				'Fetches the latest xous-core commit from GitHub and updates your Cargo.toml rev to match, then downloads the matching loader.uf2 and xous.uf2 from CI. App and kernel are guaranteed to be from the same commit.',
+				'• SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are guaranteed to be from the same commit.\n\n• MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
 			),
-			mode: 'ci-sync',
 		},
-		{
-			label: vscode.l10n.t('Use CI kernel, keep my rev'),
-			description: 'ci-only',
-			detail: vscode.l10n.t(
-				'Downloads the latest loader.uf2 and xous.uf2 from CI. Does NOT change your Cargo.toml rev. You are responsible for ensuring compatibility between your pinned rev and the CI kernel.',
-			),
-			mode: 'ci-only',
-		},
-		{
-			label: vscode.l10n.t('Manage my own files'),
-			description: 'manual',
-			detail: vscode.l10n.t(
-				'Uses loader.uf2 and xous.uf2 from a folder you specify. Does NOT change your Cargo.toml rev. You are responsible for ensuring those files match your pinned rev.',
-			),
-			mode: 'manual',
-		},
-	];
+		syncLabel,
+		manualLabel,
+	);
 
-	const picked = await vscode.window.showQuickPick(items, {
-		title: vscode.l10n.t('Set Up Kernel Files for Out-of-Tree Build'),
-		placeHolder: vscode.l10n.t('How should the extension source loader.uf2 and xous.uf2?'),
-		matchOnDescription: true,
-		matchOnDetail: true,
-	});
+	if (!result) return undefined;
 
-	if (!picked) return undefined;
+	const modeMap: Record<string, KernelMode> = {
+		[syncLabel]: 'ci-sync',
+		[manualLabel]: 'manual',
+	};
+	const resolvedMode = modeMap[result];
+	if (!resolvedMode) return undefined;
 
-	if (picked.mode === 'manual') {
+	if (resolvedMode === 'manual') {
 		const folders = await vscode.window.showOpenDialog({
 			title: vscode.l10n.t('Select folder containing loader.uf2 and xous.uf2'),
 			canSelectFiles: false,
@@ -225,15 +211,15 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 			.update(KERNEL_FILES_PATH_KEY, folders[0].fsPath, vscode.ConfigurationTarget.Workspace);
 	}
 
-	await saveKernelMode(picked.mode);
+	await saveKernelMode(resolvedMode);
 	vscode.window.showInformationMessage(
 		vscode.l10n.t(
 			'Kernel mode set to "{0}". You can change this in Settings under Baochip.',
-			picked.mode,
+			resolvedMode,
 		),
 	);
 
-	return picked.mode;
+	return resolvedMode;
 }
 
 /**
