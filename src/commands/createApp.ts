@@ -2,11 +2,19 @@ import { getAppsDir } from '@constants';
 import { createBaoApp, isLikelyValidAppName } from '@services/appService';
 import { getBuildTarget, setXousAppName } from '@services/configService';
 import { ensureXousCorePath } from '@services/pathService';
+import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
 	return vscode.commands.registerCommand('baochip.createApp', async () => {
+		if (getProjectMode() === 'out-of-tree') {
+			vscode.window.showInformationMessage(
+				vscode.l10n.t('New app scaffolding for out-of-tree projects is not yet supported.'),
+			);
+			return;
+		}
+
 		let root: string;
 		try {
 			root = await ensureXousCorePath();

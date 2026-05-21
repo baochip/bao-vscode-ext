@@ -1,10 +1,21 @@
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
+import { resolveKernelFiles } from '@services/kernelService';
 import { ensureXousCorePath } from '@services/pathService';
+import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
 export function registerFlashCommand(_context: vscode.ExtensionContext) {
 	return vscode.commands.registerCommand('baochip.flash', async () => {
+		if (getProjectMode() === 'out-of-tree') {
+			const root = getOutOfTreeRoot();
+			if (!root) return;
+			const kernelFiles = await resolveKernelFiles();
+			if (!kernelFiles) return;
+			await decideAndFlash(root, kernelFiles);
+			return;
+		}
+
 		let root: string;
 		try {
 			root = await ensureXousCorePath();

@@ -3,7 +3,7 @@ import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
-import { getProjectMode, type ProjectMode } from '@services/projectModeService';
+import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import * as vscode from 'vscode';
@@ -23,12 +23,9 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 		const hasUf2Tool = await checkXousAppUf2();
 		if (!hasUf2Tool) return;
 
-		const folder = vscode.workspace.workspaceFolders?.[0];
-		if (!folder) {
-			vscode.window.showErrorMessage(vscode.l10n.t('No workspace folder open.'));
-			return;
-		}
-		return { mode: 'out-of-tree', root: folder.uri.fsPath, target: '' };
+		const root = getOutOfTreeRoot();
+		if (!root) return;
+		return { mode: 'out-of-tree', root, target: '' };
 	}
 
 	let root: string;

@@ -22,6 +22,19 @@ export function findXousCoreInWorkspace(): string | undefined {
 }
 
 /**
+ * Returns the root path of the first workspace folder for out-of-tree mode,
+ * or shows an error and returns undefined if no folder is open.
+ */
+export function getOutOfTreeRoot(): string | undefined {
+	const folder = vscode.workspace.workspaceFolders?.[0];
+	if (!folder) {
+		vscode.window.showErrorMessage(vscode.l10n.t('No workspace folder open.'));
+		return undefined;
+	}
+	return folder.uri.fsPath;
+}
+
+/**
  * Returns the active project mode.
  * Respects the baochip.buildMode setting; falls back to auto-detection
  * based on whether any workspace folder contains an apps-dabao/ directory.
