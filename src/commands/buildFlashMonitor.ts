@@ -9,6 +9,7 @@ import { decideAndFlash } from '@services/flashService';
 import { openMonitorTTY } from '@services/monitorService';
 import { runBaoCmd } from '@services/pathService';
 import { waitForPort } from '@services/portsService';
+import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
 export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
@@ -25,6 +26,12 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		if (code !== 0) {
 			vscode.window.showErrorMessage(vscode.l10n.t('Build failed.'));
 			return;
+		}
+
+		// 1.5) ELF→UF2 conversion (out-of-tree only)
+		if (pre.mode === 'out-of-tree') {
+			const converted = await convertElfToUf2(pre.root);
+			if (!converted) return;
 		}
 
 		// 2) Flash

@@ -1,12 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_TARGET_TRIPLE } from '@constants';
 
 export type BaoArtifact = {
 	path: string;
 	role?: 'loader' | 'xous' | 'apps';
 };
 
-const TRIPLE = 'riscv32imac-unknown-xous-elf';
 const UF2_IMAGES: Array<{ fileName: string; role: NonNullable<BaoArtifact['role']> }> = [
 	{ fileName: 'loader.uf2', role: 'loader' },
 	{ fileName: 'xous.uf2', role: 'xous' },
@@ -30,7 +30,7 @@ function isDirectory(absPath: string): boolean {
 }
 
 export function scanArtifacts(xousRoot: string): BaoArtifact[] {
-	const releaseDir = path.join(xousRoot, 'target', TRIPLE, 'release');
+	const releaseDir = path.join(xousRoot, 'target', XOUS_TARGET_TRIPLE, 'release');
 	if (!isDirectory(releaseDir)) return [];
 
 	const artifacts: BaoArtifact[] = [];

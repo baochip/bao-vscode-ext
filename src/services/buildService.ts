@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
@@ -90,7 +91,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
 	term.sendText(shellCd(root));
 	term.sendText(
-		'cargo build --release --target riscv32imac-unknown-xous-elf --features board-dabao --features bao1x --features utralib/bao1x',
+		`cargo build --release --target ${XOUS_TARGET_TRIPLE} --features board-dabao --features bao1x --features utralib/bao1x`,
 	);
 	term.show(true);
 }
@@ -136,7 +137,7 @@ export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
 		'build',
 		'--release',
 		'--target',
-		'riscv32imac-unknown-xous-elf',
+		XOUS_TARGET_TRIPLE,
 		'--features',
 		'board-dabao',
 		'--features',
