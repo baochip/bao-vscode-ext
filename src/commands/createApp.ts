@@ -1,5 +1,6 @@
+import { getAppsDir } from '@constants';
 import { createBaoApp, isLikelyValidAppName } from '@services/appService';
-import { setXousAppName } from '@services/configService';
+import { getBuildTarget, setXousAppName } from '@services/configService';
 import { ensureXousCorePath } from '@services/pathService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import * as vscode from 'vscode';
@@ -18,9 +19,12 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 		const ok = await ensureXousWorkspaceOpen(root);
 		if (!ok) return;
 
+		const target = getBuildTarget() || 'dabao';
+		const appsDir = getAppsDir(target);
+
 		const nameInput = await vscode.window.showInputBox({
 			title: vscode.l10n.t('New Bao App Name'),
-			prompt: vscode.l10n.t('Will be created under xous-core/apps-dabao/<name>/'),
+			prompt: vscode.l10n.t('Will be created under xous-core/{0}/<name>/', appsDir),
 			placeHolder: vscode.l10n.t('test_app'),
 			validateInput: (val) => {
 				const n = (val || '').trim().toLowerCase();
@@ -40,14 +44,14 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 		};
 		try {
 			await vscode.window.withProgress(progressOpts, async () => {
-				await createBaoApp(root, name);
+				await createBaoApp(root, name, target);
 			});
 
 			await setXousAppName(name);
 			vscode.window.showInformationMessage(
-				vscode.l10n.t('Created apps-dabao/{0} and added to workspace.', name),
+				vscode.l10n.t('Created {0}/{1} and added to workspace.', appsDir, name),
 			);
-			await revealAppFolder(root, name);
+			await revealAppFolder(root, name, target);
 		} catch (e: unknown) {
 			const message = e instanceof Error ? e.message : String(e);
 			vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', message));

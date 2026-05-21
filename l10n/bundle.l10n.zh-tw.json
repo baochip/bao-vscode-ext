@@ -1,11 +1,11 @@
 {
-	"Created apps-dabao/{0} and added to workspace.": "已建立 apps-dabao/{0} 並新增到工作區。",
+	"Created {0}/{1} and added to workspace.": "已建立 {0}/{1} 並新增到工作區。",
 	"Create app failed: {0}": "建立應用程式失敗：{0}",
 	"App name is required": "必須輸入應用名稱。",
 	"Use lowercase letters, numbers, -, _; start with a letter": "必須以小寫字母開頭，可使用英文字母、數字、-、_。",
 	"test_app": "test_app",
 	"Creating app \"{0}\"…": "正在建立應用「{0}」…",
-	"Will be created under xous-core/apps-dabao/<name>/": "將建立於 xous-core/apps-dabao/<name>/ 下。",
+	"Will be created under xous-core/{0}/<name>/": "將建立於 xous-core/{0}/<name>/ 下。",
 	"New Bao App Name": "新的 Bao 應用名稱",
 	"These apps were not found under {0}: {1}": "在 {0} 中找不到以下應用：{1}",
 	"App \"{0}\" was not found under {1}.": "應用「{0}」未在 {1} 中找到。",

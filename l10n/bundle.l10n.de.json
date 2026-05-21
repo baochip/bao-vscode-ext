@@ -1,11 +1,11 @@
 {
-	"Created apps-dabao/{0} and added to workspace.": "apps-dabao/{0} wurde erstellt und zum Arbeitsbereich hinzugefügt.",
+	"Created {0}/{1} and added to workspace.": "{0}/{1} wurde erstellt und zum Arbeitsbereich hinzugefügt.",
 	"Create app failed: {0}": "App-Erstellung fehlgeschlagen: {0}",
 	"App name is required": "Ein App-Name ist erforderlich.",
 	"Use lowercase letters, numbers, -, _; start with a letter": "Muss mit einem Kleinbuchstaben beginnen; Buchstaben, Zahlen, -, _ sind erlaubt.",
 	"test_app": "test_app",
 	"Creating app \"{0}\"…": "App „{0}“ wird erstellt…",
-	"Will be created under xous-core/apps-dabao/<name>/": "Wird unter xous-core/apps-dabao/<name>/ erstellt.",
+	"Will be created under xous-core/{0}/<name>/": "Wird unter xous-core/{0}/<name>/ erstellt.",
 	"New Bao App Name": "Neuer Bao-App-Name",
 	"These apps were not found under {0}: {1}": "Diese Apps wurden in {0} nicht gefunden: {1}",
 	"App \"{0}\" was not found under {1}.": "App „{0}“ wurde in {1} nicht gefunden.",

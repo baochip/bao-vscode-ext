@@ -3,10 +3,12 @@ import sys
 import logging
 import traceback
 
-from commands import ports
-from commands import monitor
-from commands import doctor
+from commands import app
 from commands import boot
+from commands import doctor
+from commands import monitor
+from commands import ports
+from commands import toml
 
 def main():
     ap = argparse.ArgumentParser(
@@ -16,10 +18,12 @@ def main():
     ap.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (debug logging and tracebacks)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    ports.register(sub)
-    monitor.register(sub)
-    doctor.register(sub)
+    app.register(sub)
     boot.register(sub)
+    doctor.register(sub)
+    monitor.register(sub)
+    ports.register(sub)
+    toml.register(sub)
 
     args = ap.parse_args()
 

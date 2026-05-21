@@ -96,21 +96,22 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 			);
 			const settings = new TreeItem(vscode.l10n.t('Open Settings'), 'baochip.openSettings', 'gear');
 
-			return Promise.resolve([
+			const items = [
 				setBootloaderPort,
 				setRunPort,
 				setFlashLoc,
 				target,
 				modeItem,
 				newApp,
-				selectApp,
+				...(mode === 'xous-core' ? [selectApp] : []),
 				clean,
 				build,
 				flash,
 				this.monitorNode,
 				bfm,
 				settings,
-			]);
+			];
+			return Promise.resolve(items);
 		}
 
 		if (element === this.monitorNode) {

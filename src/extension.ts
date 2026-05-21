@@ -155,17 +155,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashLocationItem.tooltip = vscode.l10n.t('Click to set baochip location');
 		flashLocationItem.show();
 
-		// Build target
+		// Build target — relevant in both modes
 		targetItem.text = target
 			? `$(target) ${target}`
 			: `$(target) ${vscode.l10n.t('Target: (not set)')}`;
 		targetItem.tooltip = vscode.l10n.t('Click to select build target');
 		targetItem.show();
 
-		// App name
-		appItem.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
-		appItem.tooltip = vscode.l10n.t('Click to select xous-core app');
-		appItem.show();
+		// App name — only relevant in xous-core mode
+		if (mode === 'xous-core') {
+			appItem.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
+			appItem.tooltip = vscode.l10n.t('Click to select xous-core app');
+			appItem.show();
+		} else {
+			appItem.hide();
+		}
 
 		// Status bar: Full Clean (keep cargo literal)
 		cleanItem.text = '$(trash)';

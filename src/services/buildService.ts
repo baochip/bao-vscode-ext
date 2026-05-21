@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { XOUS_TARGET_TRIPLE } from '@constants';
+import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
@@ -57,19 +57,19 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {
-		if (!appExists(root, app)) {
-			const missing = missingApps(root, app);
+		if (!appExists(root, app, target)) {
+			const missing = missingApps(root, app, target);
 			vscode.window.showErrorMessage(
 				missing.length > 1
 					? vscode.l10n.t(
 							'These apps were not found under {0}: {1}',
-							`${root}/apps-dabao`,
+							`${root}/${getAppsDir(target)}`,
 							missing.join(', '),
 						)
 					: vscode.l10n.t(
 							'App "{0}" was not found under {1}.',
 							missing[0] || app,
-							`${root}/apps-dabao`,
+							`${root}/${getAppsDir(target)}`,
 						),
 			);
 			return;

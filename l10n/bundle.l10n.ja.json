@@ -1,11 +1,11 @@
 {
-	"Created apps-dabao/{0} and added to workspace.": "apps-dabao/{0} を作成し、ワークスペースに追加しました。",
+	"Created {0}/{1} and added to workspace.": "{0}/{1} を作成し、ワークスペースに追加しました。",
 	"Create app failed: {0}": "アプリの作成に失敗しました: {0}",
 	"App name is required": "アプリ名は必須です。",
 	"Use lowercase letters, numbers, -, _; start with a letter": "小文字の英字で始め、英数字・-・_ が使用できます。",
 	"test_app": "test_app",
 	"Creating app \"{0}\"…": "アプリ「{0}」を作成中…",
-	"Will be created under xous-core/apps-dabao/<name>/": "xous-core/apps-dabao/<name>/ に作成されます。",
+	"Will be created under xous-core/{0}/<name>/": "xous-core/{0}/<name>/ に作成されます。",
 	"New Bao App Name": "新しい Bao アプリ名",
 	"These apps were not found under {0}: {1}": "これらのアプリが {0} に見つかりませんでした: {1}",
 	"App \"{0}\" was not found under {1}.": "アプリ「{0}」は {1} に見つかりませんでした。",
