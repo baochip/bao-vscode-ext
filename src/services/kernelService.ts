@@ -69,6 +69,50 @@ export async function fetchLatestXousCoreRev(): Promise<string> {
 	);
 }
 
+const KERNEL_ETAG_FILE = 'etags.json';
+
+function fetchETag(url: string): Promise<string | null> {
+	return new Promise((resolve) => {
+		const req = https.request(
+			url,
+			{ method: 'HEAD', headers: { 'User-Agent': 'bao-vscode-ext' } },
+			(res) => resolve((res.headers.etag as string) ?? null),
+		);
+		req.on('error', () => resolve(null));
+		req.setTimeout(5000, () => {
+			req.destroy();
+			resolve(null);
+		});
+		req.end();
+	});
+}
+
+function readStoredEtags(cacheDir: string): { loader?: string; xous?: string } {
+	try {
+		const f = path.join(cacheDir, KERNEL_ETAG_FILE);
+		if (fs.existsSync(f))
+			return JSON.parse(fs.readFileSync(f, 'utf8')) as { loader?: string; xous?: string };
+	} catch {}
+	return {};
+}
+
+function writeStoredEtags(cacheDir: string, etags: { loader?: string; xous?: string }): void {
+	try {
+		fs.writeFileSync(path.join(cacheDir, KERNEL_ETAG_FILE), JSON.stringify(etags), 'utf8');
+	} catch {}
+}
+
+async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
+	const stored = readStoredEtags(cacheDir);
+	if (!stored.loader || !stored.xous) return false;
+	const [loaderEtag, xousEtag] = await Promise.all([
+		fetchETag(`${CI_BASE}/loader.uf2`),
+		fetchETag(`${CI_BASE}/xous.uf2`),
+	]);
+	if (!loaderEtag || !xousEtag) return true; // network unavailable — use cache
+	return loaderEtag === stored.loader && xousEtag === stored.xous;
+}
+
 function downloadFile(url: string, dest: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const file = fs.createWriteStream(dest);
@@ -108,6 +152,11 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 			for (const file of KERNEL_FILES) {
 				await downloadFile(`${CI_BASE}/${file}`, path.join(cacheDir, file));
 			}
+			const [loaderEtag, xousEtag] = await Promise.all([
+				fetchETag(`${CI_BASE}/loader.uf2`),
+				fetchETag(`${CI_BASE}/xous.uf2`),
+			]);
+			writeStoredEtags(cacheDir, { loader: loaderEtag ?? undefined, xous: xousEtag ?? undefined });
 		},
 	);
 }
@@ -149,7 +198,9 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 	const loader = path.join(cacheDir, 'loader.uf2');
 	const xous = path.join(cacheDir, 'xous.uf2');
 
-	if (!fs.existsSync(loader) || !fs.existsSync(xous)) {
+	const needsDownload =
+		!fs.existsSync(loader) || !fs.existsSync(xous) || !(await kernelFilesUpToDate(cacheDir));
+	if (needsDownload) {
 		try {
 			await downloadKernelFiles(cacheDir);
 		} catch (e: unknown) {

@@ -59,6 +59,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 
 	// 3) Launch terminal
 	try {
+		monitorTerm?.sendText('\x03'); // Ctrl+C — let bao.py close the serial port cleanly
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTermListener?.dispose();
@@ -78,6 +79,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 
 export function stopMonitorTTY() {
 	try {
+		monitorTerm?.sendText('\x03'); // Ctrl+C — let bao.py close the serial port cleanly
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTerm = undefined;
