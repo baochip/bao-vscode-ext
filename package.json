@@ -4,10 +4,9 @@
 	"description": "%ext.description%",
 	"publisher": "baochip",
 	"website": "https://baochip.com",
-	"version": "0.9.5",
+	"version": "1.0.0",
 	"icon": "media/baochip-128x128-logo-only.png",
 	"license": "Apache-2.0",
-	"preview": true,
 	"pricing": "Free",
 	"repository": {
 		"type": "git",
@@ -330,7 +329,7 @@
 		"@biomejs/biome": "^2.3.0",
 		"@types/node": "^24.10.1",
 		"@types/vscode": "^1.106.1",
-		"@vscode/vsce": "^3.7.0",
+		"@vscode/vsce": "^3.9.1",
 		"tsc-alias": "^1.8.16",
 		"typescript": "^5.5.0"
 	},
