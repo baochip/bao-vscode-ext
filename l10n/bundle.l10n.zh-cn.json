@@ -200,6 +200,7 @@
 	"Use current folder: {0}": "使用当前文件夹：{0}",
 	"Choose a different folder…": "选择其他文件夹…",
 	"A Cargo.toml already exists in {0}.": "{0} 中已存在 Cargo.toml。",
+	"No out-of-tree template available for target \"{0}\".": "目标\"{0}\"没有可用的 out-of-tree 模板。",
 	"Failed to create project: {0}": "创建项目失败：{0}",
 	"Created out-of-tree app \"{0}\" at {1}.": "已在 {1} 创建 out-of-tree 应用\"{0}\"。",
 	"Choose from apps-dabao/": "从 apps-dabao/ 中选择",

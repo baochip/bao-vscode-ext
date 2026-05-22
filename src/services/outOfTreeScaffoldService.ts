@@ -1,12 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { isLikelyValidAppName } from '@services/appService';
+import { getBuildTarget } from '@services/configService';
 import { fetchLatestXousCoreRev } from '@services/kernelService';
 import { getExtensionRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
-function getTemplateDir(): string {
-	return path.join(getExtensionRoot(), 'resources', 'templates', 'out-of-tree');
+function getTemplateDir(target: string): string {
+	return path.join(getExtensionRoot(), 'resources', 'templates', 'out-of-tree', target);
 }
 
 async function pickName(suggestion?: string): Promise<string | undefined> {
@@ -92,21 +93,24 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	}
 
 	try {
-		const templateDir = getTemplateDir();
+		const target = getBuildTarget() || 'dabao';
+		const templateDir = getTemplateDir(target);
+		if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('No out-of-tree template available for target "{0}".', target),
+			);
+			return;
+		}
 
 		const cargoContent = fs
 			.readFileSync(path.join(templateDir, 'Cargo.toml'), 'utf8')
 			.replace(/\{\{NAME\}\}/g, name)
 			.replace(/\{\{REV\}\}/g, rev);
 
-		fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
 		fs.mkdirSync(path.join(projectDir, '.cargo'), { recursive: true });
 
 		fs.writeFileSync(path.join(projectDir, 'Cargo.toml'), cargoContent, 'utf8');
-		fs.copyFileSync(
-			path.join(templateDir, 'src', 'main.rs'),
-			path.join(projectDir, 'src', 'main.rs'),
-		);
+		fs.cpSync(path.join(templateDir, 'src'), path.join(projectDir, 'src'), { recursive: true });
 		fs.copyFileSync(
 			path.join(templateDir, '.cargo', 'config.toml'),
 			path.join(projectDir, '.cargo', 'config.toml'),

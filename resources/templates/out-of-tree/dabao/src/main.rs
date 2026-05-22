@@ -1,0 +1,40 @@
+mod cmds;
+#[cfg(feature = "ctap-bringup")]
+mod ctap;
+mod repl;
+mod shell;
+use cmds::*;
+#[cfg(feature = "usb")]
+use usb_bao1x::UsbHid;
+
+fn main() {
+    log_server::init_wait().unwrap();
+    log::set_max_level(log::LevelFilter::Info);
+    log::info!("my PID is {}", xous::process::id());
+    let tt = ticktimer::Ticktimer::new().unwrap();
+
+    let hal = bao1x_hal_service::Hal::new();
+    // allow preemption in the dabao console environment
+    hal.set_preemption(true);
+
+    // spawn the shell thread
+    shell::start_shell();
+
+    #[cfg(feature = "usb")]
+    {
+        tt.sleep_ms(500).ok(); // pause for the system to startup
+        let usb = UsbHid::new();
+        usb.serial_console_input_injection();
+    }
+
+    #[cfg(feature = "ctap-bringup")]
+    {
+        tt.sleep_ms(4000).ok();
+        crate::ctap::ctap_test();
+    }
+
+    // idle the main thread, all children are spawned
+    loop {
+        tt.sleep_ms(2_000).ok();
+    }
+}

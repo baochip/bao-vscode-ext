@@ -1,0 +1,48 @@
+[package]
+name = "{{NAME}}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+utralib = { version = "0.1.27", optional = true, default-features = false }
+xous-names = { package = "xous-api-names", version = "0.9.71" }
+ticktimer = { package = "xous-api-ticktimer", version = "0.9.70" }
+xous = "0.9.70"
+log-server = { package = "xous-api-log", version = "0.1.69" }
+log = "0.4.14"
+num-derive = { version = "0.4.2", default-features = false }
+num-traits = { version = "0.2.14", default-features = false }
+bao1x-hal = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}", features = ["std"], optional = true }
+bao1x-api = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
+bao1x-hal-service = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}", optional = true }
+bao1x-emu = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}", optional = true }
+usb-bao1x = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
+bytemuck = "1.24.0"
+
+aes = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}", default-features = false, optional = true }
+
+# hid bringup
+xous-usb-hid = { git = "https://github.com/betrusted-io/xous-usb-hid.git", branch = "main", optional = true }
+
+bio-lib = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
+arbitrary-int = "1.2"
+
+[patch.crates-io]
+getrandom = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
+
+# aes testing
+[features]
+bao1x = ["utralib/bao1x", "usb-bao1x/bao1x", "aes/bao1x"]
+board-dabao = [
+    "bao1x-hal-service/board-dabao",
+    "bao1x-hal/board-dabao",
+    "usb-bao1x/board-dabao",
+    "bio-lib/ws2812",
+    "bio-lib/captouch",
+]
+bio-math-test = ["bio-lib/c-math-test"]
+bio-wheel-test = ["bio-lib/c-colorwheel"]
+ctap-bringup = []
+usb = []
+aestests = ["aes"]
+default = ["usb", "bio-math-test", "bio-wheel-test"]

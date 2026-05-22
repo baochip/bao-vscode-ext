@@ -6,7 +6,7 @@ from utils.toml_utils import navigate, read_toml, write_toml
 VALID_NAME_RE = re.compile(r"^[a-z][a-z0-9_-]*$")
 
 TARGET_CONFIG = {
-    "dabao":  {"apps_dir": "apps-dabao",  "template_app": "helloworld"},
+    "dabao":  {"apps_dir": "apps-dabao",  "template_app": "dabao-console"},
     "baosec": {"apps_dir": "apps-baosec", "template_app": "vault2"},
 }
 

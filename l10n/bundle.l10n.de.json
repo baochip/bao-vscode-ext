@@ -200,6 +200,7 @@
 	"Use current folder: {0}": "Aktuellen Ordner verwenden: {0}",
 	"Choose a different folder…": "Anderen Ordner auswählen…",
 	"A Cargo.toml already exists in {0}.": "In {0} existiert bereits eine Cargo.toml.",
+	"No out-of-tree template available for target \"{0}\".": "Kein Out-of-Tree-Template für Ziel \"{0}\" verfügbar.",
 	"Failed to create project: {0}": "Projekt konnte nicht erstellt werden: {0}",
 	"Created out-of-tree app \"{0}\" at {1}.": "Out-of-Tree-App \"{0}\" wurde unter {1} erstellt.",
 	"Choose from apps-dabao/": "Aus apps-dabao/ auswählen",

@@ -200,6 +200,7 @@
 	"Use current folder: {0}": "現在のフォルダーを使用: {0}",
 	"Choose a different folder…": "別のフォルダーを選択…",
 	"A Cargo.toml already exists in {0}.": "{0} にすでに Cargo.toml が存在します。",
+	"No out-of-tree template available for target \"{0}\".": "ターゲット「{0}」のアウトオブツリーテンプレートはありません。",
 	"Failed to create project: {0}": "プロジェクトの作成に失敗しました: {0}",
 	"Created out-of-tree app \"{0}\" at {1}.": "out-of-tree アプリ「{0}」を {1} に作成しました。",
 	"Choose from apps-dabao/": "apps-dabao/ から選択",
