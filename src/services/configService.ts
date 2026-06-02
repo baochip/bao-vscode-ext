@@ -27,7 +27,6 @@ export const setFlashLocation = (p: string) => updateSetting('baochip.flashLocat
 
 export const getBuildTarget = () => cfg().get<string>('baochip.buildTarget') || '';
 export const setBuildTarget = (t: string) => updateSetting('baochip.buildTarget', t);
-export const getBuildTargetsFallback = () => cfg().get<string[]>('baochip.buildTargets') || [];
 
 export const getXousAppName = () => cfg().get<string>('baochip.xousAppName') || '';
 export const setXousAppName = (n: string) => updateSetting('baochip.xousAppName', n);

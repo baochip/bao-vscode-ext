@@ -23,7 +23,6 @@
 
 	"cfg.title.general": "Baochip — 一般",
 	"cfg.general.showWelcomeOnStartup": "擴充功能啟用時自動開啟 Baochip 歡迎頁。",
-	"cfg.general.xousCorePath": "本機 xous-core 檔案夾路徑。建置時需要此路徑。",
 
 	"cfg.title.ports": "Baochip — 埠",
 	"cfg.ports.bootloader": "在開機載入程式 / UF2 磁碟模式出現的串列埠。",
@@ -38,16 +37,17 @@
 
 	"cfg.title.build": "Baochip — 建置",
 	"cfg.build.buildMode": "建置模式。'auto' 從工作區自動偵測（若存在 apps-dabao/ 則為 xous-core 模式，否則為 out-of-tree）。可覆寫以強制指定模式。",
-	"cfg.build.target": "目前選擇的建置目標（例如：dabao、baosec）。",
-	"cfg.build.fallbackTargets": "自動偵測不可用時使用的建置目標後備清單。",
-	"cfg.build.cwd": "建置的工作目錄。",
-	"cfg.build.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app util'），留白則僅建置目標。",
+	"cfg.build.target": "目前選擇的建置目標（例如：dabao、baosec）。In-tree 和 out-of-tree 建置均使用此設定選擇目標板。",
+
+	"cfg.title.intree": "Baochip — In-tree 建置（xous-core）",
+	"cfg.intree.xousCorePath": "本機 xous-core 檔案夾路徑。僅 in-tree 建置（在 xous-core 儲存庫內建置應用程式）時需要。",
+	"cfg.intree.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app'），留白則僅建置目標。僅用於 in-tree 建置。",
 
 	"cfg.title.flashing": "Baochip — 燒錄",
 	"cfg.title.outOfTree": "Baochip — Out-of-Tree 建置",
-	"cfg.outOfTree.kernelMode": "擴充功能取得 out-of-tree 燒錄用 loader.uf2 和 xous.uf2 的方式。'ask' 首次顯示設定提示。'ci-sync' 從 GitHub 取得最新 xous-core 提交並更新 Cargo.toml，再從 CI 下載對應核心檔案。'manual' 使用 baochip.outOfTree.kernelFilesPath 指定資料夾中的檔案。",
+	"cfg.outOfTree.kernelMode": "擴充功能取得 out-of-tree 燒錄用 loader.uf2 和 xous.uf2 的方式。僅用於 out-of-tree 建置。'ask' 首次顯示設定提示。'ci-sync' 從 GitHub 取得最新 xous-core 提交並更新 Cargo.toml，再從 CI 下載對應核心檔案。'manual' 使用 baochip.outOfTree.kernelFilesPath 指定資料夾中的檔案。",
 	"cfg.outOfTree.kernelFilesPath": "包含 loader.uf2 和 xous.uf2 的資料夾，用於手動 out-of-tree 燒錄。僅在 baochip.outOfTree.kernelMode 為 'manual' 時使用。",
-	"cfg.outOfTree.extraFeatures": "建置 out-of-tree 應用程式時，除標準 board-dabao/bao1x 集之外的額外 Cargo 功能旗標（例如 [\"usb\", \"my-feature\"]）。",
+	"cfg.outOfTree.extraFeatures": "out-of-tree 建置的額外 Cargo 功能旗標，除標準 board-dabao/bao1x 集之外（例如 [\"usb\", \"my-feature\"]）。僅用於 out-of-tree 建置。",
 	"cfg.flashing.location": "已掛載的 Baochip UF2 磁碟位置（Windows 上為 D:\\ 或其他磁碟代號的磁碟，macOS 上為 /Volumes/BAOCHIP，Linux 上為 /media/$(whoami)/BAOCHIP）。",
 
 	"views.container.title": "Baochip",

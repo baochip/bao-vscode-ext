@@ -1,4 +1,7 @@
-import { getBuildTarget, getBuildTargetsFallback, setBuildTarget } from '@services/configService';
+import { getBuildTarget, setBuildTarget } from '@services/configService';
+
+const BUILD_TARGETS = ['dabao', 'baosec'];
+
 import * as vscode from 'vscode';
 
 export function registerSelectBuildTarget(
@@ -6,7 +9,7 @@ export function registerSelectBuildTarget(
 	refreshUI: () => void,
 ) {
 	return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
-		const targets = getBuildTargetsFallback();
+		const targets = BUILD_TARGETS;
 		if (!targets || targets.length === 0) {
 			vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));
 			return;

@@ -124,18 +124,6 @@
 				}
 			},
 			{
-				"title": "%cfg.title.general%",
-				"scope": "resource",
-				"properties": {
-					"baochip.xousCorePath": {
-						"type": "string",
-						"default": "",
-						"description": "%cfg.general.xousCorePath%",
-						"order": 2
-					}
-				}
-			},
-			{
 				"title": "%cfg.title.ports%",
 				"scope": "resource",
 				"properties": {
@@ -214,30 +202,6 @@
 						"default": "",
 						"description": "%cfg.build.target%",
 						"order": 1
-					},
-					"baochip.buildTargets": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						},
-						"default": [
-							"dabao",
-							"baosec"
-						],
-						"description": "%cfg.build.fallbackTargets%",
-						"order": 2
-					},
-					"baochip.build.cwd": {
-						"type": "string",
-						"default": "${workspaceFolder}",
-						"description": "%cfg.build.cwd%",
-						"order": 3
-					},
-					"baochip.xousAppName": {
-						"type": "string",
-						"default": "",
-						"description": "%cfg.build.appName%",
-						"order": 4
 					}
 				}
 			},
@@ -250,6 +214,24 @@
 						"default": "",
 						"description": "%cfg.flashing.location%",
 						"order": 1
+					}
+				}
+			},
+			{
+				"title": "%cfg.title.intree%",
+				"scope": "resource",
+				"properties": {
+					"baochip.xousCorePath": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.intree.xousCorePath%",
+						"order": 1
+					},
+					"baochip.xousAppName": {
+						"type": "string",
+						"default": "",
+						"description": "%cfg.intree.appName%",
+						"order": 2
 					}
 				}
 			},

@@ -111,7 +111,13 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 		const m = cargo.match(/^name\s*=\s*"([^"]+)"/m);
 		if (m) {
 			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${m[1]}`;
-			term.sendText(`${buildCmd} && xous-app-uf2 --elf ${elfPath}`);
+			const uf2Cmd = `xous-app-uf2 --elf ${elfPath}`;
+			// PowerShell 5.x (shipped with Windows) does not support &&
+			const chainedCmd =
+				process.platform === 'win32'
+					? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
+					: `${buildCmd} && ${uf2Cmd}`;
+			term.sendText(chainedCmd);
 		} else {
 			term.sendText(buildCmd);
 		}
