@@ -11,6 +11,11 @@ This extension integrates building, flashing, and serial monitoring directly int
 
 ## Features
 
+### Build Modes
+The extension auto-detects your workflow from the open workspace:
+- **In-tree** — develop apps inside a local `xous-core` checkout
+- **Out-of-tree** — develop standalone apps without a local `xous-core`; kernel files can be downloaded automatically or you can provide your own builds.
+
 ### Welcome Page
 A simple start screen with:
 - Quick setup actions
@@ -61,24 +66,24 @@ The extension user interface supports:
 ## Quickstart
 
 ### 1. Install Requirements
-- Python 3  
-- A local checkout of `xous-core`  
-- Baochip hardware for flashing and serial monitoring
+- Python 3
 
-Clone xous-core:
+### 2. Open your project
 
+**In-tree:** Clone and open `xous-core` in VS Code:
 ```sh
 git clone https://github.com/betrusted-io/xous-core
 ```
+Then, make a new app in 
 
-- Open your xous-core repository in VS Code to begin writing Baochip applications.
+**Out-of-tree:** Open any folder in VS Code — no `xous-core` required.  Use 'New app' to start from scratch.
 
-## 2. Configuring the extension
+## 3. Configuring the extension
 
 - Prompts for paths, serial ports, and flash locations will appear during normal workflows.
 - You can additionally configure settings ad-hoc from the commands list, toolbar, or from Settings
 
-## 3. Create or Select an App
+## 4. Create or Select an App
 
 Use the Welcome page or the command palette:
 
@@ -89,11 +94,11 @@ Applications live inside:
 
     xous-core/apps-dabao/
 
-## 4. Write code! 
+## 5. Write code! 
 
 - Write code for your app inside the the apps location you have selected.
 
-## 5. Build, Flash, Monitor
+## 6. Build, Flash, Monitor
 
 You may use any of the following:
 

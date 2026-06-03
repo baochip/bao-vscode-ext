@@ -48,13 +48,6 @@ Send the `boot` command to the bootloader serial port to start run mode.
 python bao.py boot -p COM7
 ```
 
-### `doctor`
-Check your Python environment and serial port setup for common issues.
-
-```sh
-python bao.py doctor
-```
-
 ## Global Options
 
 - `-v, --verbose`: Enable verbose output (debug logging and tracebacks).
