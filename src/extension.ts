@@ -155,10 +155,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashLocationItem.tooltip = vscode.l10n.t('Click to set baochip location');
 		flashLocationItem.show();
 
-		// Build target — relevant in both modes
-		targetItem.text = target
-			? `$(target) ${target}`
-			: `$(target) ${vscode.l10n.t('Target: (not set)')}`;
+		// Build target — relevant in both modes; defaults to dabao when not explicitly set
+		targetItem.text = `$(target) ${target || 'dabao'}`;
 		targetItem.tooltip = vscode.l10n.t('Click to select build target');
 		targetItem.show();
 
