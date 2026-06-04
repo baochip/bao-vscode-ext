@@ -3,6 +3,11 @@ import * as vscode from 'vscode';
 export const cfg = () => vscode.workspace.getConfiguration(''); // root
 
 async function updateSetting<T>(key: string, value: T) {
+	if (!vscode.workspace.workspaceFolders?.length) {
+		throw new Error(
+			vscode.l10n.t('Please open a folder or workspace before configuring Baochip settings.'),
+		);
+	}
 	await cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 }
 

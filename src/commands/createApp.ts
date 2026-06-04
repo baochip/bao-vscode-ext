@@ -9,6 +9,11 @@ import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
 	return vscode.commands.registerCommand('baochip.createApp', async () => {
+		if ((getBuildTarget() || 'dabao') === 'baosec') {
+			vscode.window.showErrorMessage(vscode.l10n.t('baosec app creation is not yet supported.'));
+			return;
+		}
+
 		if (getProjectMode() === 'out-of-tree') {
 			await scaffoldOutOfTreeApp();
 			return;

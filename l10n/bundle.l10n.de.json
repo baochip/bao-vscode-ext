@@ -1,5 +1,6 @@
 {
 	"Created {0}/{1} and added to workspace.": "{0}/{1} wurde erstellt und zum Arbeitsbereich hinzugefügt.",
+	"baosec app creation is not yet supported.": "Die App-Erstellung für baosec wird noch nicht unterstützt.",
 	"Create app failed: {0}": "App-Erstellung fehlgeschlagen: {0}",
 	"App name is required": "Ein App-Name ist erforderlich.",
 	"Use lowercase letters, numbers, -, _; start with a letter": "Muss mit einem Kleinbuchstaben beginnen; Buchstaben, Zahlen, -, _ sind erlaubt.",
@@ -21,6 +22,7 @@
 	"No apps specified — building target \"{0}\" only.": "Keine App angegeben — Ziel „{0}“ wird allein gebaut.",
 	"No build target set.": "Kein Build-Ziel festgelegt.",
 	"No workspace folder open.": "Kein Arbeitsbereich-Ordner geöffnet.",
+	"Please open a folder or workspace before configuring Baochip settings.": "Bitte öffnen Sie einen Ordner oder Arbeitsbereich, bevor Sie die Baochip-Einstellungen konfigurieren.",
 	"Baochip: Building…": "Baochip: Wird gebaut…",
 	"Select Target": "Ziel auswählen",
 	"Building: cargo {0}": "Starte Build: cargo {0}",

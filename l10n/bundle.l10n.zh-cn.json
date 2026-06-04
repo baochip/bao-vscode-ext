@@ -1,5 +1,6 @@
 {
 	"Created {0}/{1} and added to workspace.": "已创建 {0}/{1} 并添加到工作区。",
+	"baosec app creation is not yet supported.": "baosec 应用创建尚不支持。",
 	"Create app failed: {0}": "创建应用失败：{0}",
 	"App name is required": "必须填写应用名称。",
 	"Use lowercase letters, numbers, -, _; start with a letter": "必须以小写字母开头，可使用字母、数字、-、_。",
@@ -21,6 +22,7 @@
 	"No apps specified — building target \"{0}\" only.": "未指定应用 — 仅构建目标“{0}”。",
 	"No build target set.": "未设置构建目标。",
 	"No workspace folder open.": "未打开工作区文件夹。",
+	"Please open a folder or workspace before configuring Baochip settings.": "请先打开文件夹或工作区，再配置 Baochip 设置。",
 	"Baochip: Building…": "Baochip：正在构建…",
 	"Select Target": "选择目标",
 	"Building: cargo {0}": "开始构建：cargo {0}",
