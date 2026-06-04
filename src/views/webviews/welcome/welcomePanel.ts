@@ -72,9 +72,6 @@ export class WelcomePanel {
 						case 'configure':
 							vscode.commands.executeCommand('baochip.openSettings');
 							break;
-						case 'selectApp':
-							vscode.commands.executeCommand('baochip.selectApp');
-							break;
 						case 'createApp':
 							vscode.commands.executeCommand('baochip.createApp');
 							break;
@@ -147,9 +144,7 @@ export class WelcomePanel {
 		const btnConfigureTitle = vscode.l10n.t('Configure extension');
 		const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
 		const btnCreateTitle = vscode.l10n.t('Create new app');
-		const btnCreateSub = vscode.l10n.t('Scaffold in apps-dabao/');
-		const btnSelectTitle = vscode.l10n.t('Select app');
-		const btnSelectSub = vscode.l10n.t('Choose from apps-dabao/');
+		const btnCreateSub = vscode.l10n.t('Start a new app from a template');
 		const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
 		const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
 
@@ -206,12 +201,6 @@ export class WelcomePanel {
               <span class="icon codicon codicon-add"></span>
               <div class="title">${btnCreateTitle}</div>
               <div class="subtitle">${btnCreateSub}</div>
-            </button>
-
-            <button id="btn-selectApp" class="btn">
-              <span class="icon codicon codicon-folder"></span>
-              <div class="title">${btnSelectTitle}</div>
-              <div class="subtitle">${btnSelectSub}</div>
             </button>
           </div>
 

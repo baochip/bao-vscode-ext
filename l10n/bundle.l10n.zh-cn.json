@@ -197,7 +197,7 @@
 	"That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., \"py -3\" or a Windows python.exe).": "所选 Python 似乎是 WSL/Linux 版本。请选择 Windows Python（如 \"py -3\" 或 python.exe）。",
 	"Paths, ports, defaults": "路径、端口、默认值",
 	"Configure extension": "配置扩展",
-	"Scaffold in apps-dabao/": "在 apps-dabao/ 中创建模板",
+	"Start a new app from a template": "从模板创建新应用",
 	"Create new app": "创建新应用",
 	"New Out-of-Tree App Name": "新 Out-of-Tree 应用名称",
 	"Name for the new Baochip app": "新 Baochip 应用的名称",

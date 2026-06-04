@@ -197,7 +197,7 @@
 	"That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., \"py -3\" or a Windows python.exe).": "Das gewählte Python scheint WSL/Linux zu sein. Bitte wählen Sie ein Windows-Python (z. B. „py -3“ oder python.exe).",
 	"Paths, ports, defaults": "Pfade, Ports, Standardwerte",
 	"Configure extension": "Erweiterung konfigurieren",
-	"Scaffold in apps-dabao/": "Gerüst in apps-dabao/",
+	"Start a new app from a template": "Neue App aus einer Vorlage starten",
 	"Create new app": "Neue App erstellen",
 	"New Out-of-Tree App Name": "Name der neuen Out-of-Tree-App",
 	"Name for the new Baochip app": "Name für die neue Baochip-App",
