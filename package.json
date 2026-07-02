@@ -304,7 +304,8 @@
 		"package": "npx vsce package",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write --unsafe .",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"test": "tsx --test \"src/**/*.test.ts\""
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.0",
@@ -312,6 +313,7 @@
 		"@types/vscode": "^1.106.1",
 		"@vscode/vsce": "^3.9.1",
 		"tsc-alias": "^1.8.16",
+		"tsx": "^4.22.4",
 		"typescript": "^5.5.0"
 	},
 	"dependencies": {

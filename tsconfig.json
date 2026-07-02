@@ -14,8 +14,9 @@
 			"@services/*": ["./src/services/*"],
 			"@views/*": ["./src/views/*"],
 			"@tree/*": ["./src/views/tree/*"],
-			"@webviews/*": ["./src/views/webviews/*"]
+			"@webviews/*": ["./src/views/webviews/*"],
+			"@util/*": ["./src/util/*"]
 		}
 	},
-	"exclude": ["node_modules", ".vscode-test"]
+	"exclude": ["node_modules", ".vscode-test", "src/**/*.test.ts"]
 }
