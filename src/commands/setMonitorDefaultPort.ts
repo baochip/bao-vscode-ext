@@ -24,7 +24,7 @@ export function registerSetMonitorDefaultPort(
 		);
 		if (!picked) return;
 
-		setMonitorDefaultPort(picked.value);
+		await setMonitorDefaultPort(picked.value);
 		vscode.window.showInformationMessage(
 			vscode.l10n.t('Default monitor port set to: {0}', picked.value),
 		);
