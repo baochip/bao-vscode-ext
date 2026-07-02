@@ -7,7 +7,7 @@ Thanks for helping improve the Baochip VS Code extension! 💜
 ## Quick Start
 
 **Prereqs**
-- **Node.js** 18+ and npm  
+- **Node.js** 24+ and npm  
 - **VS Code** (latest stable)  
 
 **Clone and install**
@@ -54,7 +54,14 @@ Thanks for helping improve the Baochip VS Code extension! 💜
 
 ## Testing
 
-Please:
+**Automated tests**
+
+    npm test                  # unit tests (Node + tsx)
+    npm run test:integration  # runs the extension in a VS Code instance
+
+Unit tests live in `src/test/unit/`, integration tests in `src/test/integration/`. Both run in CI on every push/PR to `main`.
+
+**Manual testing** — please also:
 - Manually verify the command(s) you changed.  
 - Exercise both **bootloader mode** and **run mode** flows if relevant.  
 - Confirm that expected settings or lack thereof are handled gracefully.
@@ -65,6 +72,8 @@ Please:
 
 **Required Checklist**
 - [ ] Code builds and runs in the Extension Development Host  
+- [ ] `npm test` passes (unit)  
+- [ ] `npm run test:integration` passes  
 - [ ] You verified the flows you touched (manual checks)  
 - [ ] PR description explains **what changed** and **why**  
 - [ ] Screenshots/Videos for UI changes (if applicable)

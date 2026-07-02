@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { isLikelyValidAppName } from '@services/appService';
 import { getBuildTarget } from '@services/configService';
 import { fetchLatestXousCoreRev } from '@services/kernelService';
 import { getExtensionRoot } from '@services/uvService';
+import { isLikelyValidAppName } from '@util/appName';
 import * as vscode from 'vscode';
 
 function getTemplateDir(target: string): string {

@@ -37,11 +37,6 @@ export function appExists(xousRoot: string, appNames: string, target: string): b
 	return missingApps(xousRoot, appNames, target).length === 0;
 }
 
-// lightweight validator for UX
-export function isLikelyValidAppName(name: string): boolean {
-	return /^[a-z][a-z0-9_-]*$/.test(name); // lowercase, start with letter
-}
-
 /* ------------------------------ workspace helpers ------------------------------ */
 
 function readWorkspaceMembers(xousRoot: string): string[] {

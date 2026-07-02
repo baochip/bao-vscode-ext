@@ -8,6 +8,7 @@ import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService'
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
+import { shellCd } from '@util/shell';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs = {
@@ -76,11 +77,6 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	}
 
 	return { mode: 'xous-core', root, target, app: app || undefined };
-}
-
-function shellCd(dir: string): string {
-	if (process.platform === 'win32') return `cd "${dir}"`;
-	return `cd '${dir.replace(/'/g, "'\\''")}'`;
 }
 
 function outOfTreeFeatureArgs(): string[] {

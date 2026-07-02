@@ -1,10 +1,11 @@
 import { getAppsDir } from '@constants';
-import { createBaoApp, isLikelyValidAppName } from '@services/appService';
+import { createBaoApp } from '@services/appService';
 import { getBuildTarget, setXousAppName } from '@services/configService';
 import { scaffoldOutOfTreeApp } from '@services/outOfTreeScaffoldService';
 import { ensureXousCorePath } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
+import { isLikelyValidAppName } from '@util/appName';
 import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
