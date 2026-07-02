@@ -2,6 +2,7 @@ import {
 	getBootloaderSerialPort,
 	getDefaultBaud,
 	getMonitorDefaultPort,
+	getMonitorFlags,
 	getRunSerialPort,
 } from '@services/configService';
 import { resolveBaoPy } from '@services/pathService';
@@ -34,12 +35,12 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	}
 
 	// 2) Settings -> flags (do not localize CLI flags)
-	const cfg = vscode.workspace.getConfiguration('baochip.monitor');
+	const { crlf, raw, echo } = getMonitorFlags();
 	const baud = getDefaultBaud();
 	const flags: string[] = [];
-	if (cfg.get<boolean>('crlf')) flags.push('--crlf');
-	if (cfg.get<boolean>('raw')) flags.push('--raw');
-	if (!cfg.get<boolean>('echo')) flags.push('--no-echo');
+	if (crlf) flags.push('--crlf');
+	if (raw) flags.push('--raw');
+	if (!echo) flags.push('--no-echo');
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const full = [

@@ -45,3 +45,19 @@ export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMod
 
 export const getExtraFeatures = (): string[] =>
 	cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? [];
+
+export const getMonitorFlags = () => ({
+	crlf: cfg().get<boolean>('baochip.monitor.crlf') ?? true,
+	raw: cfg().get<boolean>('baochip.monitor.raw') ?? true,
+	echo: cfg().get<boolean>('baochip.monitor.echo') ?? false,
+});
+
+export const getKernelMode = (): string =>
+	cfg().get<string>('baochip.outOfTree.kernelMode') ?? 'ask';
+export const setKernelMode = (mode: 'ci-sync' | 'manual') =>
+	updateSetting('baochip.outOfTree.kernelMode', mode);
+
+export const getKernelFilesPath = () =>
+	cfg().get<string>('baochip.outOfTree.kernelFilesPath') || '';
+export const setKernelFilesPath = (p: string) =>
+	updateSetting('baochip.outOfTree.kernelFilesPath', p);

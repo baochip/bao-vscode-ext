@@ -13,7 +13,7 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
 		const root = await resolveXousRootOrNotify();
 		if (!root) return;
 
-		// Enforce opening xous-core as the workspace (2B)
+		// Enforce opening xous-core as the workspace
 		const ok = await ensureXousWorkspaceOpen(root);
 		if (!ok) return;
 

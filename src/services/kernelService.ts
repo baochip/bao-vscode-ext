@@ -1,5 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import {
+	getKernelFilesPath,
+	getKernelMode,
+	setKernelFilesPath,
+	setKernelMode,
+} from '@services/configService';
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
@@ -7,22 +13,9 @@ import * as vscode from 'vscode';
 
 export type KernelMode = 'ci-sync' | 'manual';
 
-const KERNEL_MODE_KEY = 'baochip.outOfTree.kernelMode';
-
-function getSavedKernelMode(): string {
-	return vscode.workspace.getConfiguration('').get<string>(KERNEL_MODE_KEY) ?? 'ask';
-}
-
-async function saveKernelMode(mode: KernelMode): Promise<void> {
-	await vscode.workspace
-		.getConfiguration('')
-		.update(KERNEL_MODE_KEY, mode, vscode.ConfigurationTarget.Workspace);
-}
-
 const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/commits/dev';
 const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
 const KERNEL_FILES = ['loader.uf2', 'xous.uf2'] as const;
-const KERNEL_FILES_PATH_KEY = 'baochip.outOfTree.kernelFilesPath';
 
 /**
  * Fetches the latest xous-core commit hash from the GitHub API.
@@ -101,10 +94,10 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
  * Returns null on failure.
  */
 export async function resolveKernelFiles(): Promise<{ loader: string; xous: string } | null> {
-	const mode = getSavedKernelMode() as KernelMode;
+	const mode = getKernelMode() as KernelMode;
 
 	if (mode === 'manual') {
-		const folder = vscode.workspace.getConfiguration('').get<string>(KERNEL_FILES_PATH_KEY) || '';
+		const folder = getKernelFilesPath();
 		if (!folder) {
 			vscode.window.showErrorMessage(
 				vscode.l10n.t(
@@ -155,7 +148,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
  * Returns the resolved KernelMode, or undefined if the user cancelled.
  */
 export async function ensureKernelModeConfigured(): Promise<KernelMode | undefined> {
-	const saved = getSavedKernelMode();
+	const saved = getKernelMode();
 	if (saved !== 'ask') return saved as KernelMode;
 
 	const syncLabel = vscode.l10n.t('Sync to latest');
@@ -191,12 +184,10 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 			openLabel: vscode.l10n.t('Use this folder'),
 		});
 		if (!folders?.length) return undefined;
-		await vscode.workspace
-			.getConfiguration('')
-			.update(KERNEL_FILES_PATH_KEY, folders[0].fsPath, vscode.ConfigurationTarget.Workspace);
+		await setKernelFilesPath(folders[0].fsPath);
 	}
 
-	await saveKernelMode(resolvedMode);
+	await setKernelMode(resolvedMode);
 	vscode.window.showInformationMessage(
 		vscode.l10n.t(
 			'Kernel mode set to "{0}". You can change this in Settings under Baochip.',

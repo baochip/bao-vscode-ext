@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { cloneXousCore } from '@services/cloneXousCore';
-import { setXousCorePath } from '@services/configService';
+import { getXousCorePath, setXousCorePath } from '@services/configService';
 import { errorToast, log, warn } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { findXousCoreInWorkspace } from '@services/projectModeService';
@@ -31,7 +31,7 @@ function detectXousCoreInWorkspace(): string | undefined {
  * and save it automatically. Safe to call on activation.
  */
 export async function autoDetectXousCore(): Promise<void> {
-	const existing = vscode.workspace.getConfiguration('').get<string>('baochip.xousCorePath') || '';
+	const existing = getXousCorePath();
 	if (existing && fs.existsSync(existing)) return; // already configured
 	const found = detectXousCoreInWorkspace();
 	if (found) {
@@ -41,8 +41,7 @@ export async function autoDetectXousCore(): Promise<void> {
 }
 
 export async function ensureXousCorePath(): Promise<string> {
-	const cfg = vscode.workspace.getConfiguration('');
-	const p = cfg.get<string>('baochip.xousCorePath') || '';
+	const p = getXousCorePath();
 	if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) {
 		log(`xous-core path (cached): ${p}`);
 		return p;

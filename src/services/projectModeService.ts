@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ALL_APPS_DIRS } from '@constants';
+import { getBuildMode } from '@services/configService';
 import * as vscode from 'vscode';
 
 export type ProjectMode = 'xous-core' | 'out-of-tree';
@@ -40,7 +41,7 @@ export function getOutOfTreeRoot(): string | undefined {
  * based on whether any workspace folder contains an apps-dabao/ directory.
  */
 export function getProjectMode(): ProjectMode {
-	const setting = vscode.workspace.getConfiguration('').get<string>('baochip.buildMode') ?? 'auto';
+	const setting = getBuildMode();
 	if (setting === 'xous-core') return 'xous-core';
 	if (setting === 'out-of-tree') return 'out-of-tree';
 	return findXousCoreInWorkspace() !== undefined ? 'xous-core' : 'out-of-tree';
