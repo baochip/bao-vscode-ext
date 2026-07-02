@@ -1,7 +1,7 @@
 import { getAppsDir } from '@constants';
 import { listBaoApps } from '@services/appService';
 import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
-import { ensureXousCorePath } from '@services/pathService';
+import { resolveXousRootOrNotify } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import * as vscode from 'vscode';
@@ -10,14 +10,8 @@ export function registerSelectApp(_context: vscode.ExtensionContext) {
 	return vscode.commands.registerCommand('baochip.selectApp', async () => {
 		if (getProjectMode() === 'out-of-tree') return;
 
-		let root: string;
-		try {
-			root = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
+		const root = await resolveXousRootOrNotify();
+		if (!root) return;
 
 		// Enforce opening xous-core as the workspace (2B)
 		const ok = await ensureXousWorkspaceOpen(root);

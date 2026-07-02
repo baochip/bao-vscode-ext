@@ -1,4 +1,4 @@
-import { ensureXousCorePath } from '@services/pathService';
+import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
@@ -17,13 +17,9 @@ export function registerCleanCommand(_context: vscode.ExtensionContext) {
 			if (!ootRoot) return;
 			root = ootRoot;
 		} else {
-			try {
-				root = await ensureXousCorePath();
-			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
-				vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-				return;
-			}
+			const resolved = await resolveXousRootOrNotify();
+			if (!resolved) return;
+			root = resolved;
 		}
 
 		const term = ensureTerminal(vscode.l10n.t('Bao Clean'));

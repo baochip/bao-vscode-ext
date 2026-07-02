@@ -1,7 +1,7 @@
 import { getBuildTarget, getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
-import { ensureXousCorePath } from '@services/pathService';
+import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
@@ -16,14 +16,8 @@ export function registerFlashCommand(_context: vscode.ExtensionContext) {
 			return;
 		}
 
-		let root: string;
-		try {
-			root = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
+		const root = await resolveXousRootOrNotify();
+		if (!root) return;
 
 		const target = getBuildTarget();
 		if (!target) {

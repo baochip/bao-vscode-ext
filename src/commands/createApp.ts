@@ -2,7 +2,7 @@ import { getAppsDir } from '@constants';
 import { createBaoApp } from '@services/appService';
 import { getBuildTarget, setXousAppName } from '@services/configService';
 import { scaffoldOutOfTreeApp } from '@services/outOfTreeScaffoldService';
-import { ensureXousCorePath } from '@services/pathService';
+import { resolveXousRootOrNotify } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import { isLikelyValidAppName } from '@util/appName';
@@ -20,14 +20,8 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 			return;
 		}
 
-		let root: string;
-		try {
-			root = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
+		const root = await resolveXousRootOrNotify();
+		if (!root) return;
 
 		const ok = await ensureXousWorkspaceOpen(root);
 		if (!ok) return;

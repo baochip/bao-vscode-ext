@@ -92,6 +92,17 @@ export async function ensureXousCorePath(): Promise<string> {
 	return chosen;
 }
 
+/** Resolve the xous-core root; on failure show an error toast and return undefined. */
+export async function resolveXousRootOrNotify(): Promise<string | undefined> {
+	try {
+		return await ensureXousCorePath();
+	} catch (e: unknown) {
+		const message = e instanceof Error ? e.message : String(e);
+		vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
+		return undefined;
+	}
+}
+
 /** Return full path to the bundled bao.py inside the installed extension. */
 export function resolveBaoPy(): string {
 	const p = path.join(getBundledToolsRoot(), 'bao.py');

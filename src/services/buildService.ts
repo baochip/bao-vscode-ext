@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
-import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
+import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/pathService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -32,14 +32,8 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 		return { mode: 'out-of-tree', root, target: '' };
 	}
 
-	let root: string;
-	try {
-		root = await ensureXousCorePath();
-	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-		return;
-	}
+	const root = await resolveXousRootOrNotify();
+	if (!root) return;
 
 	const wsState = await ensureXousFolderOpen(root);
 	if (wsState === 'reopen') return;
