@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as https from 'node:https';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { parseRustcVersion } from '@util/rust';
 import * as vscode from 'vscode';
 
 const XOUS_TARGET = 'riscv32imac-unknown-xous-elf';
@@ -125,12 +126,11 @@ function extractZip(zipPath: string, dest: string): Promise<void> {
 export async function installXousToolkit(): Promise<void> {
 	// Get current rustc version and sysroot
 	const rustcVer = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
-	const verMatch = rustcVer.stdout.match(/rustc (\d+\.\d+\.\d+)/);
-	if (!verMatch) throw new Error('Could not determine rustc version');
-	const rustVersion = verMatch[1]; // e.g. "1.87.0"
+	const rustVersion = parseRustcVersion(rustcVer.stdout ?? ''); // e.g. "1.87.0"
+	if (!rustVersion) throw new Error('Could not determine rustc version');
 
 	const sysrootResult = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
-	const sysroot = sysrootResult.stdout.trim();
+	const sysroot = sysrootResult.stdout?.trim() ?? '';
 	if (!sysroot) throw new Error('Could not determine rustc sysroot');
 
 	await vscode.window.withProgress(
