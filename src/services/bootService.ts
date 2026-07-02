@@ -6,6 +6,12 @@ import * as vscode from 'vscode';
 
 const _q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
 
+let _bootChan: vscode.OutputChannel | undefined;
+function getBootChannel(): vscode.OutputChannel {
+	if (!_bootChan) _bootChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Boot'));
+	return _bootChan;
+}
+
 export async function sendBoot(): Promise<boolean> {
 	const bao = resolveBaoPy();
 	const root = getGlobalVenvRoot();
@@ -28,7 +34,7 @@ export async function sendBoot(): Promise<boolean> {
 	}
 
 	const baud = getDefaultBaud();
-	const chan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Boot'));
+	const chan = getBootChannel();
 	chan.show(true);
 	chan.appendLine(`[bao] ${vscode.l10n.t("Sending 'boot' to {0} @ {1}…", port, baud)}`);
 
