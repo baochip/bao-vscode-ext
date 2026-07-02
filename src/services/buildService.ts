@@ -8,6 +8,7 @@ import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService'
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
+import { parseCargoPackageName } from '@util/cargo';
 import { shellCd } from '@util/shell';
 import * as vscode from 'vscode';
 
@@ -104,9 +105,9 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 	// Read package name to construct ELF path for xous-app-uf2
 	try {
 		const cargo = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
-		const m = cargo.match(/^name\s*=\s*"([^"]+)"/m);
-		if (m) {
-			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${m[1]}`;
+		const pkgName = parseCargoPackageName(cargo);
+		if (pkgName) {
+			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
 			const uf2Cmd = `xous-app-uf2 --elf ${elfPath}`;
 			// PowerShell 5.x (shipped with Windows) does not support &&
 			const chainedCmd =

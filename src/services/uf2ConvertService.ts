@@ -4,13 +4,13 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { chan } from '@services/logService';
+import { parseCargoPackageName } from '@util/cargo';
 import * as vscode from 'vscode';
 
 function readPackageName(root: string): string | null {
 	try {
 		const content = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
-		const m = content.match(/^name\s*=\s*"([^"]+)"/m);
-		return m ? m[1] : null;
+		return parseCargoPackageName(content);
 	} catch {
 		return null;
 	}
