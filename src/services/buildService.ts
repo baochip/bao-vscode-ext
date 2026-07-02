@@ -8,7 +8,7 @@ import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService'
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
-import { parseCargoPackageName } from '@util/cargo';
+import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
 import { shellCd } from '@util/shell';
 import * as vscode from 'vscode';
 
@@ -81,16 +81,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 }
 
 function outOfTreeFeatureArgs(): string[] {
-	const boardFeature = `board-${getBuildTarget() || 'dabao'}`;
-	return [
-		'--features',
-		boardFeature,
-		'--features',
-		'bao1x',
-		'--features',
-		'utralib/bao1x',
-		...getExtraFeatures().flatMap((f) => ['--features', f]),
-	];
+	return buildOutOfTreeFeatures(getBuildTarget(), getExtraFeatures());
 }
 
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
