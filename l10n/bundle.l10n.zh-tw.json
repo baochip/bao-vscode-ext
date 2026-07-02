@@ -57,7 +57,6 @@
 	"Baochip: flashed {0} file(s) to {1}.": "Baochip：已將 {0} 個檔案燒錄到 {1}。",
 	"Baochip flash failed: {0}": "Baochip 燒錄失敗：{0}",
 	"Flash location not found: {0}  Is the board mounted? Make sure the board appears as a drive, press RESET if needed.": "找不到燒錄位置：{0}。請確認板子已掛載為磁碟，如未出現請按 RESET。",
-	"baochip location not set": "未設定 baochip 位置。",
 	"Baochip location set to: {0}": "已設定 Baochip 位置：{0}",
 	"No UF2s found (loader/xous/apps). Build first, then flash.": "未找到 UF2 檔案（loader/xous/apps）。請先建置後再燒錄。",
 	"Baochip: Flashing…": "Baochip：燒錄中…",

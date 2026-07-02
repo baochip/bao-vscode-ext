@@ -11,9 +11,7 @@ export function registerSetFlashLocation(_context: vscode.ExtensionContext, refr
 			{ modal: true },
 			selectFolderBtn,
 		);
-		if (ok !== selectFolderBtn) {
-			throw new Error(vscode.l10n.t('baochip location not set'));
-		}
+		if (ok !== selectFolderBtn) return;
 
 		const pick = await vscode.window.showOpenDialog({
 			title: vscode.l10n.t('Select mounted baochip drive'),

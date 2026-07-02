@@ -57,7 +57,6 @@
 	"Baochip: flashed {0} file(s) to {1}.": "Baochip: {0} Datei(en) nach {1} kopiert.",
 	"Baochip flash failed: {0}": "Baochip-Flash fehlgeschlagen: {0}",
 	"Flash location not found: {0}  Is the board mounted? Make sure the board appears as a drive, press RESET if needed.": "Flash-Speicherort nicht gefunden: {0}. Ist das Board gemountet? Falls nicht sichtbar, RESET drücken.",
-	"baochip location not set": "Baochip-Speicherort nicht festgelegt.",
 	"Baochip location set to: {0}": "Baochip-Speicherort festgelegt: {0}",
 	"No UF2s found (loader/xous/apps). Build first, then flash.": "Keine UF2-Dateien gefunden (loader/xous/apps). Bitte zuerst bauen und dann flashen.",
 	"Baochip: Flashing…": "Baochip: Flashen…",
