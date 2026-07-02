@@ -60,11 +60,11 @@
 				"title": "%cmd.setMonitorBaud%"
 			},
 			{
-				"command": "baochip.monitor.open",
+				"command": "baochip.openMonitor",
 				"title": "%cmd.monitorOpen%"
 			},
 			{
-				"command": "baochip.monitor.stop",
+				"command": "baochip.stopMonitor",
 				"title": "%cmd.monitorStop%"
 			},
 			{

@@ -6,7 +6,7 @@ import { registerFlashCommand } from '@commands/flash';
 import { registerSelectApp } from '@commands/selectApp';
 import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
-import { openMonitorTTY } from '@services/monitorService';
+import { openMonitorTTY, stopMonitorTTY } from '@services/monitorService';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
 import { registerSelectBuildTarget } from './commands/selectBuildTarget';
@@ -23,6 +23,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerSetMonitorBaud(context),
 		registerSetMonitorDefaultPort(context, refreshUI),
 		vscode.commands.registerCommand('baochip.openMonitor', () => openMonitorTTY()),
+		vscode.commands.registerCommand('baochip.stopMonitor', () => stopMonitorTTY()),
 		registerSetFlashLocation(context, refreshUI),
 		registerSelectBuildTarget(context, refreshUI),
 		registerBuildCommand(context),
