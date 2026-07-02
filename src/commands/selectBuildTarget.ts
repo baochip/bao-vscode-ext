@@ -1,7 +1,5 @@
+import { BUILD_TARGETS } from '@constants';
 import { getBuildTarget, setBuildTarget } from '@services/configService';
-
-const BUILD_TARGETS = ['dabao', 'baosec'];
-
 import * as vscode from 'vscode';
 
 export function registerSelectBuildTarget(

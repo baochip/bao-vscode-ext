@@ -10,3 +10,6 @@ export function getAppsDir(target: string): string {
 }
 
 export const ALL_APPS_DIRS = Object.values(APPS_DIRS);
+export const BUILD_TARGETS = Object.keys(APPS_DIRS);
+
+export const XOUS_CORE_REPO = 'https://github.com/betrusted-io/xous-core';

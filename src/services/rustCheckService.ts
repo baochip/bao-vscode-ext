@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { XOUS_TARGET_TRIPLE } from '@constants';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import * as vscode from 'vscode';
 
@@ -57,7 +58,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'The RISC-V target `{0}` is not installed. Install it now?',
-				'riscv32imac-unknown-xous-elf',
+				XOUS_TARGET_TRIPLE,
 			),
 			vscode.l10n.t('Install'),
 			vscode.l10n.t('Ignore'),

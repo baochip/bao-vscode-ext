@@ -1,3 +1,4 @@
+import { XOUS_CORE_REPO } from '@constants';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -57,7 +58,7 @@ export class WelcomePanel {
 				}
 
 				if (msg?.type === 'xousSite') {
-					vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
+					vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
 					return;
 				}
 				if (msg?.type === 'extRepo') {

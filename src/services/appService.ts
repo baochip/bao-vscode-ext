@@ -1,10 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getAppsDir } from '@constants';
+import { getAppsDir, XOUS_CORE_REPO } from '@constants';
 import { getExtensionRoot } from '@services/uvService';
 import * as vscode from 'vscode';
-
-const XOUS_CORE_GIT_URL = 'https://github.com/betrusted-io/xous-core';
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
@@ -104,7 +102,7 @@ function generateXousPatchSection(
 		}
 	}
 	if (entries.length === 0) return '';
-	return `\n[patch."${XOUS_CORE_GIT_URL}"]\n${entries.join('\n')}\n`;
+	return `\n[patch."${XOUS_CORE_REPO}"]\n${entries.join('\n')}\n`;
 }
 
 export async function createBaoApp(

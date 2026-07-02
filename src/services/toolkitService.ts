@@ -2,18 +2,18 @@ import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { XOUS_TARGET_TRIPLE } from '@constants';
 import { downloadFile, fetchJson } from '@services/httpService';
 import { parseRustcVersion } from '@util/rust';
 import * as vscode from 'vscode';
 
-const XOUS_TARGET = 'riscv32imac-unknown-xous-elf';
 const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
 
 /** Check if the Xous target is already installed in the current rustc sysroot. */
 export function isXousToolkitInstalled(): boolean {
 	const r = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
 	if (!r.stdout) return false;
-	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET);
+	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
 	return fs.existsSync(xousDir);
 }
 
@@ -97,7 +97,7 @@ export async function installXousToolkit(): Promise<void> {
 			const isXousAsset = (a: Record<string, unknown>) => {
 				const name = a.name;
 				return (
-					(typeof name === 'string' && name.split('_')[0] === XOUS_TARGET.split('-')[0]) ||
+					(typeof name === 'string' && name.split('_')[0] === XOUS_TARGET_TRIPLE.split('-')[0]) ||
 					(typeof name === 'string' && name.startsWith('riscv32imac'))
 				);
 			};

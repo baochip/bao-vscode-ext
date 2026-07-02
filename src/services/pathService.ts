@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_CORE_REPO } from '@constants';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { getXousCorePath, setXousCorePath } from '@services/configService';
 import { errorToast, log, warn } from '@services/logService';
@@ -73,7 +74,7 @@ export async function ensureXousCorePath(): Promise<string> {
 	}
 
 	if (choice === vscode.l10n.t('Open Repo Page')) {
-		await vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
+		await vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
 		throw new Error(vscode.l10n.t('Open the repo, clone locally, then try again.'));
 	}
 
