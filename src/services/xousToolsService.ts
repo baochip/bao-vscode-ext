@@ -1,6 +1,6 @@
-import { spawn, spawnSync } from 'node:child_process';
-import * as os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { chan } from '@services/logService';
+import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
 export function isXousAppUf2Available(): boolean {
@@ -28,27 +28,21 @@ export async function checkXousAppUf2(): Promise<boolean> {
 			title: vscode.l10n.t('Baochip: Installing xous-tools…'),
 			cancellable: false,
 		},
-		() =>
-			new Promise<boolean>((resolve) => {
-				const child = spawn('cargo', ['install', 'xous-tools'], {
-					shell: os.platform() === 'win32',
-				});
-
-				child.stdout.on('data', (d) => chan.append(d.toString()));
-				child.stderr.on('data', (d) => chan.append(d.toString()));
-				child.on('close', (code) => {
-					if (code === 0) {
-						vscode.window.showInformationMessage(
-							vscode.l10n.t('Baochip: xous-tools installed successfully.'),
-						);
-						resolve(true);
-					} else {
-						vscode.window.showErrorMessage(
-							vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.'),
-						);
-						resolve(false);
-					}
-				});
-			}),
+		async () => {
+			const r = await runProcess('cargo', ['install', 'xous-tools'], {
+				onStdout: (s) => chan.append(s),
+				onStderr: (s) => chan.append(s),
+			});
+			if (!r.error && r.code === 0) {
+				vscode.window.showInformationMessage(
+					vscode.l10n.t('Baochip: xous-tools installed successfully.'),
+				);
+				return true;
+			}
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.'),
+			);
+			return false;
+		},
 	);
 }

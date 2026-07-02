@@ -1,10 +1,10 @@
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
 import { ensureXousCorePath, ensureXousFolderOpen } from '@services/pathService';
+import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
@@ -165,24 +165,20 @@ export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
 			title: vscode.l10n.t('Baochip: Building…'),
 			cancellable: true,
 		},
-		(_progress, token) =>
-			new Promise<number>((resolve) => {
-				const child = spawn('cargo', args, { cwd: root, shell: process.platform === 'win32' });
-
-				token.onCancellationRequested(() => {
-					try {
-						child.kill();
-					} catch {}
-					chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
-				});
-
-				child.stdout.on('data', (d) => chan.append(d.toString()));
-				child.stderr.on('data', (d) => chan.append(d.toString()));
-				child.on('close', (code) => {
-					chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code ?? 1)}`);
-					resolve(code ?? 1);
-				});
-			}),
+		async (_progress, token) => {
+			const r = await runProcess('cargo', args, {
+				cwd: root,
+				token,
+				onStdout: (s) => chan.append(s),
+				onStderr: (s) => chan.append(s),
+			});
+			if (r.cancelled) {
+				chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
+			}
+			const code = r.error ? 1 : (r.code ?? 1);
+			chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code)}`);
+			return code;
+		},
 	);
 }
 
@@ -217,23 +213,19 @@ export async function runBuildAndWait(root: string, target: string, app?: string
 			title: vscode.l10n.t('Baochip: Building…'),
 			cancellable: true,
 		},
-		(_progress, token) =>
-			new Promise<number>((resolve) => {
-				const child = spawn('cargo', args, { cwd: root, shell: process.platform === 'win32' });
-
-				token.onCancellationRequested(() => {
-					try {
-						child.kill();
-					} catch {}
-					chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
-				});
-
-				child.stdout.on('data', (d) => chan.append(d.toString()));
-				child.stderr.on('data', (d) => chan.append(d.toString()));
-				child.on('close', (code) => {
-					chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code ?? 1)}`);
-					resolve(code ?? 1);
-				});
-			}),
+		async (_progress, token) => {
+			const r = await runProcess('cargo', args, {
+				cwd: root,
+				token,
+				onStdout: (s) => chan.append(s),
+				onStderr: (s) => chan.append(s),
+			});
+			if (r.cancelled) {
+				chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
+			}
+			const code = r.error ? 1 : (r.code ?? 1);
+			chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code)}`);
+			return code;
+		},
 	);
 }

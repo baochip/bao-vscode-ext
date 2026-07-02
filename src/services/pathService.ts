@@ -1,10 +1,9 @@
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { setXousCorePath } from '@services/configService';
 import { errorToast, log, warn } from '@services/logService';
+import { runProcess } from '@services/procService';
 import { findXousCoreInWorkspace } from '@services/projectModeService';
 import {
 	ensureBaoPythonDeps,
@@ -158,30 +157,19 @@ export async function runBaoCmd(
 	}
 
 	const fullArgs = [...args, baoPath, ...baoArgs];
-	const shell = os.platform() === 'win32';
 
 	// Default CWD to global storage so uv discovers .venv there
 	const effectiveCwd = cwd ?? getGlobalVenvRoot();
 
 	log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
 
-	return new Promise((resolve, reject) => {
-		const child = spawn(cmd, fullArgs, { cwd: effectiveCwd, shell });
-		let out = '';
-		let err = '';
-		child.stdout.on('data', (d) => {
-			const s = d.toString();
-			if (opts.capture) out += s; // keep stdout quiet unless caller wants capture
-		});
-		child.stderr.on('data', (d) => {
-			err += d.toString(); // keep stderr for error surface
-		});
-		child.on('close', (code) => {
-			log(`bao.py EXIT ${code}`);
-			if (code === 0) return resolve(opts.capture ? out.trim() : '');
-			const msg = (err || out || `bao.py exited ${code}`).trim();
-			errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
-			reject(new Error(msg));
-		});
-	});
+	// runProcess captures both streams; we only surface stdout to the caller when capture is requested
+	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd });
+	log(`bao.py EXIT ${r.code}`);
+	if (!r.error && r.code === 0) return opts.capture ? r.stdout.trim() : '';
+	const msg = (
+		r.error ? r.error.message : r.stderr || r.stdout || `bao.py exited ${r.code}`
+	).trim();
+	errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
+	throw new Error(msg);
 }

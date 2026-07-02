@@ -1,9 +1,8 @@
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { chan } from '@services/logService';
+import { runProcess } from '@services/procService';
 import { parseCargoPackageName } from '@util/cargo';
 import * as vscode from 'vscode';
 
@@ -40,25 +39,17 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 			title: vscode.l10n.t('Baochip: Converting ELF to UF2…'),
 			cancellable: false,
 		},
-		() =>
-			new Promise<boolean>((resolve) => {
-				const child = spawn('xous-app-uf2', ['--elf', elfPath], {
-					cwd: root,
-					shell: os.platform() === 'win32',
-				});
-
-				child.stdout.on('data', (d) => chan.append(d.toString()));
-				child.stderr.on('data', (d) => chan.append(d.toString()));
-				child.on('close', (code) => {
-					if (code === 0) {
-						resolve(true);
-					} else {
-						vscode.window.showErrorMessage(
-							vscode.l10n.t('Baochip: ELF to UF2 conversion failed. See output for details.'),
-						);
-						resolve(false);
-					}
-				});
-			}),
+		async () => {
+			const r = await runProcess('xous-app-uf2', ['--elf', elfPath], {
+				cwd: root,
+				onStdout: (s) => chan.append(s),
+				onStderr: (s) => chan.append(s),
+			});
+			if (!r.error && r.code === 0) return true;
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Baochip: ELF to UF2 conversion failed. See output for details.'),
+			);
+			return false;
+		},
 	);
 }

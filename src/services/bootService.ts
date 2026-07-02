@@ -1,6 +1,6 @@
-import { spawn } from 'node:child_process';
 import { getBootloaderSerialPort, getDefaultBaud } from '@services/configService';
 import { resolveBaoPy } from '@services/pathService';
+import { runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
@@ -39,31 +39,18 @@ export async function sendBoot(): Promise<boolean> {
 	const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
 	const fullArgs = [...args, bao, 'boot', '-p', port, '-b', String(baud)];
 
-	return new Promise<boolean>((resolve) => {
-		const child = spawn(cmd, fullArgs, { cwd: root, shell: process.platform === 'win32' });
-
-		let out = '';
-		let err = '';
-		child.stdout.on('data', (d) => {
-			const s = d.toString();
-			out += s;
-			chan.append(s);
-		});
-		child.stderr.on('data', (d) => {
-			const s = d.toString();
-			err += s;
-			chan.append(s);
-		});
-		child.on('close', (code) => {
-			if (code === 0) {
-				chan.appendLine(`[bao] ${vscode.l10n.t('boot command succeeded.')}`);
-				resolve(true);
-			} else {
-				const msg = (err || out || `exit ${code}`).trim().slice(0, 300);
-				vscode.window.showErrorMessage(vscode.l10n.t('Boot command failed: {0}', msg));
-				chan.appendLine(`[bao] ${vscode.l10n.t('Boot command failed: {0}', msg)}`);
-				resolve(false);
-			}
-		});
+	const r = await runProcess(cmd, fullArgs, {
+		cwd: root,
+		onStdout: (s) => chan.append(s),
+		onStderr: (s) => chan.append(s),
 	});
+	if (!r.error && r.code === 0) {
+		chan.appendLine(`[bao] ${vscode.l10n.t('boot command succeeded.')}`);
+		return true;
+	}
+	const detail = r.error ? r.error.message : r.stderr || r.stdout || `exit ${r.code}`;
+	const msg = detail.trim().slice(0, 300);
+	vscode.window.showErrorMessage(vscode.l10n.t('Boot command failed: {0}', msg));
+	chan.appendLine(`[bao] ${vscode.l10n.t('Boot command failed: {0}', msg)}`);
+	return false;
 }

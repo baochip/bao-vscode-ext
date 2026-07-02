@@ -1,9 +1,10 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { chan, errorToast, info, log } from '@services/logService';
+import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -53,34 +54,27 @@ async function wsSet<T>(key: string, val: T | undefined): Promise<void> {
 /* ------------------------------ subprocess utilities ------------------------------ */
 
 /** Run a subprocess; concise logs; only surface stdout/stderr on failure. */
-function run(
+async function run(
 	cmd: string,
 	args: string[],
 	cwd?: string,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
 	log(`→ ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
-	return new Promise((resolve, reject) => {
-		const p = spawn(cmd, args, { cwd, shell: os.platform() === 'win32' });
-		let stdout = '';
-		let stderr = '';
-		p.stdout.on('data', (d) => {
-			stdout += d.toString();
-		});
-		p.stderr.on('data', (d) => {
-			stderr += d.toString();
-		});
-		p.on('close', (code) => {
-			if (code === 0) {
-				log(`✓ ${cmd} exited 0`);
-				resolve({ stdout, stderr, code });
-			} else {
-				const msg = `${cmd} failed (exit ${code})\n${stderr || stdout || ''}`.trim();
-				log(`ERROR: ${msg}`);
-				chan.show(true);
-				reject(new Error(msg));
-			}
-		});
-	});
+	const r = await runProcess(cmd, args, { cwd });
+	if (r.error) {
+		const msg = `${cmd} failed to start: ${r.error.message}`;
+		log(`ERROR: ${msg}`);
+		chan.show(true);
+		throw new Error(msg);
+	}
+	if (r.code === 0) {
+		log(`✓ ${cmd} exited 0`);
+		return { stdout: r.stdout, stderr: r.stderr, code: 0 };
+	}
+	const msg = `${cmd} failed (exit ${r.code})\n${r.stderr || r.stdout || ''}`.trim();
+	log(`ERROR: ${msg}`);
+	chan.show(true);
+	throw new Error(msg);
 }
 
 function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolean; out: string } {
