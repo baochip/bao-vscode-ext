@@ -6,14 +6,11 @@ import {
 } from '@services/configService';
 import { resolveBaoPy } from '@services/pathService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
+import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
 let monitorTermListener: vscode.Disposable | undefined;
-
-function q(s: string) {
-	return /\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
-}
 
 /**
  * Open the serial monitor terminal.
@@ -46,12 +43,12 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const full = [
-		q(cmd),
-		...args.map(q),
-		q(resolveBaoPy()),
+		quoteArg(cmd),
+		...args.map(quoteArg),
+		quoteArg(resolveBaoPy()),
 		'monitor',
 		'-p',
-		q(port),
+		quoteArg(port),
 		'-b',
 		String(baud),
 		...flags,

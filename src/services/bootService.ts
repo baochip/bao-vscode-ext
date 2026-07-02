@@ -4,8 +4,6 @@ import { resolveBaoPy } from '@services/pathService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
-const _q = (s: string) => (/\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
-
 let _bootChan: vscode.OutputChannel | undefined;
 function getBootChannel(): vscode.OutputChannel {
 	if (!_bootChan) _bootChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Boot'));
