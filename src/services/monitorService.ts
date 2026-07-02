@@ -1,11 +1,6 @@
-import {
-	getBootloaderSerialPort,
-	getDefaultBaud,
-	getMonitorDefaultPort,
-	getMonitorFlags,
-	getRunSerialPort,
-} from '@services/configService';
+import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { resolveBaoPy } from '@services/pathService';
+import { ensureSerialPort } from '@services/portsService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
@@ -20,19 +15,8 @@ let monitorTermListener: vscode.Disposable | undefined;
 export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void> {
 	// 1) Choose port based on mode (or default preference)
 	const resolvedMode = mode ?? getMonitorDefaultPort();
-	const port = resolvedMode === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
-
-	if (!port) {
-		const friendly =
-			resolvedMode === 'run' ? vscode.l10n.t('run mode') : vscode.l10n.t('bootloader mode');
-		vscode.window.showInformationMessage(
-			vscode.l10n.t('No {0} serial port set. Pick one first.', friendly),
-		);
-		await vscode.commands.executeCommand(
-			resolvedMode === 'run' ? 'baochip.setRunSerialPort' : 'baochip.setBootloaderSerialPort',
-		);
-		return;
-	}
+	const port = await ensureSerialPort(resolvedMode);
+	if (!port) return;
 
 	// 2) Settings -> flags (do not localize CLI flags)
 	const { crlf, raw, echo } = getMonitorFlags();

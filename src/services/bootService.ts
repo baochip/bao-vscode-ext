@@ -1,5 +1,6 @@
-import { getBootloaderSerialPort, getDefaultBaud } from '@services/configService';
+import { getDefaultBaud } from '@services/configService';
 import { resolveBaoPy } from '@services/pathService';
+import { ensureSerialPort } from '@services/portsService';
 import { runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
@@ -14,21 +15,12 @@ export async function sendBoot(): Promise<boolean> {
 	const bao = resolveBaoPy();
 	const root = getGlobalVenvRoot();
 	// Ensure bootloader port is set; if not, prompt and re-check.
-	let port = getBootloaderSerialPort();
+	const port = await ensureSerialPort('bootloader');
 	if (!port) {
-		vscode.window.showInformationMessage(
-			vscode.l10n.t('No {0} serial port set. Pick one first.', vscode.l10n.t('bootloader mode')),
+		vscode.window.showWarningMessage(
+			'Bootloader mode serial port is still not set. Aborting boot.',
 		);
-		await vscode.commands.executeCommand('baochip.setBootloaderSerialPort');
-
-		// Re-check after the command returns.
-		port = getBootloaderSerialPort();
-		if (!port) {
-			vscode.window.showWarningMessage(
-				'Bootloader mode serial port is still not set. Aborting boot.',
-			);
-			return false;
-		}
+		return false;
 	}
 
 	const baud = getDefaultBaud();

@@ -4,12 +4,11 @@ import {
 	runBuildAndWait,
 	runOutOfTreeBuildAndWait,
 } from '@services/buildService';
-import { getRunSerialPort } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
 import { openMonitorTTY } from '@services/monitorService';
 import { runBaoCmd } from '@services/pathService';
-import { waitForPort } from '@services/portsService';
+import { ensureSerialPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
@@ -56,21 +55,12 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		if (!ok) return;
 
 		// Ensure run-mode port is set; if not, prompt and re-check.
-		let runPort = getRunSerialPort();
+		const runPort = await ensureSerialPort('run');
 		if (!runPort) {
-			vscode.window.showInformationMessage(
-				vscode.l10n.t('No run mode serial port set. Pick one first.'),
+			vscode.window.showWarningMessage(
+				vscode.l10n.t('Run mode serial port is still not set. Aborting monitor.'),
 			);
-			await vscode.commands.executeCommand('baochip.setRunSerialPort');
-
-			// Re-check after the command returns.
-			runPort = getRunSerialPort();
-			if (!runPort) {
-				vscode.window.showWarningMessage(
-					vscode.l10n.t('Run mode serial port is still not set. Aborting monitor.'),
-				);
-				return;
-			}
+			return;
 		}
 
 		// 3) Monitor (wait for run port to appear)

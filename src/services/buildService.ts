@@ -19,6 +19,21 @@ export type BuildPrereqs = {
 	app?: string;
 };
 
+/** Return the configured build target, or prompt to select one and return undefined. */
+export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
+	const target = getBuildTarget();
+	if (target) return target;
+	const selectLabel = vscode.l10n.t('Select Target');
+	const action = await vscode.window.showWarningMessage(
+		vscode.l10n.t('No build target set.'),
+		selectLabel,
+	);
+	if (action === selectLabel) {
+		await vscode.commands.executeCommand('baochip.selectBuildTarget');
+	}
+	return undefined;
+}
+
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	const ok = await checkRustToolchain();
 	if (!ok) return;
@@ -38,17 +53,8 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	const wsState = await ensureXousFolderOpen(root);
 	if (wsState === 'reopen') return;
 
-	const target = getBuildTarget();
-	if (!target) {
-		const action = await vscode.window.showWarningMessage(
-			vscode.l10n.t('No build target set.'),
-			vscode.l10n.t('Select Target'),
-		);
-		if (action === vscode.l10n.t('Select Target')) {
-			await vscode.commands.executeCommand('baochip.selectBuildTarget');
-		}
-		return;
-	}
+	const target = await ensureBuildTargetOrPrompt();
+	if (!target) return;
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {

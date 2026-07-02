@@ -1,4 +1,5 @@
-import { getBuildTarget, getXousAppName } from '@services/configService';
+import { ensureBuildTargetOrPrompt } from '@services/buildService';
+import { getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
 import { resolveXousRootOrNotify } from '@services/pathService';
@@ -19,17 +20,8 @@ export function registerFlashCommand(_context: vscode.ExtensionContext) {
 		const root = await resolveXousRootOrNotify();
 		if (!root) return;
 
-		const target = getBuildTarget();
-		if (!target) {
-			const a = await vscode.window.showWarningMessage(
-				vscode.l10n.t('No build target set.'),
-				vscode.l10n.t('Select Target'),
-			);
-			if (a === vscode.l10n.t('Select Target')) {
-				await vscode.commands.executeCommand('baochip.selectBuildTarget');
-			}
-			return;
-		}
+		const target = await ensureBuildTargetOrPrompt();
+		if (!target) return;
 
 		const app = getXousAppName();
 		if (!app) {

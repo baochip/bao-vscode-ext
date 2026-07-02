@@ -1,5 +1,22 @@
 import type {} from 'node:child_process'; // keep file type-safe; no direct spawn needed
+import { getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
 import * as vscode from 'vscode';
+
+/** Ensure a serial port is set for the given mode: prompt to pick one and re-check. Returns the port or undefined. */
+export async function ensureSerialPort(mode: 'run' | 'bootloader'): Promise<string | undefined> {
+	const read = () => (mode === 'run' ? getRunSerialPort() : getBootloaderSerialPort());
+	const existing = read();
+	if (existing) return existing;
+
+	const friendly = mode === 'run' ? vscode.l10n.t('run mode') : vscode.l10n.t('bootloader mode');
+	vscode.window.showInformationMessage(
+		vscode.l10n.t('No {0} serial port set. Pick one first.', friendly),
+	);
+	await vscode.commands.executeCommand(
+		mode === 'run' ? 'baochip.setRunSerialPort' : 'baochip.setBootloaderSerialPort',
+	);
+	return read();
+}
 
 export async function listPorts(
 	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,

@@ -93,7 +93,7 @@ async function pathExists(absPath: string): Promise<boolean> {
 	}
 }
 
-async function promptForFlashFolder(): Promise<string | undefined> {
+export async function promptForFlashFolder(): Promise<string | undefined> {
 	const pick = await vscode.window.showOpenDialog({
 		title: vscode.l10n.t('Select mounted baochip drive'),
 		canSelectFiles: false,
@@ -102,6 +102,19 @@ async function promptForFlashFolder(): Promise<string | undefined> {
 		openLabel: vscode.l10n.t('Use this location'),
 	});
 	return pick && pick.length > 0 ? pick[0].fsPath : undefined;
+}
+
+/** Modal instructing the user to mount the baochip; returns true if they chose to pick a folder. */
+export async function confirmBaochipMountedPrompt(): Promise<boolean> {
+	const selectFolderLabel = vscode.l10n.t('Select Folder');
+	const ok = await vscode.window.showInformationMessage(
+		vscode.l10n.t(
+			'You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.',
+		),
+		{ modal: true },
+		selectFolderLabel,
+	);
+	return ok === selectFolderLabel;
 }
 
 // Poll the same path briefly to allow a freshly mounted drive to appear.
@@ -125,16 +138,7 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 			return detected;
 		}
 
-		const selectFolderLabel = vscode.l10n.t('Select Folder');
-
-		const ok = await vscode.window.showInformationMessage(
-			vscode.l10n.t(
-				'You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.',
-			),
-			{ modal: true },
-			selectFolderLabel,
-		);
-		if (ok !== selectFolderLabel) return undefined;
+		if (!(await confirmBaochipMountedPrompt())) return undefined;
 
 		const picked = await promptForFlashFolder();
 		if (!picked) return undefined;
