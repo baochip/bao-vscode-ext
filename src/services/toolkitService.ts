@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as https from 'node:https';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { downloadFile, fetchJson } from '@services/httpService';
 import { parseRustcVersion } from '@util/rust';
 import * as vscode from 'vscode';
 
@@ -23,74 +23,6 @@ function hostTriple(): string {
 	if (process.platform === 'win32') return `${arch}-pc-windows-msvc`;
 	if (process.platform === 'darwin') return `${arch}-apple-darwin`;
 	return `${arch}-unknown-linux-gnu`;
-}
-
-/** Fetch JSON from a URL, following up to one redirect. */
-function fetchJson(url: string): Promise<unknown> {
-	return new Promise((resolve, reject) => {
-		const req = https.get(url, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-			if (res.statusCode === 301 || res.statusCode === 302) {
-				const location = res.headers.location;
-				if (!location) return reject(new Error(`Redirect with no Location from ${url}`));
-				res.resume();
-				fetchJson(location).then(resolve).catch(reject);
-				return;
-			}
-			let data = '';
-			res.on('data', (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			res.on('end', () => {
-				try {
-					resolve(JSON.parse(data));
-				} catch {
-					reject(new Error(`Failed to parse JSON from ${url}`));
-				}
-			});
-		});
-		req.on('error', reject);
-		req.setTimeout(15000, () => {
-			req.destroy();
-			reject(new Error('GitHub API request timed out.'));
-		});
-	});
-}
-
-/** Download a file to dest, following redirects. */
-function downloadFile(url: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const follow = (u: string) => {
-			https
-				.get(u, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-					if (res.statusCode === 301 || res.statusCode === 302) {
-						const location = res.headers.location;
-						if (!location) {
-							reject(new Error(`Redirect with no Location`));
-							return;
-						}
-						res.resume();
-						follow(location);
-						return;
-					}
-					if (res.statusCode !== 200) {
-						reject(new Error(`HTTP ${res.statusCode} for ${u}`));
-						return;
-					}
-					const file = fs.createWriteStream(dest);
-					res.pipe(file);
-					file.on('finish', () => file.close(() => resolve()));
-					file.on('error', (err) => {
-						file.close();
-						try {
-							fs.unlinkSync(dest);
-						} catch {}
-						reject(err);
-					});
-				})
-				.on('error', reject);
-		};
-		follow(url);
-	});
 }
 
 /** Extract a zip file into dest using the platform's native tools. */

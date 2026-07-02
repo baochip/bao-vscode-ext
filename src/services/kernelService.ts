@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
-import * as https from 'node:https';
 import * as path from 'node:path';
+import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
@@ -23,29 +23,6 @@ const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/
 const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
 const KERNEL_FILES = ['loader.uf2', 'xous.uf2'] as const;
 const KERNEL_FILES_PATH_KEY = 'baochip.outOfTree.kernelFilesPath';
-
-function fetchJson(url: string): Promise<unknown> {
-	return new Promise((resolve, reject) => {
-		const req = https.get(url, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-			let data = '';
-			res.on('data', (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			res.on('end', () => {
-				try {
-					resolve(JSON.parse(data));
-				} catch {
-					reject(new Error(`Failed to parse response from ${url}`));
-				}
-			});
-		});
-		req.on('error', reject);
-		req.setTimeout(10000, () => {
-			req.destroy();
-			reject(new Error(vscode.l10n.t('GitHub API request timed out.')));
-		});
-	});
-}
 
 /**
  * Fetches the latest xous-core commit hash from the GitHub API.
@@ -71,22 +48,6 @@ export async function fetchLatestXousCoreRev(): Promise<string> {
 
 const KERNEL_ETAG_FILE = 'etags.json';
 
-function fetchETag(url: string): Promise<string | null> {
-	return new Promise((resolve) => {
-		const req = https.request(
-			url,
-			{ method: 'HEAD', headers: { 'User-Agent': 'bao-vscode-ext' } },
-			(res) => resolve((res.headers.etag as string) ?? null),
-		);
-		req.on('error', () => resolve(null));
-		req.setTimeout(5000, () => {
-			req.destroy();
-			resolve(null);
-		});
-		req.end();
-	});
-}
-
 function readStoredEtags(cacheDir: string): { loader?: string; xous?: string } {
 	try {
 		const f = path.join(cacheDir, KERNEL_ETAG_FILE);
@@ -111,33 +72,6 @@ async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
 	]);
 	if (!loaderEtag || !xousEtag) return true; // network unavailable — use cache
 	return loaderEtag === stored.loader && xousEtag === stored.xous;
-}
-
-function downloadFile(url: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const file = fs.createWriteStream(dest);
-		https
-			.get(url, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-				if (res.statusCode !== 200) {
-					file.close();
-					try {
-						fs.unlinkSync(dest);
-					} catch {}
-					reject(new Error(`HTTP ${res.statusCode} for ${url}`));
-					return;
-				}
-				res.pipe(file);
-				file.on('finish', () => file.close(() => resolve()));
-				file.on('error', (err) => {
-					file.close();
-					try {
-						fs.unlinkSync(dest);
-					} catch {}
-					reject(err);
-				});
-			})
-			.on('error', reject);
-	});
 }
 
 async function downloadKernelFiles(cacheDir: string): Promise<void> {
