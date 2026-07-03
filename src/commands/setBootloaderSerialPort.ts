@@ -20,8 +20,6 @@ export function registerSetBootloaderSerialPort(refreshUI: () => void) {
 		vscode.window.showInformationMessage(
 			vscode.l10n.t('Bootloader (drive mode) serial port set to: {0}', port),
 		);
-		try {
-			refreshUI();
-		} catch {}
+		refreshUI();
 	});
 }

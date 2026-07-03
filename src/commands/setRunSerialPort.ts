@@ -18,8 +18,6 @@ export function registerSetRunSerialPort(refreshUI: () => void) {
 
 		await saveRunPort(port); // store only the bare port (e.g., "COM7")
 		vscode.window.showInformationMessage(vscode.l10n.t('Run mode serial port set to: {0}', port));
-		try {
-			refreshUI();
-		} catch {}
+		refreshUI();
 	});
 }
