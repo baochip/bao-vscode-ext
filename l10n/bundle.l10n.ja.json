@@ -1,4 +1,5 @@
 {
+	"The downloaded toolchain archive did not contain the expected {0} target. Aborting install.": "ダウンロードしたツールチェーンアーカイブに、想定される {0} ターゲットが含まれていませんでした。インストールを中止します。",
 	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "Xous ツールチェーンのインストールには「{0}」が必要ですが、PATH に見つかりませんでした。インストールしてから再試行してください。",
 	"Baochip: command failed.\n{0}": "Baochip: コマンドが失敗しました。\n{0}",
 	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "「{0}」を Cargo.toml のワークスペースメンバーに自動的に追加できませんでした。手動で追加してください。",

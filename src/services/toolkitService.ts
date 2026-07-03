@@ -144,11 +144,27 @@ export async function installXousToolkit(): Promise<void> {
 			await downloadFile(downloadUrl, tmpZip);
 
 			progress.report({ message: vscode.l10n.t('Extracting toolchain…') });
-			await extractZip(tmpZip, sysroot);
-
+			// Extract to a staging dir and validate the expected target layout before touching the
+			// sysroot, so a malformed/wrong archive can't corrupt the toolchain.
+			const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-toolkit-'));
 			try {
-				fs.unlinkSync(tmpZip);
-			} catch {}
+				await extractZip(tmpZip, stageDir);
+				const stagedTarget = path.join(stageDir, 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
+				if (!fs.existsSync(stagedTarget)) {
+					throw new Error(
+						vscode.l10n.t(
+							'The downloaded toolchain archive did not contain the expected {0} target. Aborting install.',
+							XOUS_TARGET_TRIPLE,
+						),
+					);
+				}
+				fs.cpSync(stageDir, sysroot, { recursive: true });
+			} finally {
+				fs.rmSync(stageDir, { recursive: true, force: true });
+				try {
+					fs.unlinkSync(tmpZip);
+				} catch {}
+			}
 		},
 	);
 }
