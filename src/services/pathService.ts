@@ -13,6 +13,7 @@ import {
 	getGlobalVenvRoot,
 } from '@services/uvService';
 import { toMessage } from '@util/error';
+import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 /* ------------------------------ utilities ------------------------------ */
@@ -44,7 +45,7 @@ export async function autoDetectXousCore(): Promise<void> {
 
 export async function ensureXousCorePath(): Promise<string> {
 	const p = getXousCorePath();
-	if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+	if (p && isDirectory(p)) {
 		log(`xous-core path (cached): ${p}`);
 		return p;
 	}

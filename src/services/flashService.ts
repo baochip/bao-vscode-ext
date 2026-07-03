@@ -7,6 +7,7 @@ import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 import { getChannel } from '@services/logService';
 import { toMessage } from '@util/error';
+import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
@@ -19,7 +20,7 @@ function findBaochipDrives(): string[] {
 				.readdirSync('/Volumes')
 				.filter((n) => n === 'BAOCHIP' || n.startsWith('BAOCHIP '))
 				.map((n) => `/Volumes/${n}`)
-				.filter((p) => fs.statSync(p).isDirectory());
+				.filter((p) => isDirectory(p));
 		} catch {
 			return [];
 		}
@@ -34,7 +35,7 @@ function findBaochipDrives(): string[] {
 				for (const n of fs.readdirSync(root)) {
 					if (n === 'BAOCHIP' || n.startsWith('BAOCHIP ')) {
 						const p = `${root}/${n}`;
-						if (fs.statSync(p).isDirectory()) found.push(p);
+						if (isDirectory(p)) found.push(p);
 					}
 				}
 			} catch {

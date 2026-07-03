@@ -1,6 +1,6 @@
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import { isDirectory, isFile } from '@util/fsUtil';
 
 export type BaoArtifact = {
 	path: string;
@@ -12,22 +12,6 @@ const UF2_IMAGES: Array<{ fileName: string; role: NonNullable<BaoArtifact['role'
 	{ fileName: 'xous.uf2', role: 'xous' },
 	{ fileName: 'apps.uf2', role: 'apps' },
 ];
-
-function isFile(absPath: string): boolean {
-	try {
-		return fs.statSync(absPath).isFile();
-	} catch {
-		return false;
-	}
-}
-
-function isDirectory(absPath: string): boolean {
-	try {
-		return fs.statSync(absPath).isDirectory();
-	} catch {
-		return false;
-	}
-}
 
 export function scanArtifacts(xousRoot: string): BaoArtifact[] {
 	const releaseDir = path.join(xousRoot, 'target', XOUS_TARGET_TRIPLE, 'release');

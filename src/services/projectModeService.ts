@@ -1,7 +1,7 @@
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ALL_APPS_DIRS } from '@constants';
 import { getBuildMode } from '@services/configService';
+import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 export type ProjectMode = 'xous-core' | 'out-of-tree';
@@ -14,7 +14,7 @@ export function findXousCoreInWorkspace(): string | undefined {
 	for (const folder of vscode.workspace.workspaceFolders ?? []) {
 		for (const appsDir of ALL_APPS_DIRS) {
 			const candidate = path.join(folder.uri.fsPath, appsDir);
-			if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+			if (isDirectory(candidate)) {
 				return folder.uri.fsPath;
 			}
 		}

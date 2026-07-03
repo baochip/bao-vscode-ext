@@ -2,11 +2,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getAppsDir, XOUS_CORE_REPO } from '@constants';
 import { getExtensionRoot } from '@services/uvService';
+import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
-	if (!fs.existsSync(appsDir) || !fs.statSync(appsDir).isDirectory()) return [];
+	if (!isDirectory(appsDir)) return [];
 	const entries = fs.readdirSync(appsDir, { withFileTypes: true });
 	return entries
 		.filter((e) => e.isDirectory())
@@ -23,11 +24,7 @@ export function missingApps(xousRoot: string, appNames: string, target: string):
 		.filter(Boolean)
 		.filter((n) => {
 			const dir = path.join(appsDir, n);
-			return !(
-				fs.existsSync(dir) &&
-				fs.statSync(dir).isDirectory() &&
-				fs.existsSync(path.join(dir, 'Cargo.toml'))
-			);
+			return !(isDirectory(dir) && fs.existsSync(path.join(dir, 'Cargo.toml')));
 		});
 }
 

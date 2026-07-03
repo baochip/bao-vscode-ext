@@ -1,6 +1,6 @@
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
+import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 export async function cloneXousCore(): Promise<string | undefined> {
@@ -32,7 +32,7 @@ export async function cloneXousCore(): Promise<string | undefined> {
 
 	// Common case: git creates "<chosen folder>/xous-core"
 	const guess = path.join(destFsPath, 'xous-core');
-	if (fs.existsSync(guess) && fs.statSync(guess).isDirectory()) {
+	if (isDirectory(guess)) {
 		return guess;
 	}
 
