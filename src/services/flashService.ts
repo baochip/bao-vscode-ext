@@ -93,6 +93,17 @@ async function pathExists(absPath: string): Promise<boolean> {
 	}
 }
 
+/** Stream-compute the MD5 hex digest of a file. */
+function md5File(filePath: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const hash = crypto.createHash('md5');
+		const stream = fs.createReadStream(filePath);
+		stream.on('error', reject);
+		stream.on('data', (chunk) => hash.update(chunk));
+		stream.on('end', () => resolve(hash.digest('hex')));
+	});
+}
+
 export async function promptForFlashFolder(): Promise<string | undefined> {
 	const pick = await vscode.window.showOpenDialog({
 		title: vscode.l10n.t('Select mounted baochip drive'),
@@ -240,8 +251,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 					const dstUri = vscode.Uri.file(path.join(dest, fileName));
 
 					// Compute MD5 hash
-					const buf = fs.readFileSync(srcUri.fsPath);
-					const md5 = crypto.createHash('md5').update(buf).digest('hex');
+					const md5 = await md5File(srcUri.fsPath);
 
 					chan.appendLine(`[bao] ${vscode.l10n.t('Flashing {0}', fileName)}`);
 					chan.appendLine(`      ${vscode.l10n.t('MD5: {0}', md5)}`);
