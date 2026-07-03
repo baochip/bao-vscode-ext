@@ -1,17 +1,12 @@
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { getXousCorePath, setXousCorePath } from '@services/configService';
 import { log } from '@services/logService';
 import { findXousCoreInWorkspace } from '@services/projectModeService';
 import { toMessage } from '@util/error';
-import { isDirectory } from '@util/fsUtil';
+import { isDirectory, isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
-
-function samePath(a: string, b: string) {
-	return path.resolve(a) === path.resolve(b);
-}
 
 /** Check each open workspace folder for apps-dabao/ and return the root if found. */
 function detectXousCoreInWorkspace(): string | undefined {
@@ -97,7 +92,10 @@ export async function resolveXousRootOrNotify(): Promise<string | undefined> {
 /** Ensure the given `root` is present in the current workspace. */
 export async function ensureXousFolderOpen(root: string): Promise<'ready' | 'added' | 'reopen'> {
 	const folders = vscode.workspace.workspaceFolders ?? [];
-	const hasRoot = folders.some((f) => samePath(f.uri.fsPath, root));
+	// Root counts as open if a workspace folder equals it or contains it (or vice-versa).
+	const hasRoot = folders.some(
+		(f) => isSameOrParentPath(f.uri.fsPath, root) || isSameOrParentPath(root, f.uri.fsPath),
+	);
 	if (hasRoot) {
 		log('xous-core already in workspace.');
 		return 'ready';

@@ -1,30 +1,8 @@
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getAppsDir } from '@constants';
 import { setXousCorePath } from '@services/configService';
+import { isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
-
-function real(p: string): string {
-	try {
-		const abs = path.resolve(p);
-		const realpathSync = fs.realpathSync as typeof fs.realpathSync & {
-			native?: (path: string) => string;
-		};
-		const rp = realpathSync.native ? realpathSync.native(abs) : realpathSync(abs);
-		return process.platform === 'win32' ? rp.toLowerCase() : rp;
-	} catch {
-		const abs = path.resolve(p);
-		return process.platform === 'win32' ? abs.toLowerCase() : abs;
-	}
-}
-
-function isSameOrParent(parent: string, child: string): boolean {
-	const a = real(parent);
-	const b = real(child);
-	if (a === b) return true;
-	const aSep = a.endsWith(path.sep) ? a : a + path.sep;
-	return b.startsWith(aSep);
-}
 
 /**
  * Ensure a workspace that *covers* `xousRoot` is open.
@@ -33,13 +11,12 @@ function isSameOrParent(parent: string, child: string): boolean {
  *  - Update setting to the currently-open workspace
  */
 export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean> {
-	const want = real(xousRoot);
 	const folders = vscode.workspace.workspaceFolders || [];
 
 	// Accept if any folder equals or contains xousRoot, or vice-versa.
 	for (const f of folders) {
-		const cur = real(f.uri.fsPath);
-		if (isSameOrParent(cur, want) || isSameOrParent(want, cur)) {
+		const cur = f.uri.fsPath;
+		if (isSameOrParentPath(cur, xousRoot) || isSameOrParentPath(xousRoot, cur)) {
 			// Make sure the setting is saved for this workspace context
 			await setXousCorePath(xousRoot);
 			return true;
