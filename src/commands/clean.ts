@@ -4,7 +4,7 @@ import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import * as vscode from 'vscode';
 
-export function registerCleanCommand(_context: vscode.ExtensionContext) {
+export function registerCleanCommand() {
 	return withCommand('baochip.clean', async () => {
 		let root: string;
 

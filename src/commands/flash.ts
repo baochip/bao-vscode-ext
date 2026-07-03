@@ -7,7 +7,7 @@ import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
-export function registerFlashCommand(_context: vscode.ExtensionContext) {
+export function registerFlashCommand() {
 	return withCommand('baochip.flash', async () => {
 		if (getProjectMode() === 'out-of-tree') {
 			const root = getOutOfTreeRoot();

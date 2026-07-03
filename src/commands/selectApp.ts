@@ -7,7 +7,7 @@ import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import * as vscode from 'vscode';
 
-export function registerSelectApp(_context: vscode.ExtensionContext) {
+export function registerSelectApp() {
 	return withCommand('baochip.selectApp', async () => {
 		if (getProjectMode() === 'out-of-tree') return;
 

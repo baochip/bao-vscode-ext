@@ -3,7 +3,7 @@ import { setFlashLocation } from '@services/configService';
 import { confirmBaochipMountedPrompt, promptForFlashFolder } from '@services/flashService';
 import * as vscode from 'vscode';
 
-export function registerSetFlashLocation(_context: vscode.ExtensionContext, refreshUI: () => void) {
+export function registerSetFlashLocation(refreshUI: () => void) {
 	return withCommand('baochip.setFlashLocation', async () => {
 		if (!(await confirmBaochipMountedPrompt())) return;
 

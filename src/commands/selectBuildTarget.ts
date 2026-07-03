@@ -3,10 +3,7 @@ import { BUILD_TARGETS } from '@constants';
 import { getBuildTarget, setBuildTarget } from '@services/configService';
 import * as vscode from 'vscode';
 
-export function registerSelectBuildTarget(
-	_context: vscode.ExtensionContext,
-	refreshUI: () => void,
-) {
+export function registerSelectBuildTarget(refreshUI: () => void) {
 	return withCommand('baochip.selectBuildTarget', async () => {
 		const targets = BUILD_TARGETS;
 		if (!targets || targets.length === 0) {

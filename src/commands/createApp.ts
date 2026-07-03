@@ -10,7 +10,7 @@ import { isLikelyValidAppName } from '@util/appName';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
-export function registerCreateApp(_context: vscode.ExtensionContext) {
+export function registerCreateApp() {
 	return withCommand('baochip.createApp', async () => {
 		if ((getBuildTarget() || 'dabao') === 'baosec') {
 			vscode.window.showErrorMessage(vscode.l10n.t('baosec app creation is not yet supported.'));

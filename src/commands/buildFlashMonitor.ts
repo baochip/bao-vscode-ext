@@ -13,7 +13,7 @@ import { ensureSerialPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
-export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
+export function registerBuildFlashMonitor() {
 	return withCommand('baochip.buildFlashMonitor', async () => {
 		// Gather/validate build prereqs (root/target/app)
 		const pre = await ensureBuildPrereqs();

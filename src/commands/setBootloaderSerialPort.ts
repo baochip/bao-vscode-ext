@@ -5,10 +5,7 @@ import { pickSerialPort } from '@services/portsService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
-export function registerSetBootloaderSerialPort(
-	_context: vscode.ExtensionContext,
-	refreshUI: () => void,
-) {
+export function registerSetBootloaderSerialPort(refreshUI: () => void) {
 	return withCommand('baochip.setBootloaderSerialPort', async () => {
 		const port = await pickSerialPort(runBaoCmd, getGlobalVenvRoot(), {
 			confirmTitle: vscode.l10n.t('Is your Baochip board in bootloader mode?'),

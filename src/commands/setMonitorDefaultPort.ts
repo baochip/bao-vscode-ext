@@ -2,10 +2,7 @@ import { withCommand } from '@commands/withCommand';
 import { getMonitorDefaultPort, setMonitorDefaultPort } from '@services/configService';
 import * as vscode from 'vscode';
 
-export function registerSetMonitorDefaultPort(
-	_context: vscode.ExtensionContext,
-	refreshUI: () => void,
-) {
+export function registerSetMonitorDefaultPort(refreshUI: () => void) {
 	return withCommand('baochip.setMonitorDefaultPort', async () => {
 		const current = getMonitorDefaultPort();
 		const runLabel = vscode.l10n.t('Run (normal firmware logs)');
