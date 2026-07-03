@@ -5,7 +5,9 @@ import {
 	getDefaultBaud,
 	getFlashLocation,
 	getRunSerialPort,
+	getShowWelcome,
 	getXousCorePath,
+	setShowWelcome,
 } from '@services/configService';
 import * as vscode from 'vscode';
 
@@ -51,9 +53,7 @@ export class WelcomePanel {
 		this.panel.webview.onDidReceiveMessage(
 			async (msg) => {
 				if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
-					await vscode.workspace
-						.getConfiguration()
-						.update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Global);
+					await setShowWelcome(msg.value);
 					return;
 				}
 
@@ -88,7 +88,6 @@ export class WelcomePanel {
 	}
 
 	private refreshState() {
-		const cfg = vscode.workspace.getConfiguration();
 		const state = {
 			xousCorePath: getXousCorePath(),
 			bootloaderSerialPort: getBootloaderSerialPort(),
@@ -96,7 +95,7 @@ export class WelcomePanel {
 			baud: getDefaultBaud(),
 			flashLocation: getFlashLocation(),
 			target: getBuildTarget(),
-			showOnStartup: cfg.get<boolean>('baochip.showWelcomeOnStartup', true),
+			showOnStartup: getShowWelcome(),
 		};
 		this.panel.webview.postMessage({ type: 'init', state });
 	}

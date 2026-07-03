@@ -6,6 +6,7 @@ import {
 	getFlashLocation,
 	getMonitorDefaultPort,
 	getRunSerialPort,
+	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
 import { autoDetectXousCore } from '@services/pathService';
@@ -15,9 +16,6 @@ import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
-
-const shouldShowWelcome = () =>
-	vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
 
 const migrateWelcomeSettingToGlobal = async () => {
 	const cfg = vscode.workspace.getConfiguration();
@@ -232,7 +230,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	registerCommands(context, refreshUI);
 
-	if (shouldShowWelcome()) {
+	if (getShowWelcome()) {
 		vscode.commands.executeCommand('baochip.openWelcome');
 	}
 }

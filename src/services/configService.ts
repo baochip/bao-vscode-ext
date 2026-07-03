@@ -66,3 +66,9 @@ export const setKernelMode = (mode: 'ci-sync' | 'manual') =>
 
 export const getKernelFilesPath = () => cfg().get<string>('outOfTree.kernelFilesPath') || '';
 export const setKernelFilesPath = (p: string) => updateSetting('outOfTree.kernelFilesPath', p);
+
+// Application-scoped setting: reads/writes Global (not per-workspace), so the welcome preference is
+// shared across all workspaces rather than re-prompting in each one.
+export const getShowWelcome = (): boolean => cfg().get<boolean>('showWelcomeOnStartup', true);
+export const setShowWelcome = (show: boolean) =>
+	cfg().update('showWelcomeOnStartup', show, vscode.ConfigurationTarget.Global);
