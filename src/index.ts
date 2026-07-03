@@ -1,6 +1,7 @@
 import { registerBuildCommand } from '@commands/build';
 import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
 import { registerCleanCommand } from '@commands/clean';
+import { Commands } from '@commands/commandIds';
 import { registerCreateApp } from '@commands/createApp';
 import { registerFlashCommand } from '@commands/flash';
 import { registerSelectApp } from '@commands/selectApp';
@@ -23,8 +24,8 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerSetRunSerialPort(refreshUI),
 		registerSetMonitorBaud(),
 		registerSetMonitorDefaultPort(refreshUI),
-		withCommand('baochip.openMonitor', () => openMonitorTTY()),
-		withCommand('baochip.stopMonitor', () => stopMonitorTTY()),
+		withCommand(Commands.openMonitor, () => openMonitorTTY()),
+		withCommand(Commands.stopMonitor, () => stopMonitorTTY()),
 		registerSetFlashLocation(refreshUI),
 		registerSelectBuildTarget(refreshUI),
 		registerBuildCommand(),
@@ -33,9 +34,9 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerCleanCommand(),
 		registerFlashCommand(),
 		registerBuildFlashMonitor(),
-		withCommand('baochip.openSettings', async () => {
+		withCommand(Commands.openSettings, async () => {
 			await vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'Baochip');
 		}),
-		withCommand('baochip.openWelcome', () => WelcomePanel.show(context)),
+		withCommand(Commands.openWelcome, () => WelcomePanel.show(context)),
 	);
 }

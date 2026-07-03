@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { sendBoot } from '@services/bootService';
 import {
@@ -14,7 +15,7 @@ import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
 export function registerBuildFlashMonitor() {
-	return withCommand('baochip.buildFlashMonitor', async () => {
+	return withCommand(Commands.buildFlashMonitor, async () => {
 		// Gather/validate build prereqs (root/target/app)
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;

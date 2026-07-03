@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { XOUS_CORE_REPO } from '@constants';
 import {
 	getBootloaderSerialPort,
@@ -71,10 +72,10 @@ export class WelcomePanel {
 				if (msg?.type === 'run') {
 					switch (msg.cmd) {
 						case 'configure':
-							vscode.commands.executeCommand('baochip.openSettings');
+							vscode.commands.executeCommand(Commands.openSettings);
 							break;
 						case 'createApp':
-							vscode.commands.executeCommand('baochip.createApp');
+							vscode.commands.executeCommand(Commands.createApp);
 							break;
 					}
 					return;

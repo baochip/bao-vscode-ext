@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import {
 	getBootloaderSerialPort,
@@ -78,21 +79,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		return item;
 	}
 
-	const bootloaderSerialPortItem = makeStatusItem(100, 'baochip.setBootloaderSerialPort');
-	const runSerialPortItem = makeStatusItem(99, 'baochip.setRunSerialPort');
-	const flashLocationItem = makeStatusItem(98, 'baochip.setFlashLocation');
-	const targetItem = makeStatusItem(97, 'baochip.selectBuildTarget');
-	const appItem = makeStatusItem(96, 'baochip.selectApp');
-	const cleanItem = makeStatusItem(95, 'baochip.clean');
-	const buildItem = makeStatusItem(94, 'baochip.build');
-	const flashItem = makeStatusItem(93, 'baochip.flash');
-	const monitorBtn = makeStatusItem(92, 'baochip.openMonitor');
-	const bfmItem = makeStatusItem(91, 'baochip.buildFlashMonitor');
-	const modeItem = makeStatusItem(90, 'baochip.setBuildMode');
-	const settingsItem = makeStatusItem(89, 'baochip.openSettings');
+	const bootloaderSerialPortItem = makeStatusItem(100, Commands.setBootloaderSerialPort);
+	const runSerialPortItem = makeStatusItem(99, Commands.setRunSerialPort);
+	const flashLocationItem = makeStatusItem(98, Commands.setFlashLocation);
+	const targetItem = makeStatusItem(97, Commands.selectBuildTarget);
+	const appItem = makeStatusItem(96, Commands.selectApp);
+	const cleanItem = makeStatusItem(95, Commands.clean);
+	const buildItem = makeStatusItem(94, Commands.build);
+	const flashItem = makeStatusItem(93, Commands.flash);
+	const monitorBtn = makeStatusItem(92, Commands.openMonitor);
+	const bfmItem = makeStatusItem(91, Commands.buildFlashMonitor);
+	const modeItem = makeStatusItem(90, Commands.setBuildMode);
+	const settingsItem = makeStatusItem(89, Commands.openSettings);
 
 	context.subscriptions.push(
-		withCommand('baochip.resetUvSetup', async () => {
+		withCommand(Commands.resetUvSetup, async () => {
 			await resetUvSetup();
 		}),
 	);
@@ -231,7 +232,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	registerCommands(context, refreshUI);
 
 	if (getShowWelcome()) {
-		vscode.commands.executeCommand('baochip.openWelcome');
+		vscode.commands.executeCommand(Commands.openWelcome);
 	}
 }
 

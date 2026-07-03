@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import {
 	ensureBuildPrereqs,
@@ -7,7 +8,7 @@ import {
 import { ensureOutOfTreeBuildSetup } from '@services/kernelService';
 
 export function registerBuildCommand() {
-	return withCommand('baochip.build', async () => {
+	return withCommand(Commands.build, async () => {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 		if (pre.mode === 'out-of-tree') {

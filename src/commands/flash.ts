@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { ensureBuildTargetOrPrompt } from '@services/buildService';
 import { getXousAppName } from '@services/configService';
@@ -8,7 +9,7 @@ import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
 export function registerFlashCommand() {
-	return withCommand('baochip.flash', async () => {
+	return withCommand(Commands.flash, async () => {
 		if (getProjectMode() === 'out-of-tree') {
 			const root = getOutOfTreeRoot();
 			if (!root) return;
@@ -27,7 +28,7 @@ export function registerFlashCommand() {
 		const app = getXousAppName();
 		if (!app) {
 			await vscode.window.showWarningMessage(vscode.l10n.t('No app selected.'));
-			await vscode.commands.executeCommand('baochip.selectApp');
+			await vscode.commands.executeCommand(Commands.selectApp);
 			return;
 		}
 

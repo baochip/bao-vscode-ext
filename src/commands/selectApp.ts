@@ -1,3 +1,4 @@
+import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
 import { listBaoApps } from '@services/appService';
@@ -8,7 +9,7 @@ import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import * as vscode from 'vscode';
 
 export function registerSelectApp() {
-	return withCommand('baochip.selectApp', async () => {
+	return withCommand(Commands.selectApp, async () => {
 		if (getProjectMode() === 'out-of-tree') return;
 
 		const root = await resolveXousRootOrNotify();
