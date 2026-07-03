@@ -63,11 +63,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
-	vscode.window.registerTreeDataProvider('bao-view', tree);
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-view', tree));
 
 	// Documentation tree
 	const docsTree = new DocsTreeProvider();
-	vscode.window.registerTreeDataProvider('bao-docs', docsTree);
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-docs', docsTree));
 
 	// --- Status bar items (left side) ---
 	// Higher priority number = appears more to the left
