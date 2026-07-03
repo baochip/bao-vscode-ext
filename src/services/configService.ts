@@ -46,8 +46,11 @@ export type BuildMode = 'auto' | 'xous-core' | 'out-of-tree';
 export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('baochip.buildMode') ?? 'auto';
 export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMode', mode);
 
+// Only pass through values that look like cargo feature names (defense-in-depth for CLI args).
 export const getExtraFeatures = (): string[] =>
-	cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? [];
+	(cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? []).filter((f) =>
+		/^[A-Za-z0-9_][A-Za-z0-9_./+-]*$/.test(f),
+	);
 
 export const getMonitorFlags = () => ({
 	crlf: cfg().get<boolean>('baochip.monitor.crlf') ?? true,
@@ -55,8 +58,10 @@ export const getMonitorFlags = () => ({
 	echo: cfg().get<boolean>('baochip.monitor.echo') ?? false,
 });
 
-export const getKernelMode = (): string =>
-	cfg().get<string>('baochip.outOfTree.kernelMode') ?? 'ask';
+export const getKernelMode = (): string => {
+	const m = cfg().get<string>('baochip.outOfTree.kernelMode');
+	return m === 'ci-sync' || m === 'manual' ? m : 'ask';
+};
 export const setKernelMode = (mode: 'ci-sync' | 'manual') =>
 	updateSetting('baochip.outOfTree.kernelMode', mode);
 
