@@ -119,7 +119,6 @@
 	"Build (cargo xtask)": "Build (cargo xtask)",
 	"Build (cargo build)": "Build (cargo build)",
 	"Build mode: {0} (click to change in settings)": "Build-Modus: {0} (in Einstellungen ändern)",
-	"Full clean (cargo clean)": "Vollständiges Aufräumen (cargo clean)",
 	"Flash to device": "Auf Gerät flashen",
 	"Baochip Location: (not set)": "Baochip-Speicherort: (nicht gesetzt)",
 	"Click to set baochip location": "Baochip-Speicherort festlegen",

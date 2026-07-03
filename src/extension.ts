@@ -170,9 +170,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			appItem.hide();
 		}
 
-		// Status bar: Full Clean (keep cargo literal)
+		// Status bar: Clean (keep cargo literal)
 		cleanItem.text = '$(trash)';
-		cleanItem.tooltip = vscode.l10n.t('Full clean (cargo clean)'); // "Full clean (cargo clean)"
+		cleanItem.tooltip = vscode.l10n.t('Clean (cargo clean)');
 		cleanItem.show();
 
 		// Status bar: Build
