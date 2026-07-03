@@ -218,5 +218,9 @@
 	"Baochip needs your local xous-core folder.": "Baochip 需要本機的 xous-core 資料夾。",
 	"Baochip needs the xous-core folder opened in the workspace to build.": "要建置，請在工作區開啟 xous-core 資料夾。",
 	"Select your xous-core folder": "選擇 xous-core 資料夾",
-	"xous-core workspace not opened": "未開啟 xous-core 工作區。"
+	"xous-core workspace not opened": "未開啟 xous-core 工作區。",
+	"Verified (MD5 match)": "已驗證（MD5 相符）",
+	"Verified ({0} bytes)": "已驗證（{0} 位元組）",
+	"Could not verify {0}: destination is unreadable after writing.": "無法驗證 {0}：寫入後目標無法讀取。",
+	"Verification failed for {0}: wrote {1} of {2} bytes.": "{0} 驗證失敗：已寫入 {2} 位元組中的 {1} 位元組。"
 }

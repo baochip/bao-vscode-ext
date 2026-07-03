@@ -7,6 +7,7 @@ import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 import { getChannel } from '@services/logService';
 import { toMessage } from '@util/error';
+import { classifyWriteVerification } from '@util/flashVerify';
 import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
@@ -251,13 +252,55 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 					const srcUri = vscode.Uri.file(srcPath);
 					const dstUri = vscode.Uri.file(path.join(dest, fileName));
 
-					// Compute MD5 hash
-					const md5 = await md5File(srcUri.fsPath);
+					// Compute source MD5 + size up front, for post-copy verification.
+					const srcMd5 = await md5File(srcUri.fsPath);
+					const srcSize = (await vscode.workspace.fs.stat(srcUri)).size;
 
 					chan.appendLine(`[bao] ${vscode.l10n.t('Flashing {0}', fileName)}`);
-					chan.appendLine(`      ${vscode.l10n.t('MD5: {0}', md5)}`);
+					chan.appendLine(`      ${vscode.l10n.t('MD5: {0}', srcMd5)}`);
 
 					await vscode.workspace.fs.copy(srcUri, dstUri, { overwrite: true });
+
+					// Read back what we can from the destination (some UF2 drives don't return the
+					// written bytes on read), then let the classifier decide hash vs size vs failure.
+					let dstMd5: string | undefined;
+					try {
+						dstMd5 = await md5File(dstUri.fsPath);
+					} catch {
+						dstMd5 = undefined;
+					}
+					let dstSize: number | undefined;
+					try {
+						dstSize = (await vscode.workspace.fs.stat(dstUri)).size;
+					} catch {
+						dstSize = undefined;
+					}
+
+					const verdict = classifyWriteVerification(srcMd5, dstMd5, srcSize, dstSize);
+					if (!verdict.ok) {
+						if (verdict.reason === 'unreadable') {
+							throw new Error(
+								vscode.l10n.t(
+									'Could not verify {0}: destination is unreadable after writing.',
+									fileName,
+								),
+							);
+						}
+						throw new Error(
+							vscode.l10n.t(
+								'Verification failed for {0}: wrote {1} of {2} bytes.',
+								fileName,
+								verdict.wrote,
+								verdict.expected,
+							),
+						);
+					}
+					chan.appendLine(
+						verdict.by === 'md5'
+							? `      ${vscode.l10n.t('Verified (MD5 match)')}`
+							: `      ${vscode.l10n.t('Verified ({0} bytes)', srcSize)}`,
+					);
+
 					copied++;
 				}
 

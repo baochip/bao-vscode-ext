@@ -218,5 +218,9 @@
 	"Baochip needs your local xous-core folder.": "Baochip にはローカルの xous-core フォルダーが必要です。",
 	"Baochip needs the xous-core folder opened in the workspace to build.": "ビルドには、xous-core フォルダーをワークスペースで開く必要があります。",
 	"Select your xous-core folder": "xous-core フォルダーを選択",
-	"xous-core workspace not opened": "xous-core のワークスペースが開かれていません。"
+	"xous-core workspace not opened": "xous-core のワークスペースが開かれていません。",
+	"Verified (MD5 match)": "検証済み (MD5 一致)",
+	"Verified ({0} bytes)": "検証済み ({0} バイト)",
+	"Could not verify {0}: destination is unreadable after writing.": "{0} を検証できませんでした: 書き込み後に対象を読み取れません。",
+	"Verification failed for {0}: wrote {1} of {2} bytes.": "{0} の検証に失敗しました: {2} バイト中 {1} バイトを書き込みました。"
 }
