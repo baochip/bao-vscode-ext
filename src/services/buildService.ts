@@ -7,6 +7,7 @@ import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/pathSer
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
+import { ensureNamedTerminal } from '@services/terminalService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
 import { shellCd } from '@util/shell';
@@ -86,9 +87,7 @@ function outOfTreeFeatureArgs(): string[] {
 
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
 export function runOutOfTreeBuildInTerminal(root: string) {
-	const term =
-		vscode.window.terminals.find((t) => t.name === vscode.l10n.t('Bao Build')) ??
-		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
+	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'));
 	term.sendText(shellCd(root));
 
 	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().join(' ')}`;
@@ -118,9 +117,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export function runBuildInTerminal(root: string, target: string, app?: string) {
-	const term =
-		vscode.window.terminals.find((t) => t.name === vscode.l10n.t('Bao Build')) ??
-		vscode.window.createTerminal({ name: vscode.l10n.t('Bao Build') });
+	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'));
 
 	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
 	const appList = appArgs.join(' ');

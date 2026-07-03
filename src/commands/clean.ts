@@ -1,12 +1,7 @@
 import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
+import { ensureNamedTerminal } from '@services/terminalService';
 import * as vscode from 'vscode';
-
-function ensureTerminal(name: string): vscode.Terminal {
-	return (
-		vscode.window.terminals.find((t) => t.name === name) ?? vscode.window.createTerminal({ name })
-	);
-}
 
 export function registerCleanCommand(_context: vscode.ExtensionContext) {
 	return vscode.commands.registerCommand('baochip.clean', async () => {
@@ -22,7 +17,7 @@ export function registerCleanCommand(_context: vscode.ExtensionContext) {
 			root = resolved;
 		}
 
-		const term = ensureTerminal(vscode.l10n.t('Bao Clean'));
+		const term = ensureNamedTerminal(vscode.l10n.t('Bao Clean'));
 		term.sendText(`cd "${root}"`);
 		term.sendText('cargo clean');
 		term.show(true);
