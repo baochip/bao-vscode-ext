@@ -30,14 +30,15 @@ function extractZip(zipPath: string, dest: string): Promise<void> {
 	return new Promise((resolve, reject) => {
 		let r: ReturnType<typeof spawnSync>;
 		if (process.platform === 'win32') {
+			// Pass paths via env vars (not string interpolation) so a crafted path can't inject PowerShell.
 			r = spawnSync(
 				'powershell',
 				[
 					'-NoProfile',
 					'-Command',
-					`Expand-Archive -Path "${zipPath}" -DestinationPath "${dest}" -Force`,
+					'Expand-Archive -LiteralPath $env:BAO_SRC -DestinationPath $env:BAO_DST -Force',
 				],
-				{ stdio: 'inherit' },
+				{ stdio: 'inherit', env: { ...process.env, BAO_SRC: zipPath, BAO_DST: dest } },
 			);
 		} else {
 			r = spawnSync('unzip', ['-o', zipPath, '-d', dest], { stdio: 'inherit' });
@@ -48,6 +49,23 @@ function extractZip(zipPath: string, dest: string): Promise<void> {
 			resolve();
 		}
 	});
+}
+
+/** Verify the platform's archive-extraction tool is available, else throw an actionable error. */
+function ensureExtractToolAvailable(): void {
+	const isWin = process.platform === 'win32';
+	const tool = isWin ? 'powershell' : 'unzip';
+	const probe = spawnSync(tool, isWin ? ['-NoProfile', '-Command', 'exit 0'] : ['-v'], {
+		stdio: 'ignore',
+	});
+	if (probe.error) {
+		throw new Error(
+			vscode.l10n.t(
+				'"{0}" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.',
+				tool,
+			),
+		);
+	}
 }
 
 /**
@@ -64,6 +82,9 @@ export async function installXousToolkit(): Promise<void> {
 	const sysrootResult = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
 	const sysroot = sysrootResult.stdout?.trim() ?? '';
 	if (!sysroot) throw new Error('Could not determine rustc sysroot');
+
+	// Fail fast (before the large download) if we can't extract the archive.
+	ensureExtractToolAvailable();
 
 	await vscode.window.withProgress(
 		{
@@ -118,7 +139,8 @@ export async function installXousToolkit(): Promise<void> {
 			const assetName = hostAsset.name as string;
 
 			progress.report({ message: vscode.l10n.t('Downloading {0}…', assetName) });
-			const tmpZip = path.join(os.tmpdir(), assetName);
+			// Use a fixed local filename, never the remote-controlled asset name (path traversal / injection).
+			const tmpZip = path.join(os.tmpdir(), 'baochip-xous-toolkit.zip');
 			await downloadFile(downloadUrl, tmpZip);
 
 			progress.report({ message: vscode.l10n.t('Extracting toolchain…') });

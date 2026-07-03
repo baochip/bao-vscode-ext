@@ -1,4 +1,5 @@
 {
+	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "Xous ツールチェーンのインストールには「{0}」が必要ですが、PATH に見つかりませんでした。インストールしてから再試行してください。",
 	"Baochip: command failed.\n{0}": "Baochip: コマンドが失敗しました。\n{0}",
 	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "「{0}」を Cargo.toml のワークスペースメンバーに自動的に追加できませんでした。手動で追加してください。",
 	"Created {0}/{1} and added to workspace.": "{0}/{1} を作成し、ワークスペースに追加しました。",

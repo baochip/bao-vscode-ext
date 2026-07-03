@@ -1,4 +1,5 @@
 {
+	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "安裝 Xous 工具鏈需要「{0}」，但在 PATH 中找不到。請安裝後再試一次。",
 	"Baochip: command failed.\n{0}": "Baochip：命令執行失敗。\n{0}",
 	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "無法自動將「{0}」新增到 Cargo.toml 的工作區成員中。請手動新增。",
 	"Created {0}/{1} and added to workspace.": "已建立 {0}/{1} 並新增到工作區。",
