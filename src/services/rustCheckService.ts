@@ -29,15 +29,16 @@ export async function checkRustToolchain(): Promise<boolean> {
 	const targetCheck = spawnSync('rustup', ['target', 'list', '--installed'], { encoding: 'utf8' });
 	const targets = (targetCheck.stdout || '').split(/\r?\n/).map((s) => s.trim());
 	if (!targets.includes('riscv32imac-unknown-none-elf')) {
+		const installLabel = vscode.l10n.t('Install');
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'The RISC-V target `{0}` is not installed. Install it now?',
 				'riscv32imac-unknown-none-elf',
 			),
-			vscode.l10n.t('Install'),
+			installLabel,
 			vscode.l10n.t('Ignore'),
 		);
-		if (choice === vscode.l10n.t('Install')) {
+		if (choice === installLabel) {
 			const install = spawnSync('rustup', ['target', 'add', 'riscv32imac-unknown-none-elf'], {
 				stdio: 'inherit',
 			});
@@ -56,15 +57,16 @@ export async function checkRustToolchain(): Promise<boolean> {
 	// 3b) check riscv32imac-unknown-xous-elf — tier-3 target, installed by extracting
 	//     a custom toolchain zip from betrusted-io/rust GitHub releases (not via rustup target add)
 	if (!isXousToolkitInstalled()) {
+		const installLabel = vscode.l10n.t('Install');
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'The RISC-V target `{0}` is not installed. Install it now?',
 				XOUS_TARGET_TRIPLE,
 			),
-			vscode.l10n.t('Install'),
+			installLabel,
 			vscode.l10n.t('Ignore'),
 		);
-		if (choice === vscode.l10n.t('Install')) {
+		if (choice === installLabel) {
 			try {
 				await installXousToolkit();
 				vscode.window.showInformationMessage(vscode.l10n.t('Target installed successfully.'));
