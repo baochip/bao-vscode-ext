@@ -145,62 +145,22 @@ function getBuildChannel(): vscode.OutputChannel {
 	return getChannel(vscode.l10n.t('Bao Build'));
 }
 
-/** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */
-export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
+/**
+ * Run `cargo <args>` in root, streaming output to the build channel with a cancellable
+ * progress notification. Optionally prints announceLine before the command line. Returns exit code.
+ */
+async function runCargoAndWait(
+	root: string,
+	args: string[],
+	announceLine?: string,
+): Promise<number> {
 	const chan = getBuildChannel();
 	chan.clear();
 	chan.show(true);
 
-	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
-
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building…'));
-	chan.appendLine(`[bao] ${vscode.l10n.t('Building: cargo {0}', args.join(' '))}`);
-	chan.appendLine(`[bao] cwd: ${root}`);
-
-	return vscode.window.withProgress(
-		{
-			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Building…'),
-			cancellable: true,
-		},
-		async (_progress, token) => {
-			const r = await runProcess('cargo', args, {
-				cwd: root,
-				token,
-				onStdout: (s) => chan.append(s),
-				onStderr: (s) => chan.append(s),
-			});
-			if (r.cancelled) {
-				chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
-			}
-			const code = r.error ? 1 : (r.code ?? 1);
-			chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code)}`);
-			return code;
-		},
-	);
-}
-
-/** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */
-export async function runBuildAndWait(root: string, target: string, app?: string): Promise<number> {
-	const chan = getBuildChannel();
-	chan.clear();
-	chan.show(true);
-
-	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
-	const args = ['xtask', target, ...appArgs];
-	const appList = appArgs.join(' ');
-
-	if (appArgs.length === 0) {
-		chan.appendLine(
-			`[bao] ${vscode.l10n.t('No apps specified — building target "{0}" only.', target)}`,
-		);
-		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
-	} else {
-		vscode.window.showInformationMessage(
-			vscode.l10n.t('Building "{0}" for app "{1}"…', target, appList),
-		);
+	if (announceLine) {
+		chan.appendLine(`[bao] ${announceLine}`);
 	}
-
 	// technical context lines, partially localized but keeping code tokens literal
 	chan.appendLine(`[bao] ${vscode.l10n.t('Building: cargo {0}', args.join(' '))}`);
 	chan.appendLine(`[bao] cwd: ${root}`); // kept literal: technical token
@@ -226,4 +186,31 @@ export async function runBuildAndWait(root: string, target: string, app?: string
 			return code;
 		},
 	);
+}
+
+/** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */
+export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
+	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building…'));
+	return runCargoAndWait(root, args);
+}
+
+/** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */
+export async function runBuildAndWait(root: string, target: string, app?: string): Promise<number> {
+	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
+	const args = ['xtask', target, ...appArgs];
+
+	if (appArgs.length === 0) {
+		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
+		return runCargoAndWait(
+			root,
+			args,
+			vscode.l10n.t('No apps specified — building target "{0}" only.', target),
+		);
+	}
+
+	vscode.window.showInformationMessage(
+		vscode.l10n.t('Building "{0}" for app "{1}"…', target, appArgs.join(' ')),
+	);
+	return runCargoAndWait(root, args);
 }
