@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import {
 	ensureBuildPrereqs,
 	runBuildInTerminal,
@@ -7,7 +8,7 @@ import { ensureOutOfTreeBuildSetup } from '@services/kernelService';
 import * as vscode from 'vscode';
 
 export function registerBuildCommand(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.build', async () => {
+	return withCommand('baochip.build', async () => {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 		if (pre.mode === 'out-of-tree') {

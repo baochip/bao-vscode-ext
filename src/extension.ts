@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -93,7 +94,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const settingsItem = makeStatusItem(89, 'baochip.openSettings');
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('baochip.resetUvSetup', async () => {
+		withCommand('baochip.resetUvSetup', async () => {
 			await resetUvSetup();
 		}),
 	);

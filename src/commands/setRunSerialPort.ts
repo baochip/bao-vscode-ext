@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import { setRunSerialPort as saveRunPort } from '@services/configService';
 import { runBaoCmd } from '@services/pathService';
 import { pickSerialPort } from '@services/portsService';
@@ -5,7 +6,7 @@ import { getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
 export function registerSetRunSerialPort(_context: vscode.ExtensionContext, refreshUI: () => void) {
-	return vscode.commands.registerCommand('baochip.setRunSerialPort', async () => {
+	return withCommand('baochip.setRunSerialPort', async () => {
 		const port = await pickSerialPort(runBaoCmd, getGlobalVenvRoot(), {
 			confirmTitle: vscode.l10n.t('Is your Baochip board in run mode?'),
 			confirmDetail: vscode.l10n.t(

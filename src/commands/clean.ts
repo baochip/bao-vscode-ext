@@ -1,10 +1,11 @@
+import { withCommand } from '@commands/withCommand';
 import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import * as vscode from 'vscode';
 
 export function registerCleanCommand(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.clean', async () => {
+	return withCommand('baochip.clean', async () => {
 		let root: string;
 
 		if (getProjectMode() === 'out-of-tree') {

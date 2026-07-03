@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import { BUILD_TARGETS } from '@constants';
 import { getBuildTarget, setBuildTarget } from '@services/configService';
 import * as vscode from 'vscode';
@@ -6,7 +7,7 @@ export function registerSelectBuildTarget(
 	_context: vscode.ExtensionContext,
 	refreshUI: () => void,
 ) {
-	return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
+	return withCommand('baochip.selectBuildTarget', async () => {
 		const targets = BUILD_TARGETS;
 		if (!targets || targets.length === 0) {
 			vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));

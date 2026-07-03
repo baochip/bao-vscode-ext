@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
 import { createBaoApp } from '@services/appService';
 import { getBuildTarget, setXousAppName } from '@services/configService';
@@ -10,7 +11,7 @@ import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.createApp', async () => {
+	return withCommand('baochip.createApp', async () => {
 		if ((getBuildTarget() || 'dabao') === 'baosec') {
 			vscode.window.showErrorMessage(vscode.l10n.t('baosec app creation is not yet supported.'));
 			return;

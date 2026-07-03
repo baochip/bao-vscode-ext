@@ -1,8 +1,9 @@
+import { withCommand } from '@commands/withCommand';
 import { getDefaultBaud, setDefaultBaud } from '@services/configService';
 import * as vscode from 'vscode';
 
 export function registerSetMonitorBaud(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.setMonitorBaud', async () => {
+	return withCommand('baochip.setMonitorBaud', async () => {
 		const current = getDefaultBaud();
 		const input = await vscode.window.showInputBox({
 			title: vscode.l10n.t('Set monitor baud rate'),

@@ -1,3 +1,4 @@
+import { withCommand } from '@commands/withCommand';
 import { ensureBuildTargetOrPrompt } from '@services/buildService';
 import { getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
@@ -7,7 +8,7 @@ import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
 export function registerFlashCommand(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.flash', async () => {
+	return withCommand('baochip.flash', async () => {
 		if (getProjectMode() === 'out-of-tree') {
 			const root = getOutOfTreeRoot();
 			if (!root) return;

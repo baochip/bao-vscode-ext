@@ -1,9 +1,10 @@
+import { withCommand } from '@commands/withCommand';
 import { type BuildMode, getBuildMode, setBuildMode } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
 export function registerSetBuildMode(_context: vscode.ExtensionContext, refreshUI: () => void) {
-	return vscode.commands.registerCommand('baochip.setBuildMode', async () => {
+	return withCommand('baochip.setBuildMode', async () => {
 		const currentSetting = getBuildMode();
 		const resolvedMode = getProjectMode();
 
