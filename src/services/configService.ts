@@ -1,7 +1,7 @@
 import { isValidFeatureName } from '@util/cargo';
 import * as vscode from 'vscode';
 
-export const cfg = () => vscode.workspace.getConfiguration(''); // root
+export const cfg = () => vscode.workspace.getConfiguration('baochip'); // scoped to the baochip.* section
 
 async function updateSetting<T>(key: string, value: T) {
 	if (!vscode.workspace.workspaceFolders?.length) {
@@ -13,58 +13,56 @@ async function updateSetting<T>(key: string, value: T) {
 }
 
 export const getDefaultBaud = () => {
-	const b = cfg().get<number>('baochip.monitor.defaultBaud');
+	const b = cfg().get<number>('monitor.defaultBaud');
 	return typeof b === 'number' && b > 0 ? b : 1000000;
 };
-export const setDefaultBaud = (baud: number) => updateSetting('baochip.monitor.defaultBaud', baud);
+export const setDefaultBaud = (baud: number) => updateSetting('monitor.defaultBaud', baud);
 
 export const getMonitorDefaultPort = (): 'run' | 'bootloader' =>
-	cfg().get<'run' | 'bootloader'>('baochip.monitorDefaultPort') ?? 'run';
+	cfg().get<'run' | 'bootloader'>('monitorDefaultPort') ?? 'run';
 export const setMonitorDefaultPort = (v: 'run' | 'bootloader') =>
-	updateSetting('baochip.monitorDefaultPort', v);
+	updateSetting('monitorDefaultPort', v);
 
 export const getBootloaderSerialPort = (): string =>
-	cfg().get<string>('baochip.serialPortBootloader') || '';
+	cfg().get<string>('serialPortBootloader') || '';
 export const setBootloaderSerialPort = (port: string) =>
-	updateSetting('baochip.serialPortBootloader', port);
+	updateSetting('serialPortBootloader', port);
 
-export const getRunSerialPort = (): string => cfg().get<string>('baochip.serialPortRun') || '';
-export const setRunSerialPort = (port: string) => updateSetting('baochip.serialPortRun', port);
+export const getRunSerialPort = (): string => cfg().get<string>('serialPortRun') || '';
+export const setRunSerialPort = (port: string) => updateSetting('serialPortRun', port);
 
-export const getFlashLocation = () => cfg().get<string>('baochip.flashLocation') || '';
-export const setFlashLocation = (p: string) => updateSetting('baochip.flashLocation', p);
+export const getFlashLocation = () => cfg().get<string>('flashLocation') || '';
+export const setFlashLocation = (p: string) => updateSetting('flashLocation', p);
 
-export const getBuildTarget = () => cfg().get<string>('baochip.buildTarget') || '';
-export const setBuildTarget = (t: string) => updateSetting('baochip.buildTarget', t);
+export const getBuildTarget = () => cfg().get<string>('buildTarget') || '';
+export const setBuildTarget = (t: string) => updateSetting('buildTarget', t);
 
-export const getXousAppName = () => cfg().get<string>('baochip.xousAppName') || '';
-export const setXousAppName = (n: string) => updateSetting('baochip.xousAppName', n);
+export const getXousAppName = () => cfg().get<string>('xousAppName') || '';
+export const setXousAppName = (n: string) => updateSetting('xousAppName', n);
 
-export const getXousCorePath = () => cfg().get<string>('baochip.xousCorePath') || '';
-export const setXousCorePath = (p: string) => updateSetting('baochip.xousCorePath', p);
+export const getXousCorePath = () => cfg().get<string>('xousCorePath') || '';
+export const setXousCorePath = (p: string) => updateSetting('xousCorePath', p);
 
 export type BuildMode = 'auto' | 'xous-core' | 'out-of-tree';
-export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('baochip.buildMode') ?? 'auto';
-export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMode', mode);
+export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('buildMode') ?? 'auto';
+export const setBuildMode = (mode: BuildMode) => updateSetting('buildMode', mode);
 
 // Only pass through values that look like cargo feature names (defense-in-depth for CLI args).
 export const getExtraFeatures = (): string[] =>
-	(cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? []).filter(isValidFeatureName);
+	(cfg().get<string[]>('outOfTree.extraFeatures') ?? []).filter(isValidFeatureName);
 
 export const getMonitorFlags = () => ({
-	crlf: cfg().get<boolean>('baochip.monitor.crlf') ?? true,
-	raw: cfg().get<boolean>('baochip.monitor.raw') ?? true,
-	echo: cfg().get<boolean>('baochip.monitor.echo') ?? false,
+	crlf: cfg().get<boolean>('monitor.crlf') ?? true,
+	raw: cfg().get<boolean>('monitor.raw') ?? true,
+	echo: cfg().get<boolean>('monitor.echo') ?? false,
 });
 
 export const getKernelMode = (): string => {
-	const m = cfg().get<string>('baochip.outOfTree.kernelMode');
+	const m = cfg().get<string>('outOfTree.kernelMode');
 	return m === 'ci-sync' || m === 'manual' ? m : 'ask';
 };
 export const setKernelMode = (mode: 'ci-sync' | 'manual') =>
-	updateSetting('baochip.outOfTree.kernelMode', mode);
+	updateSetting('outOfTree.kernelMode', mode);
 
-export const getKernelFilesPath = () =>
-	cfg().get<string>('baochip.outOfTree.kernelFilesPath') || '';
-export const setKernelFilesPath = (p: string) =>
-	updateSetting('baochip.outOfTree.kernelFilesPath', p);
+export const getKernelFilesPath = () => cfg().get<string>('outOfTree.kernelFilesPath') || '';
+export const setKernelFilesPath = (p: string) => updateSetting('outOfTree.kernelFilesPath', p);
