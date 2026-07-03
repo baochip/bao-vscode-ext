@@ -17,7 +17,7 @@ export async function sendBoot(): Promise<boolean> {
 	const port = await ensureSerialPort('bootloader');
 	if (!port) {
 		vscode.window.showWarningMessage(
-			'Bootloader mode serial port is still not set. Aborting boot.',
+			vscode.l10n.t('Bootloader mode serial port is still not set. Aborting boot.'),
 		);
 		return false;
 	}

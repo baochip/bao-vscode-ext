@@ -1,4 +1,5 @@
 {
+	"Bootloader mode serial port is still not set. Aborting boot.": "Serielle Schnittstelle für den Bootloader-Modus ist noch nicht gesetzt. Boot wird abgebrochen.",
 	"The downloaded toolchain archive did not contain the expected {0} target. Aborting install.": "Das heruntergeladene Toolchain-Archiv enthielt nicht das erwartete Ziel {0}. Installation abgebrochen.",
 	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "„{0}\" wird zum Installieren des Xous-Toolchains benötigt, wurde aber nicht im PATH gefunden. Bitte installieren und erneut versuchen.",
 	"Baochip: command failed.\n{0}": "Baochip: Befehl fehlgeschlagen.\n{0}",
