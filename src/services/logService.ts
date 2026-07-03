@@ -19,3 +19,14 @@ export function errorToast(msg: string) {
 	chan.show(true);
 	vscode.window.showErrorMessage(msg);
 }
+
+const _channels = new Map<string, vscode.OutputChannel>();
+/** Lazily create (and cache) a named output channel. */
+export function getChannel(name: string): vscode.OutputChannel {
+	let c = _channels.get(name);
+	if (!c) {
+		c = vscode.window.createOutputChannel(name);
+		_channels.set(name, c);
+	}
+	return c;
+}

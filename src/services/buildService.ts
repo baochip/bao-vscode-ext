@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
+import { getChannel } from '@services/logService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/pathService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
@@ -140,10 +141,8 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	term.show(true);
 }
 
-let _buildChan: vscode.OutputChannel | undefined;
 function getBuildChannel(): vscode.OutputChannel {
-	if (!_buildChan) _buildChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Build'));
-	return _buildChan;
+	return getChannel(vscode.l10n.t('Bao Build'));
 }
 
 /** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */

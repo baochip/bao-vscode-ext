@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
+import { getChannel } from '@services/logService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
@@ -224,10 +225,8 @@ export async function gatherArtifacts(root: string) {
 	return { byRole, all };
 }
 
-let _flashChan: vscode.OutputChannel | undefined;
 function getFlashChannel(): vscode.OutputChannel {
-	if (!_flashChan) _flashChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Flash'));
-	return _flashChan;
+	return getChannel(vscode.l10n.t('Bao Flash'));
 }
 
 export async function flashFiles(dest: string, files: string[]): Promise<boolean> {

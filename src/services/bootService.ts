@@ -1,14 +1,13 @@
 import { getDefaultBaud } from '@services/configService';
+import { getChannel } from '@services/logService';
 import { resolveBaoPy } from '@services/pathService';
 import { ensureSerialPort } from '@services/portsService';
 import { runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import * as vscode from 'vscode';
 
-let _bootChan: vscode.OutputChannel | undefined;
 function getBootChannel(): vscode.OutputChannel {
-	if (!_bootChan) _bootChan = vscode.window.createOutputChannel(vscode.l10n.t('Bao Boot'));
-	return _bootChan;
+	return getChannel(vscode.l10n.t('Bao Boot'));
 }
 
 export async function sendBoot(): Promise<boolean> {
