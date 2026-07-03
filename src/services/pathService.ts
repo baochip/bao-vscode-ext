@@ -154,7 +154,7 @@ export async function ensureXousFolderOpen(root: string): Promise<'ready' | 'add
 export async function runBaoCmd(
 	baoArgs: string[],
 	cwd?: string,
-	opts: { capture?: boolean } = {},
+	opts: { capture?: boolean; quiet?: boolean } = {},
 ): Promise<string> {
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const baoPath = resolveBaoPy();
@@ -181,6 +181,6 @@ export async function runBaoCmd(
 	const msg = (
 		r.error ? r.error.message : r.stderr || r.stdout || `bao.py exited ${r.code}`
 	).trim();
-	errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
+	if (!opts.quiet) errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
 	throw new Error(msg);
 }

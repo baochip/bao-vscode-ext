@@ -1,6 +1,13 @@
 import type {} from 'node:child_process'; // keep file type-safe; no direct spawn needed
 import { getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
+import { pollUntil } from '@util/poll';
 import * as vscode from 'vscode';
+
+type RunBao = (
+	args: string[],
+	cwd?: string,
+	opts?: { capture?: boolean; quiet?: boolean },
+) => Promise<string>;
 
 /** Ensure a serial port is set for the given mode: prompt to pick one and re-check. Returns the port or undefined. */
 export async function ensureSerialPort(mode: 'run' | 'bootloader'): Promise<string | undefined> {
@@ -19,10 +26,11 @@ export async function ensureSerialPort(mode: 'run' | 'bootloader'): Promise<stri
 }
 
 export async function listPorts(
-	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
+	runBao: RunBao,
 	cwd?: string,
+	opts?: { quiet?: boolean },
 ): Promise<string[]> {
-	const out = await runBao(['ports'], cwd, { capture: true });
+	const out = await runBao(['ports'], cwd, { capture: true, quiet: opts?.quiet });
 	// Support either plain lines or tab-separated fields (take the first column)
 	return out
 		.split(/\r?\n/)
@@ -33,7 +41,7 @@ export async function listPorts(
 }
 
 export async function waitForPort(
-	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
+	runBao: RunBao,
 	targetPort: string,
 	opts?: {
 		cwd?: string;
@@ -42,21 +50,33 @@ export async function waitForPort(
 		token?: vscode.CancellationToken;
 	},
 ): Promise<boolean> {
-	const timeoutMs = opts?.timeoutMs ?? 20000;
-	const intervalMs = opts?.intervalMs ?? 500;
-	const start = Date.now();
-
-	while (Date.now() - start < timeoutMs) {
-		if (opts?.token?.isCancellationRequested) return false;
-		try {
-			const ports = await listPorts(runBao, opts?.cwd);
-			if (ports.includes(targetPort)) return true;
-		} catch {
-			// ignore transient errors and keep polling
-		}
-		await new Promise((r) => setTimeout(r, intervalMs));
+	// A persistent probe failure means bao.py itself is broken (not just "port not ready yet"),
+	// so pollUntil bails after a few consecutive errors instead of spinning the full timeout.
+	let lastError: unknown;
+	const result = await pollUntil(
+		async () => {
+			try {
+				const ports = await listPorts(runBao, opts?.cwd, { quiet: true });
+				return ports.includes(targetPort);
+			} catch (e: unknown) {
+				lastError = e;
+				throw e;
+			}
+		},
+		{
+			timeoutMs: opts?.timeoutMs ?? 20000,
+			intervalMs: opts?.intervalMs ?? 500,
+			maxErrors: 3,
+			now: Date.now,
+			sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+			isCancelled: () => opts?.token?.isCancellationRequested ?? false,
+		},
+	);
+	if (result === 'error') {
+		const msg = lastError instanceof Error ? lastError.message : String(lastError);
+		vscode.window.showErrorMessage(vscode.l10n.t('Could not list ports: {0}', msg));
 	}
-	return false;
+	return result === 'found';
 }
 
 /**
@@ -64,7 +84,7 @@ export async function waitForPort(
  * Returns the chosen port string, or undefined if the user cancelled at any step.
  */
 export async function pickSerialPort(
-	runBao: (args: string[], cwd?: string, opts?: { capture?: boolean }) => Promise<string>,
+	runBao: RunBao,
 	cwd: string,
 	opts: {
 		confirmTitle: string;
