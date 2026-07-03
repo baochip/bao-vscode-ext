@@ -4,8 +4,8 @@ import { ensureBuildTargetOrPrompt } from '@services/buildService';
 import { getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
-import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
 
 export function registerFlashCommand() {

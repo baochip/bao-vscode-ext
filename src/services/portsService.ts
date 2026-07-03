@@ -1,10 +1,10 @@
+import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getBootloaderSerialPort,
 	getRunSerialPort,
 	setBootloaderSerialPort,
 	setRunSerialPort,
 } from '@services/configService';
-import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';

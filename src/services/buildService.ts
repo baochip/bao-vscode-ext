@@ -9,11 +9,11 @@ import {
 	setBuildTarget,
 } from '@services/configService';
 import { getChannel } from '@services/logService';
-import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/pathService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal } from '@services/terminalService';
+import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
 import { quoteArg, shellCd } from '@util/shell';

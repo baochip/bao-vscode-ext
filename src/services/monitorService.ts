@@ -1,5 +1,5 @@
+import { resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
-import { resolveBaoPy } from '@services/pathService';
 import { ensureSerialPort } from '@services/portsService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
 import { quoteArg } from '@util/shell';

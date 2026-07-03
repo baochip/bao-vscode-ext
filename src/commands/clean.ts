@@ -1,8 +1,8 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
-import { resolveXousRootOrNotify } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { ensureNamedTerminal } from '@services/terminalService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
 
 export function registerCleanCommand() {

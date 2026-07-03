@@ -1,5 +1,6 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
+import { runBaoCmd } from '@services/baoRunnerService';
 import { sendBoot } from '@services/bootService';
 import {
 	ensureBuildPrereqs,
@@ -9,7 +10,6 @@ import {
 import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
 import { openMonitorTTY } from '@services/monitorService';
-import { runBaoCmd } from '@services/pathService';
 import { ensureSerialPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';

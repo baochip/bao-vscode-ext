@@ -10,9 +10,9 @@ import {
 	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
-import { autoDetectXousCore } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { resetUvSetup, setExtensionContext } from '@services/uvService';
+import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import * as vscode from 'vscode';

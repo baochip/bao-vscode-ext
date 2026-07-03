@@ -3,9 +3,9 @@ import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
 import { listBaoApps } from '@services/appService';
 import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
-import { resolveXousRootOrNotify } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
 
 export function registerSelectApp() {

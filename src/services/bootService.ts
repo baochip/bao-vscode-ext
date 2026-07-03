@@ -1,6 +1,6 @@
+import { resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud } from '@services/configService';
 import { getChannel } from '@services/logService';
-import { resolveBaoPy } from '@services/pathService';
 import { ensureSerialPort } from '@services/portsService';
 import { runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';

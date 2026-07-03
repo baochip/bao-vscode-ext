@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getKernelFilesPath,
 	getKernelMode,
@@ -7,7 +8,6 @@ import {
 	setKernelMode,
 } from '@services/configService';
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
-import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
