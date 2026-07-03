@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -83,7 +84,7 @@ function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolea
 		const out = ((r.stdout || '') + (r.stderr || '')).trim();
 		return { ok: r.status === 0, out };
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		return { ok: false, out: message };
 	}
 }
@@ -115,7 +116,7 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 		const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
 		return { ok: res.status === 0, out: stdout };
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		return { ok: false, out: message };
 	}
 }
@@ -257,7 +258,7 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	try {
 		await run(exe, args);
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		errorToast(vscode.l10n.t('Baochip: Failed to install uv via pip.\n{0}', message));
 		throw e;
 	}
@@ -382,7 +383,7 @@ export async function ensureBaoPythonDeps({
 			try {
 				await run(uv, ['venv'], venvRoot);
 			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
+				const message = toMessage(e);
 				log(`uv venv failed: ${message}`);
 				errorToast(vscode.l10n.t('Failed to create uv venv:\n{0}', message));
 				throw e;
@@ -392,7 +393,7 @@ export async function ensureBaoPythonDeps({
 			try {
 				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot);
 			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
+				const message = toMessage(e);
 				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
 				throw e;
 			}

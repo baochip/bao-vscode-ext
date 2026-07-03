@@ -1,5 +1,6 @@
 import type {} from 'node:child_process'; // keep file type-safe; no direct spawn needed
 import { getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
+import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';
 import * as vscode from 'vscode';
 
@@ -73,7 +74,7 @@ export async function waitForPort(
 		},
 	);
 	if (result === 'error') {
-		const msg = lastError instanceof Error ? lastError.message : String(lastError);
+		const msg = toMessage(lastError);
 		vscode.window.showErrorMessage(vscode.l10n.t('Could not list ports: {0}', msg));
 	}
 	return result === 'found';

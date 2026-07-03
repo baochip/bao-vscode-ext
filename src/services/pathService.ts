@@ -12,6 +12,7 @@ import {
 	getBundledToolsRoot,
 	getGlobalVenvRoot,
 } from '@services/uvService';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 /* ------------------------------ utilities ------------------------------ */
@@ -97,7 +98,7 @@ export async function resolveXousRootOrNotify(): Promise<string | undefined> {
 	try {
 		return await ensureXousCorePath();
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
 		return undefined;
 	}
@@ -163,7 +164,7 @@ export async function runBaoCmd(
 	try {
 		await ensureBaoPythonDeps({ quiet: true });
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
 	}
 

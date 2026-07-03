@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
@@ -271,7 +272,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 				chan.appendLine(`[bao] ${vscode.l10n.t('Flash complete ({0} file(s))', copied)}`);
 				return true;
 			} catch (e: unknown) {
-				const msg = e instanceof Error ? e.message : String(e);
+				const msg = toMessage(e);
 				vscode.window.showErrorMessage(vscode.l10n.t('Baochip flash failed: {0}', msg));
 				return false;
 			}

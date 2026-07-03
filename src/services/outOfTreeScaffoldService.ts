@@ -4,6 +4,7 @@ import { getBuildTarget } from '@services/configService';
 import { fetchLatestXousCoreRev } from '@services/kernelService';
 import { getExtensionRoot } from '@services/uvService';
 import { isLikelyValidAppName } from '@util/appName';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 function getTemplateDir(target: string): string {
@@ -85,7 +86,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	try {
 		rev = await fetchLatestXousCoreRev();
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		vscode.window.showErrorMessage(
 			vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
 		);
@@ -116,7 +117,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 			path.join(projectDir, '.cargo', 'config.toml'),
 		);
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		vscode.window.showErrorMessage(vscode.l10n.t('Failed to create project: {0}', message));
 		return;
 	}

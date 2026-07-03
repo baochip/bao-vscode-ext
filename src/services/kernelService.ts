@@ -9,6 +9,7 @@ import {
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { runBaoCmd } from '@services/pathService';
 import { getGlobalVenvRoot } from '@services/uvService';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 export type KernelMode = 'ci-sync' | 'manual';
@@ -131,7 +132,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 		try {
 			await downloadKernelFiles(cacheDir);
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
+			const message = toMessage(e);
 			vscode.window.showErrorMessage(
 				vscode.l10n.t('Baochip: Failed to download kernel files.\n{0}', message),
 			);
@@ -212,7 +213,7 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 		try {
 			rev = await fetchLatestXousCoreRev();
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
+			const message = toMessage(e);
 			vscode.window.showErrorMessage(
 				vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
 			);
@@ -221,7 +222,7 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 		try {
 			await runBaoCmd(['app', 'update-rev', '--file', path.join(root, 'Cargo.toml'), '--rev', rev]);
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
+			const message = toMessage(e);
 			vscode.window.showErrorMessage(
 				vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message),
 			);

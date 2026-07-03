@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 /** verifies that `rustc` and `cargo` exist and report versions.
@@ -68,7 +69,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 				await installXousToolkit();
 				vscode.window.showInformationMessage(vscode.l10n.t('Target installed successfully.'));
 			} catch (e: unknown) {
-				const msg = e instanceof Error ? e.message : String(e);
+				const msg = toMessage(e);
 				vscode.window.showErrorMessage(vscode.l10n.t('Failed to install Xous target: {0}', msg));
 				return false;
 			}

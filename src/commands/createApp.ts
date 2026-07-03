@@ -6,6 +6,7 @@ import { resolveXousRootOrNotify } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
 import { isLikelyValidAppName } from '@util/appName';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 export function registerCreateApp(_context: vscode.ExtensionContext) {
@@ -60,7 +61,7 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 			);
 			await revealAppFolder(root, name, target);
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
+			const message = toMessage(e);
 			vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', message));
 		}
 	});
