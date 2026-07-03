@@ -4,6 +4,11 @@ export function parseCargoPackageName(toml: string): string | null {
 	return m ? m[1] : null;
 }
 
+/** Whether a string is a plausible cargo feature name (defense-in-depth for values that become CLI args). */
+export function isValidFeatureName(name: string): boolean {
+	return /^[A-Za-z0-9_][A-Za-z0-9_./+-]*$/.test(name);
+}
+
 /** Build the cargo `--features` args for an out-of-tree Baochip build: the board feature, fixed defaults, then any extras. */
 export function buildOutOfTreeFeatures(target: string, extraFeatures: string[]): string[] {
 	const boardFeature = `board-${target || 'dabao'}`;

@@ -1,3 +1,4 @@
+import { isValidFeatureName } from '@util/cargo';
 import * as vscode from 'vscode';
 
 export const cfg = () => vscode.workspace.getConfiguration(''); // root
@@ -48,9 +49,7 @@ export const setBuildMode = (mode: BuildMode) => updateSetting('baochip.buildMod
 
 // Only pass through values that look like cargo feature names (defense-in-depth for CLI args).
 export const getExtraFeatures = (): string[] =>
-	(cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? []).filter((f) =>
-		/^[A-Za-z0-9_][A-Za-z0-9_./+-]*$/.test(f),
-	);
+	(cfg().get<string[]>('baochip.outOfTree.extraFeatures') ?? []).filter(isValidFeatureName);
 
 export const getMonitorFlags = () => ({
 	crlf: cfg().get<boolean>('baochip.monitor.crlf') ?? true,

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildOutOfTreeFeatures, parseCargoPackageName } from '../../util/cargo';
+import {
+	buildOutOfTreeFeatures,
+	isValidFeatureName,
+	parseCargoPackageName,
+} from '../../util/cargo';
 
 test('parseCargoPackageName: reads a normal package name', () => {
 	assert.equal(parseCargoPackageName('[package]\nname = "my_app"\nversion = "0.1.0"\n'), 'my_app');
@@ -28,6 +32,18 @@ test('buildOutOfTreeFeatures: defaults to board-dabao with the fixed features', 
 
 test('buildOutOfTreeFeatures: uses the given board target', () => {
 	assert.deepEqual(buildOutOfTreeFeatures('baosec', []), ['--features', 'board-baosec', ...FIXED]);
+});
+
+test('isValidFeatureName: accepts typical cargo feature names', () => {
+	for (const n of ['bao1x', 'board-dabao', 'utralib/bao1x', 'foo_bar', 'a']) {
+		assert.equal(isValidFeatureName(n), true, n);
+	}
+});
+
+test('isValidFeatureName: rejects empty, whitespace, flag-like, and metachar values', () => {
+	for (const n of ['', ' ', 'foo bar', '--config', '-foo', 'a;b', 'a"b', 'a`b', 'a&b']) {
+		assert.equal(isValidFeatureName(n), false, n);
+	}
 });
 
 test('buildOutOfTreeFeatures: appends each extra feature as its own --features flag', () => {
