@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
 function findBaochipDrives(): string[] {
-	const platform = os.platform();
+	const platform = process.platform;
 
 	if (platform === 'darwin') {
 		try {

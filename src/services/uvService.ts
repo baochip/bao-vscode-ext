@@ -118,7 +118,7 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 
 function detectWorkingPythons(): { cmd: string; version: string }[] {
 	const cands =
-		os.platform() === 'win32' ? ['py -3', 'py', 'python3', 'python'] : ['python3', 'python'];
+		process.platform === 'win32' ? ['py -3', 'py', 'python3', 'python'] : ['python3', 'python'];
 	const list: { cmd: string; version: string }[] = [];
 	for (const c of cands) {
 		const v = spawnVersion(c, ['--version']);
@@ -167,7 +167,7 @@ function uvUsable(uvCmd: string): boolean {
 }
 
 function whichUvFromPath(): string | null {
-	const name = os.platform() === 'win32' ? 'uv.exe' : 'uv';
+	const name = process.platform === 'win32' ? 'uv.exe' : 'uv';
 	return uvUsable(name) ? name : null;
 }
 
@@ -234,7 +234,7 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 	try {
 		const parts = pythonCmd.split(' ').filter(Boolean);
 		const exeOnly = parts[0];
-		if (exeOnly && os.platform() === 'win32' && exeOnly.toLowerCase().endsWith('python.exe')) {
+		if (exeOnly && process.platform === 'win32' && exeOnly.toLowerCase().endsWith('python.exe')) {
 			paths.push(path.join(path.dirname(exeOnly), 'Scripts', 'uv.exe'));
 		}
 	} catch {}
@@ -274,7 +274,7 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	const envPath = process.env.PATH || '';
 	log(`uv not found after install. PATH:\n${envPath}`);
 	throw new Error(
-		os.platform() === 'win32'
+		process.platform === 'win32'
 			? vscode.l10n.t(
 					'uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.',
 				)
