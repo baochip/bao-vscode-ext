@@ -209,20 +209,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	refreshUI();
 
-	// If settings change outside commands (e.g., user edits Settings UI), auto-update status bar
+	// If any baochip setting changes outside commands (e.g., user edits Settings UI), repaint the UI.
 	const cfgWatcher = vscode.workspace.onDidChangeConfiguration((e) => {
-		if (
-			e.affectsConfiguration('baochip.monitorDefaultPort') ||
-			e.affectsConfiguration('baochip.serialPortBootloader') ||
-			e.affectsConfiguration('baochip.serialPortRun') ||
-			e.affectsConfiguration('baochip.monitor.defaultBaud') ||
-			e.affectsConfiguration('baochip.buildTarget') ||
-			e.affectsConfiguration('baochip.xousAppName') ||
-			e.affectsConfiguration('baochip.flashLocation') ||
-			e.affectsConfiguration('baochip.buildMode')
-		) {
-			refreshUI();
-		}
+		if (e.affectsConfiguration('baochip')) refreshUI();
 	});
 	context.subscriptions.push(cfgWatcher);
 
