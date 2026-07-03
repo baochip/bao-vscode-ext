@@ -10,7 +10,7 @@ import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
-import { shellCd } from '@util/shell';
+import { quoteArg, shellCd } from '@util/shell';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs = {
@@ -90,7 +90,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'));
 	term.sendText(shellCd(root));
 
-	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().join(' ')}`;
+	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().map(quoteArg).join(' ')}`;
 
 	// Read package name to construct ELF path for xous-app-uf2
 	try {
@@ -98,7 +98,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 		const pkgName = parseCargoPackageName(cargo);
 		if (pkgName) {
 			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
-			const uf2Cmd = `xous-app-uf2 --elf ${elfPath}`;
+			const uf2Cmd = `xous-app-uf2 --elf ${quoteArg(elfPath)}`;
 			// PowerShell 5.x (shipped with Windows) does not support &&
 			const chainedCmd =
 				process.platform === 'win32'
@@ -134,7 +134,9 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	}
 
 	term.sendText(shellCd(root));
-	term.sendText(`cargo xtask ${target}${app ? ` ${app}` : ''}`);
+	term.sendText(
+		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map(quoteArg).join(' ')}` : ''}`,
+	);
 	term.show(true);
 }
 
