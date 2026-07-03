@@ -1,16 +1,15 @@
-import sys
 import time
 import logging
 import serial
 
-def cmd_boot(args) -> None:
+def cmd_boot(args) -> int:
     port = args.port
     baud = args.baud
     try:
         ser = serial.Serial(port, baud, timeout=0.2)
     except Exception as e:
         logging.error(f"[bao] cannot open {port}: {e}")
-        sys.exit(2)
+        return 2
 
     try:
         with ser:
@@ -27,10 +26,10 @@ def cmd_boot(args) -> None:
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"[bao] boot command failed on {port}: {e}")
-        sys.exit(1)
+        return 1
 
     print(f"[bao] sent 'boot' on {port}")
-    sys.exit(0)
+    return 0
 
 
 def register(subparsers) -> None:

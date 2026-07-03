@@ -27,7 +27,7 @@ def main():
     logging.basicConfig(level=log_level, format="[bao] %(levelname)s: %(message)s")
 
     try:
-        args.func(args)
+        code = args.func(args)
     except KeyboardInterrupt:
         print("\n[bao] aborted by user.")
         sys.exit(1)
@@ -38,6 +38,9 @@ def main():
         else:
             print(f"[bao] error: {e}", file=sys.stderr)
         sys.exit(1)
+
+    # Commands return an int exit code (or None for success); propagate it to the process.
+    sys.exit(code or 0)
 
 if __name__ == "__main__":
     main()

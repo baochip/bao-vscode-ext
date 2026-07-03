@@ -14,5 +14,7 @@ vsc-extension-quickstart.md
 **/node_modules/**
 **/.github/**
 **/scripts/**
+**/__pycache__/**
+**/*.pyc
 out/test/**
 tsconfig.test.json
