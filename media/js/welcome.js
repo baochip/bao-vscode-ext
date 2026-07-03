@@ -5,7 +5,6 @@
 	const actions = {
 		configure: () => vscode.postMessage({ type: 'run', cmd: 'configure' }),
 		createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
-		examples: () => vscode.postMessage({ type: 'run', cmd: 'examples' }),
 		xousSite: () => vscode.postMessage({ type: 'xousSite' }),
 		extRepo: () => vscode.postMessage({ type: 'extRepo' }),
 		toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),

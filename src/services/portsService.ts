@@ -1,4 +1,3 @@
-import type {} from 'node:child_process'; // keep file type-safe; no direct spawn needed
 import { getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
 import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';
