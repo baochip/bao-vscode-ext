@@ -17,7 +17,7 @@ def _stdin_raw_noecho():
         return
 
     if os.name == "posix":
-        import termios, tty
+        import termios
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         try:
@@ -26,8 +26,10 @@ def _stdin_raw_noecho():
             new[3] &= ~(termios.ECHO | termios.ICANON)   # lflags
             new[1] |= termios.OPOST                      # oflags: leave output processing on
             new[0] &= ~termios.ICRNL                     # iflags: don't map CR->NL
+            # per-char reads (VMIN=1/VTIME=0); ISIG left on so Ctrl+C still raises KeyboardInterrupt
+            new[6][termios.VMIN] = 1
+            new[6][termios.VTIME] = 0
             termios.tcsetattr(fd, termios.TCSANOW, new)
-            tty.setcbreak(fd)  # per-char reads; Ctrl+C still raises KeyboardInterrupt
             yield
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
@@ -57,23 +59,24 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
     """Forward user input to the serial port (raw: per-byte, line: per-line)."""
     try:
         if getattr(args, "raw", False):
-            with _stdin_raw_noecho():
-                while not stop_event.is_set():
-                    b = sys.stdin.buffer.read(1)
-                    if not b:
-                        break
+            # Raw mode: per-byte. cmd_monitor (main thread) owns the terminal raw-mode; this
+            # thread only reads stdin and writes to serial, so it never touches terminal state.
+            while not stop_event.is_set():
+                b = sys.stdin.buffer.read(1)
+                if not b:
+                    break
+                try:
+                    ser.write(b)
+                    ser.flush()
+                except SerialException:
+                    break
+                # Local echo only if explicitly requested
+                if not getattr(args, "no_echo", False):
                     try:
-                        ser.write(b)
-                        ser.flush()
-                    except SerialException:
-                        break
-                    # Local echo only if explicitly requested
-                    if not getattr(args, "no_echo", False):
-                        try:
-                            sys.stdout.write(b.decode(errors="replace"))
-                            sys.stdout.flush()
-                        except Exception:
-                            pass
+                        sys.stdout.write(b.decode(errors="replace"))
+                        sys.stdout.flush()
+                    except Exception:
+                        pass
         else:
             # Line mode: read a full line, normalize line ending
             tx_eol = b"\r\n" if getattr(args, "crlf", False) else b"\n"
@@ -125,6 +128,11 @@ def cmd_monitor(args) -> None:
     RETRY_SLEEP_S = 0.05  # pause between error retries to avoid a hot error loop
     stop_event = threading.Event()
 
+    # Own the terminal raw-mode on THIS (main) thread so the restore always runs, even on Ctrl+C:
+    # the daemon writer thread can be killed mid-read, so it must NOT own terminal state.
+    raw_ctx = _stdin_raw_noecho() if getattr(args, "raw", False) else contextlib.nullcontext()
+    raw_ctx.__enter__()
+
     # Start stdin→serial writer thread
     writer = threading.Thread(target=_stdin_to_serial, args=(ser, args, stop_event), daemon=True)
     writer.start()
@@ -157,6 +165,11 @@ def cmd_monitor(args) -> None:
         try:
             stop_event.set()
             writer.join(timeout=0.5)
+        except Exception:
+            pass
+        # Restore the terminal now that the writer has stopped (main thread -> always runs).
+        try:
+            raw_ctx.__exit__(None, None, None)
         except Exception:
             pass
         try:
