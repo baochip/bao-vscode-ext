@@ -1,8 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
+import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
-import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
+import {
+	getBuildTarget,
+	getExtraFeatures,
+	getXousAppName,
+	setBuildTarget,
+} from '@services/configService';
 import { getChannel } from '@services/logService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/pathService';
 import { runProcess } from '@services/procService';
@@ -31,9 +36,32 @@ export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
 		selectLabel,
 	);
 	if (action === selectLabel) {
-		await vscode.commands.executeCommand('baochip.selectBuildTarget');
+		await promptAndSaveBuildTarget();
 	}
 	return undefined;
+}
+
+/** Prompt the user to pick a build target, persist it, and return it (or undefined if cancelled). */
+export async function promptAndSaveBuildTarget(): Promise<string | undefined> {
+	const targets = BUILD_TARGETS;
+	if (!targets || targets.length === 0) {
+		vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));
+		return undefined;
+	}
+
+	const current = getBuildTarget();
+	const picked = await vscode.window.showQuickPick(
+		targets.map((t) => ({
+			label: t,
+			description: t === current ? vscode.l10n.t('current') : undefined,
+		})),
+		{ placeHolder: vscode.l10n.t('Select build target') },
+	);
+	if (!picked) return undefined;
+
+	await setBuildTarget(picked.label);
+	vscode.window.showInformationMessage(vscode.l10n.t('Build target set to {0}', picked.label));
+	return picked.label;
 }
 
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {

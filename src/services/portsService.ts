@@ -1,4 +1,11 @@
-import { getBootloaderSerialPort, getRunSerialPort } from '@services/configService';
+import {
+	getBootloaderSerialPort,
+	getRunSerialPort,
+	setBootloaderSerialPort,
+	setRunSerialPort,
+} from '@services/configService';
+import { runBaoCmd } from '@services/pathService';
+import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';
 import * as vscode from 'vscode';
@@ -19,10 +26,44 @@ export async function ensureSerialPort(mode: 'run' | 'bootloader'): Promise<stri
 	vscode.window.showInformationMessage(
 		vscode.l10n.t('No {0} serial port set. Pick one first.', friendly),
 	);
-	await vscode.commands.executeCommand(
-		mode === 'run' ? 'baochip.setRunSerialPort' : 'baochip.setBootloaderSerialPort',
-	);
+	await promptAndSaveSerialPort(mode);
 	return read();
+}
+
+/** Prompt the user to pick a serial port for the given mode, persist it, and return it (or undefined if cancelled). */
+export async function promptAndSaveSerialPort(
+	mode: 'run' | 'bootloader',
+): Promise<string | undefined> {
+	const opts =
+		mode === 'run'
+			? {
+					confirmTitle: vscode.l10n.t('Is your Baochip board in run mode?'),
+					confirmDetail: vscode.l10n.t(
+						'If you still see a removable drive named "BAOCHIP",\npress PROG on the board to enter run mode.',
+					),
+					placeholder: vscode.l10n.t('Select run mode (firmware) serial port'),
+				}
+			: {
+					confirmTitle: vscode.l10n.t('Is your Baochip board in bootloader mode?'),
+					confirmDetail: vscode.l10n.t(
+						'Press RESET on the board if you do not\nsee a removable drive named "BAOCHIP".',
+					),
+					placeholder: vscode.l10n.t('Select bootloader (drive mode) serial port'),
+				};
+
+	const port = await pickSerialPort(runBaoCmd, getGlobalVenvRoot(), opts);
+	if (!port) return undefined;
+
+	if (mode === 'run') {
+		await setRunSerialPort(port);
+		vscode.window.showInformationMessage(vscode.l10n.t('Run mode serial port set to: {0}', port));
+	} else {
+		await setBootloaderSerialPort(port);
+		vscode.window.showInformationMessage(
+			vscode.l10n.t('Bootloader (drive mode) serial port set to: {0}', port),
+		);
+	}
+	return port;
 }
 
 export async function listPorts(

@@ -1,29 +1,9 @@
 import { withCommand } from '@commands/withCommand';
-import { BUILD_TARGETS } from '@constants';
-import { getBuildTarget, setBuildTarget } from '@services/configService';
-import * as vscode from 'vscode';
+import { promptAndSaveBuildTarget } from '@services/buildService';
 
 export function registerSelectBuildTarget(refreshUI: () => void) {
 	return withCommand('baochip.selectBuildTarget', async () => {
-		const targets = BUILD_TARGETS;
-		if (!targets || targets.length === 0) {
-			vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));
-			return;
-		}
-
-		const current = getBuildTarget();
-		const picked = await vscode.window.showQuickPick(
-			targets.map((t) => ({
-				label: t,
-				description: t === current ? vscode.l10n.t('current') : undefined,
-			})),
-			{ placeHolder: vscode.l10n.t('Select build target') },
-		);
-
-		if (!picked) return;
-
-		await setBuildTarget(picked.label);
-		vscode.window.showInformationMessage(vscode.l10n.t('Build target set to {0}', picked.label));
-		refreshUI();
+		const target = await promptAndSaveBuildTarget();
+		if (target) refreshUI();
 	});
 }
