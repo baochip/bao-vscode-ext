@@ -96,25 +96,18 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 		const exe = parts[0];
 		const baseArgs = parts.slice(1);
 
-		const tmpDir = path.join(os.tmpdir(), 'baochip-pyeval');
+		// Unique per-run dir (owner-only perms on POSIX), removed in finally so nothing is left behind.
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-pyeval-'));
 		try {
-			fs.mkdirSync(tmpDir, { recursive: true });
-		} catch {}
-		const tmpFile = path.join(
-			tmpDir,
-			`snippet-${Date.now()}-${Math.random().toString(36).slice(2)}.py`,
-		);
-		fs.writeFileSync(tmpFile, code, 'utf8');
+			const tmpFile = path.join(tmpDir, 'snippet.py');
+			fs.writeFileSync(tmpFile, code, 'utf8');
 
-		const args = [...baseArgs, tmpFile];
-		const res = spawnSync(exe, args, { encoding: 'utf8', shell: false });
-
-		try {
-			fs.unlinkSync(tmpFile);
-		} catch {}
-
-		const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
-		return { ok: res.status === 0, out: stdout };
+			const res = spawnSync(exe, [...baseArgs, tmpFile], { encoding: 'utf8', shell: false });
+			const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
+			return { ok: res.status === 0, out: stdout };
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true });
+		}
 	} catch (e: unknown) {
 		const message = toMessage(e);
 		return { ok: false, out: message };
