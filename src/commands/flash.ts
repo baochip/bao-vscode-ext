@@ -1,12 +1,12 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
+import { promptAndSaveApp } from '@services/appService';
 import { ensureBuildTargetOrPrompt } from '@services/buildService';
 import { getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
-import * as vscode from 'vscode';
 
 export function registerFlashCommand() {
 	return withCommand(Commands.flash, async () => {
@@ -25,11 +25,10 @@ export function registerFlashCommand() {
 		const target = await ensureBuildTargetOrPrompt();
 		if (!target) return;
 
-		const app = getXousAppName();
-		if (!app) {
-			await vscode.window.showWarningMessage(vscode.l10n.t('No app selected.'));
-			await vscode.commands.executeCommand(Commands.selectApp);
-			return;
+		// No app set yet: prompt to pick one, then continue the flash in the same run.
+		if (!getXousAppName()) {
+			const picked = await promptAndSaveApp();
+			if (!picked) return;
 		}
 
 		await decideAndFlash(root);

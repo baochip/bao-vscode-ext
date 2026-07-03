@@ -1,7 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getAppsDir, XOUS_CORE_REPO } from '@constants';
+import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
+import { getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
+import { ensureXousWorkspaceOpen } from '@services/workspaceService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
@@ -14,6 +18,44 @@ export async function listBaoApps(xousRoot: string, target: string): Promise<str
 		.map((e) => e.name)
 		.filter((name) => fs.existsSync(path.join(appsDir, name, 'Cargo.toml')))
 		.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Prompt the user to pick an app for the current xous-core workspace, persist it, and return it.
+ * Returns undefined in out-of-tree mode, if no apps exist, or if the user cancels.
+ */
+export async function promptAndSaveApp(): Promise<string | undefined> {
+	if (getProjectMode() === 'out-of-tree') return undefined;
+
+	const root = await resolveXousRootOrNotify();
+	if (!root) return undefined;
+
+	// Enforce opening xous-core as the workspace
+	const ok = await ensureXousWorkspaceOpen(root);
+	if (!ok) return undefined;
+
+	const target = getBuildTarget() || 'dabao';
+	const apps = await listBaoApps(root, target);
+	if (apps.length === 0) {
+		vscode.window.showWarningMessage(
+			vscode.l10n.t('No apps found under {0}. Create one first.', `${root}/${getAppsDir(target)}`),
+		);
+		return undefined;
+	}
+
+	const current = getXousAppName();
+	const pick = await vscode.window.showQuickPick(
+		apps.map((a) => ({
+			label: a,
+			description: a === current ? vscode.l10n.t('current') : undefined,
+		})),
+		{ placeHolder: vscode.l10n.t('Select app') },
+	);
+	if (!pick) return undefined;
+
+	await setXousAppName(pick.label);
+	vscode.window.showInformationMessage(vscode.l10n.t('Bao app set to {0}', pick.label));
+	return pick.label;
 }
 
 export function missingApps(xousRoot: string, appNames: string, target: string): string[] {

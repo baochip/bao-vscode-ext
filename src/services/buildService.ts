@@ -26,7 +26,7 @@ export type BuildPrereqs = {
 	app?: string;
 };
 
-/** Return the configured build target, or prompt to select one and return undefined. */
+/** Return the configured build target, prompting to select one if unset. Returns undefined if the user declines. */
 export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
 	const target = getBuildTarget();
 	if (target) return target;
@@ -36,7 +36,8 @@ export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
 		selectLabel,
 	);
 	if (action === selectLabel) {
-		await promptAndSaveBuildTarget();
+		// Return the freshly-picked target so the caller can proceed in the same run.
+		return promptAndSaveBuildTarget();
 	}
 	return undefined;
 }
