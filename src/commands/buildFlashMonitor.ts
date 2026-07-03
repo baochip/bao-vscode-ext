@@ -91,6 +91,7 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 
 				// Brief stability delay — let the UART settle before the monitor connects
 				await new Promise((r) => setTimeout(r, 300));
+				if (token.isCancellationRequested) return;
 				await openMonitorTTY('run');
 			},
 		);

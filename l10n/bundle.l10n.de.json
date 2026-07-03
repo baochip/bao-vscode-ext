@@ -1,4 +1,5 @@
 {
+	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "„{0}“ konnte nicht automatisch zu den Workspace-Mitgliedern in Cargo.toml hinzugefügt werden. Bitte manuell hinzufügen.",
 	"Created {0}/{1} and added to workspace.": "{0}/{1} wurde erstellt und zum Arbeitsbereich hinzugefügt.",
 	"baosec app creation is not yet supported.": "Die App-Erstellung für baosec wird noch nicht unterstützt.",
 	"Create app failed: {0}": "App-Erstellung fehlgeschlagen: {0}",

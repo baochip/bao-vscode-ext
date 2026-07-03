@@ -1,4 +1,5 @@
 {
+	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "无法自动将“{0}”添加到 Cargo.toml 的工作区成员中。请手动添加。",
 	"Created {0}/{1} and added to workspace.": "已创建 {0}/{1} 并添加到工作区。",
 	"baosec app creation is not yet supported.": "baosec 应用创建尚不支持。",
 	"Create app failed: {0}": "创建应用失败：{0}",

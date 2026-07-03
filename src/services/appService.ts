@@ -65,6 +65,15 @@ function addWorkspaceMember(xousRoot: string, member: string): void {
 	const cargoPath = path.join(xousRoot, 'Cargo.toml');
 	const content = fs.readFileSync(cargoPath, 'utf8');
 	const updated = content.replace(/(^members\s*=\s*\[[\s\S]*?)(\n\])/m, `$1\n  "${member}",$2`);
+	if (updated === content) {
+		vscode.window.showWarningMessage(
+			vscode.l10n.t(
+				'Could not automatically add "{0}" to the workspace members in Cargo.toml. Add it manually.',
+				member,
+			),
+		);
+		return;
+	}
 	fs.writeFileSync(cargoPath, updated, 'utf8');
 }
 

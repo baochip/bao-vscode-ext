@@ -11,7 +11,10 @@ async function updateSetting<T>(key: string, value: T) {
 	await cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 }
 
-export const getDefaultBaud = () => cfg().get<number>('baochip.monitor.defaultBaud') || 1000000;
+export const getDefaultBaud = () => {
+	const b = cfg().get<number>('baochip.monitor.defaultBaud');
+	return typeof b === 'number' && b > 0 ? b : 1000000;
+};
 export const setDefaultBaud = (baud: number) => updateSetting('baochip.monitor.defaultBaud', baud);
 
 export const getMonitorDefaultPort = (): 'run' | 'bootloader' =>
