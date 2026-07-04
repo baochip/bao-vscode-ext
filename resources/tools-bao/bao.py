@@ -11,7 +11,7 @@ from commands import ports
 def main():
     ap = argparse.ArgumentParser(
         prog="bao.py",
-        description="Baochip CLI — host-side utilities for Baochip development."
+        description="Baochip CLI - host-side utilities for Baochip development."
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (debug logging and tracebacks)")
     sub = ap.add_subparsers(dest="cmd", required=True)

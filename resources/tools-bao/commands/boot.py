@@ -1,6 +1,7 @@
 import time
 import logging
 import serial
+from utils.serial_utils import DEFAULT_BAUD
 
 def cmd_boot(args) -> int:
     port = args.port
@@ -38,5 +39,5 @@ def register(subparsers) -> None:
         help="Send 'boot' to the bootloader serial port to start run mode"
     )
     boot.add_argument("-p", "--port", required=True, help="Bootloader serial port (e.g., COM7, /dev/ttyACM0)")
-    boot.add_argument("-b", "--baud", type=int, default=1000000, help="Baud rate (default 1000000)")
+    boot.add_argument("-b", "--baud", type=int, default=DEFAULT_BAUD, help="Baud rate (default 1000000)")
     boot.set_defaults(func=cmd_boot)

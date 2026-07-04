@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 from serial.serialutil import SerialException
-from utils.serial_utils import open_serial, safe_close
+from utils.serial_utils import DEFAULT_BAUD, open_serial, safe_close
 
 
 @contextlib.contextmanager
@@ -100,7 +100,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                     except Exception:
                         pass
     except Exception as e:
-        logging.debug(f"[bao] stdin writer thread ended: {e}")
+        logging.debug(f"stdin writer thread ended: {e}")
     finally:
         stop_event.set()
 
@@ -117,11 +117,11 @@ def cmd_monitor(args) -> None:
             # CRLF translation, and the log stays current (was: text, line-buffered)
             outf = open(args.save, "ab", buffering=0)
         except Exception as e:
-            logging.error(f"[bao] cannot open --save file: {e}")
+            logging.error(f"cannot open --save file: {e}")
             safe_close(ser)
             return
 
-    print(f"[bao] Monitor {args.port} @ {args.baud} — interactive (Ctrl+C to exit)")
+    print(f"[bao] Monitor {args.port} @ {args.baud} - interactive (Ctrl+C to exit)")
     mode = "RAW" if getattr(args, "raw", False) else ("LINE CRLF" if getattr(args, "crlf", False) else "LINE LF")
     echo = "OFF" if getattr(args, "no_echo", False) else "ON"
     print(f"[bao] TX:{mode}  Echo:{echo}")
@@ -156,9 +156,9 @@ def cmd_monitor(args) -> None:
                 consecutive_errors = 0
             except SerialException as e:
                 consecutive_errors += 1
-                logging.debug(f"[bao] Serial error ({consecutive_errors}/{MAX_ERRORS}): {e}")
+                logging.debug(f"Serial error ({consecutive_errors}/{MAX_ERRORS}): {e}")
                 if consecutive_errors >= MAX_ERRORS:
-                    logging.error("[bao] Too many serial errors — port may be disconnected.")
+                    logging.error("Too many serial errors - port may be disconnected.")
                     break
                 time.sleep(RETRY_SLEEP_S)
                 continue
@@ -190,7 +190,7 @@ def cmd_monitor(args) -> None:
 def register(subparsers) -> None:
     m = subparsers.add_parser("monitor", help="Open a serial monitor")
     m.add_argument("-p", "--port", required=True, help="Serial port (e.g., COM5, /dev/ttyUSB0)")
-    m.add_argument("-b", "--baud", type=int, default=1000000, help="Baud rate")
+    m.add_argument("-b", "--baud", type=int, default=DEFAULT_BAUD, help="Baud rate")
     m.add_argument("--save", help="Append output to a file")
     m.add_argument("--crlf", action="store_true", help="Use CRLF as TX line ending in line mode (default LF)")
     m.add_argument("--raw", action="store_true", help="Send keystrokes immediately (raw byte mode)")
