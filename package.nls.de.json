@@ -20,9 +20,11 @@
 	"cmd.flash": "Baochip: Gerät flashen",
 	"cmd.buildFlashMonitor": "Baochip: Build - Flash - Monitor",
 	"cmd.resetUvSetup": "Baochip: UV-Konfiguration zurücksetzen",
+	"cmd.rerunSetup": "Baochip: Erweiterungs-Setup erneut ausführen",
 
 	"cfg.title.general": "Baochip - Allgemein",
 	"cfg.general.showWelcomeOnStartup": "Beim Aktivieren der Erweiterung automatisch die Willkommensseite öffnen.",
+	"cfg.general.rerunSetup": "Installiert uv und die von Baochip verwendete Python-Umgebung neu. Dies wird bei der ersten Verwendung von Baochip automatisch ausgeführt; verwenden Sie es, um die Einrichtung erneut auszuführen, falls sie fehlgeschlagen ist oder Sie sie neu aufbauen möchten. [Erweiterungs-Setup erneut ausführen](command:baochip.rerunSetup)",
 
 	"cfg.title.ports": "Baochip - Ports",
 	"cfg.ports.bootloader": "Seriellport, der im Bootloader-/UF2-Laufwerksmodus erscheint.",

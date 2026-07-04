@@ -731,6 +731,49 @@ export async function ensureBaoPythonDeps({
 	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
+/**
+ * Delete everything setup installs under our global storage - the contained uv, the managed Python,
+ * uv's download cache, and the venv - so the next setup rebuilds from scratch. A uv the user
+ * installed globally themselves is untouched (it lives outside our storage) and is reused on rebuild.
+ */
+function cleanContainedInstall(): void {
+	const root = getGlobalVenvRoot();
+	for (const sub of ['uv', 'python', 'cache', '.venv']) {
+		const dir = path.join(root, sub);
+		try {
+			fs.rmSync(dir, { recursive: true, force: true });
+			log(`removed ${dir}`);
+		} catch (e: unknown) {
+			log(`could not remove ${dir}: ${toMessage(e)}`);
+		}
+	}
+}
+
+/**
+ * Re-run the automatic environment setup on demand, from a clean slate: remove what we installed
+ * (contained uv, managed Python, cache, venv), clear saved state, then reinstall everything. Gated
+ * behind a confirmation because it deletes the install and re-downloads over the network.
+ */
+export async function rerunExtensionSetup(): Promise<void> {
+	const proceed = vscode.l10n.t('Reinstall');
+	const choice = await vscode.window.showWarningMessage(
+		vscode.l10n.t(
+			'Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.',
+		),
+		{ modal: true },
+		proceed,
+	);
+	if (choice !== proceed) return;
+
+	await gSet<string | undefined>(KEY_UV_PATH, undefined);
+	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
+	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
+	cleanContainedInstall();
+
+	await ensureBaoPythonDeps();
+	info(vscode.l10n.t('Baochip: extension setup complete.'));
+}
+
 export async function resetUvSetup() {
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);

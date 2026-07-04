@@ -11,6 +11,7 @@ export const Commands = {
 	openMonitor: 'baochip.openMonitor',
 	openSettings: 'baochip.openSettings',
 	openWelcome: 'baochip.openWelcome',
+	rerunSetup: 'baochip.rerunSetup',
 	resetUvSetup: 'baochip.resetUvSetup',
 	selectApp: 'baochip.selectApp',
 	selectBuildTarget: 'baochip.selectBuildTarget',

@@ -241,5 +241,8 @@
 	"Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.": "Baochip benötigt uv, konnte es aber nicht automatisch installieren. Installieren Sie uv selbst (siehe die uv-Installationsanleitung) und führen Sie dann erneut einen Baochip-Befehl aus - uv wird automatisch erkannt.",
 	"Open uv installation guide": "uv-Installationsanleitung öffnen",
 	"Baochip: no Python found - downloading a Python runtime (one-time, ~150 MB)...": "Baochip: Kein Python gefunden - eine Python-Laufzeit wird heruntergeladen (einmalig, ~150 MB)...",
-	"Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}": "Baochip konnte keine Python-Laufzeit herunterladen. Prüfen Sie Ihr Netzwerk und einen etwaigen Proxy oder eine Firewall und versuchen Sie es erneut.\n{0}"
+	"Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}": "Baochip konnte keine Python-Laufzeit herunterladen. Prüfen Sie Ihr Netzwerk und einen etwaigen Proxy oder eine Firewall und versuchen Sie es erneut.\n{0}",
+	"Baochip: extension setup complete.": "Baochip: Erweiterungs-Setup abgeschlossen.",
+	"Reinstall": "Neu installieren",
+	"Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.": "Setup komplett neu ausführen? Dies löscht nur die privaten Kopien von uv, Python und der virtuellen Umgebung, die Baochip in VS Code verwaltet, und installiert sie neu. Ein an anderer Stelle auf Ihrem System installiertes uv oder Python ist nicht betroffen. Eine Netzwerkverbindung ist erforderlich."
 }

@@ -20,9 +20,11 @@
 	"cmd.flash": "Baochip: デバイスにフラッシュ",
 	"cmd.buildFlashMonitor": "Baochip: ビルド・フラッシュ・モニター",
 	"cmd.resetUvSetup": "Baochip: UV 設定をリセット",
+	"cmd.rerunSetup": "Baochip: 拡張機能のセットアップを再実行",
 
 	"cfg.title.general": "Baochip - 全般",
 	"cfg.general.showWelcomeOnStartup": "拡張機能の起動時に「ようこそ」ページを自動で開きます。",
+	"cfg.general.rerunSetup": "Baochip が使用する uv と Python 環境を再インストールします。これは Baochip の初回使用時に自動的に実行されます。セットアップが失敗した場合や再構築したい場合に使用してください。[拡張機能のセットアップを再実行](command:baochip.rerunSetup)",
 
 	"cfg.title.ports": "Baochip - ポート",
 	"cfg.ports.bootloader": "ブートローダー / UF2 ドライブモードで現れるシリアルポート。",

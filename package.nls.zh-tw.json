@@ -20,9 +20,11 @@
 	"cmd.flash": "Baochip：燒錄到裝置",
 	"cmd.buildFlashMonitor": "Baochip：建置 - 燒錄 - 監視",
 	"cmd.resetUvSetup": "Baochip：重設 UV 設定",
+	"cmd.rerunSetup": "Baochip：重新執行擴充功能設定",
 
 	"cfg.title.general": "Baochip - 一般",
 	"cfg.general.showWelcomeOnStartup": "擴充功能啟用時自動開啟 Baochip 歡迎頁。",
+	"cfg.general.rerunSetup": "重新安裝 Baochip 使用的 uv 和 Python 環境。首次使用 Baochip 時會自動執行；如果設定失敗或想要重建，可使用此項再次執行。[重新執行擴充功能設定](command:baochip.rerunSetup)",
 
 	"cfg.title.ports": "Baochip - 埠",
 	"cfg.ports.bootloader": "在開機載入程式 / UF2 磁碟模式出現的串列埠。",

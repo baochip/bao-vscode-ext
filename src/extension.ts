@@ -11,7 +11,7 @@ import {
 	getXousAppName,
 } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
-import { resetUvSetup, setExtensionContext } from '@services/uvService';
+import { rerunExtensionSetup, resetUvSetup, setExtensionContext } from '@services/uvService';
 import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
@@ -95,6 +95,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		withCommand(Commands.resetUvSetup, async () => {
 			await resetUvSetup();
+		}),
+		withCommand(Commands.rerunSetup, async () => {
+			await rerunExtensionSetup();
 		}),
 	);
 

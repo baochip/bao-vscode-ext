@@ -106,6 +106,10 @@
 			{
 				"command": "baochip.resetUvSetup",
 				"title": "%cmd.resetUvSetup%"
+			},
+			{
+				"command": "baochip.rerunSetup",
+				"title": "%cmd.rerunSetup%"
 			}
 		],
 		"menus": {},
@@ -119,6 +123,11 @@
 						"default": true,
 						"description": "%cfg.general.showWelcomeOnStartup%",
 						"order": 1
+					},
+					"baochip.reRunExtensionSetup": {
+						"type": "null",
+						"markdownDescription": "%cfg.general.rerunSetup%",
+						"order": 2
 					}
 				}
 			},
