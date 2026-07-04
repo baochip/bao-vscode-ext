@@ -13,8 +13,8 @@ This extension integrates building, flashing, and serial monitoring directly int
 
 ### Build Modes
 The extension auto-detects your workflow from the open workspace:
-- **In-tree** — develop apps inside a local `xous-core` checkout
-- **Out-of-tree** — develop standalone apps without a local `xous-core`; kernel files can be downloaded automatically or you can provide your own builds.
+- **In-tree** - develop apps inside a local `xous-core` checkout
+- **Out-of-tree** - develop standalone apps without a local `xous-core`; kernel files can be downloaded automatically or you can provide your own builds.
 
 ### Welcome Page
 A simple start screen with:
@@ -37,7 +37,7 @@ A simple start screen with:
 ### Serial Monitor
 - Raw mode (immediate keystroke passthrough)
 - Line mode with CRLF normalization
-- Run Mode ↔ Bootloader Mode option for ports
+- Run Mode <-> Bootloader Mode option for ports
 
 ### Combined Build/Flash/Monitor Command
 A single command that:
@@ -76,7 +76,7 @@ git clone https://github.com/betrusted-io/xous-core
 ```
 Then, make a new app in 
 
-**Out-of-tree:** Open any folder in VS Code — no `xous-core` required.  Use 'New app' to start from scratch.
+**Out-of-tree:** Open any folder in VS Code - no `xous-core` required.  Use 'New app' to start from scratch.
 
 ## 3. Configuring the extension
 
@@ -106,7 +106,7 @@ You may use any of the following:
 - The Baochip sidebar
 - Or the combined all-in-one command:
 
-    Baochip: Build • Flash • Monitor
+    Baochip: Build - Flash - Monitor
 
 ---
 
