@@ -89,11 +89,11 @@ export async function installXousToolkit(): Promise<void> {
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing Xous toolchain target…'),
+			title: vscode.l10n.t('Baochip: Installing Xous toolchain target...'),
 			cancellable: false,
 		},
 		async (progress) => {
-			progress.report({ message: vscode.l10n.t('Fetching release list…') });
+			progress.report({ message: vscode.l10n.t('Fetching release list...') });
 			const releases = (await fetchJson(BETRUSTED_RUST_RELEASES)) as Record<string, unknown>[];
 
 			// Find releases whose tag starts with the current rustc version
@@ -114,7 +114,7 @@ export async function installXousToolkit(): Promise<void> {
 
 			const host = hostTriple();
 
-			// Require an asset matching the host triple — no wrong-host fallback (would install a broken toolchain).
+			// Require an asset matching the host triple - no wrong-host fallback (would install a broken toolchain).
 			const isXousAsset = (a: Record<string, unknown>) => {
 				const name = a.name;
 				return (
@@ -137,12 +137,12 @@ export async function installXousToolkit(): Promise<void> {
 			const downloadUrl = hostAsset.browser_download_url as string;
 			const assetName = hostAsset.name as string;
 
-			progress.report({ message: vscode.l10n.t('Downloading {0}…', assetName) });
+			progress.report({ message: vscode.l10n.t('Downloading {0}...', assetName) });
 			// Use a fixed local filename, never the remote-controlled asset name (path traversal / injection).
 			const tmpZip = path.join(os.tmpdir(), 'baochip-xous-toolkit.zip');
 			await downloadFile(downloadUrl, tmpZip);
 
-			progress.report({ message: vscode.l10n.t('Extracting toolchain…') });
+			progress.report({ message: vscode.l10n.t('Extracting toolchain...') });
 			// Extract to a staging dir and validate the expected target layout before touching the
 			// sysroot, so a malformed/wrong archive can't corrupt the toolchain.
 			const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-toolkit-'));

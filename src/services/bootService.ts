@@ -25,7 +25,7 @@ export async function sendBoot(): Promise<boolean> {
 	const baud = getDefaultBaud();
 	const chan = getBootChannel();
 	chan.show(true);
-	chan.appendLine(`[bao] ${vscode.l10n.t("Sending 'boot' to {0} @ {1}…", port, baud)}`);
+	chan.appendLine(`[bao] ${vscode.l10n.t("Sending 'boot' to {0} @ {1}...", port, baud)}`);
 
 	const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
 	const fullArgs = [...args, bao, 'boot', '-p', port, '-b', String(baud)];

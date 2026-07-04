@@ -81,7 +81,7 @@ async function pickFromDetectedDrives(): Promise<string | undefined> {
 	const pick = await vscode.window.showQuickPick(
 		found.map((p) => ({ label: p })),
 		{
-			title: vscode.l10n.t('Multiple BAOCHIP drives found — select one to flash'),
+			title: vscode.l10n.t('Multiple BAOCHIP drives found - select one to flash'),
 			ignoreFocusOut: true,
 		},
 	);
@@ -145,7 +145,7 @@ async function waitForDrive(absPath: string, timeoutMs = 8000, intervalMs = 500)
 export async function ensureFlashLocation(): Promise<string | undefined> {
 	let dest = getFlashLocation();
 
-	// Case 1: not set yet → try auto-detect, then prompt to pick & save
+	// Case 1: not set yet -> try auto-detect, then prompt to pick & save
 	if (!dest) {
 		const detected = await pickFromDetectedDrives();
 		if (detected) {
@@ -162,7 +162,7 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 		dest = picked;
 	}
 
-	// Case 2: set but missing → try auto-detect first, then offer "Select New Location" or "Continue"
+	// Case 2: set but missing -> try auto-detect first, then offer "Select New Location" or "Continue"
 	if (!(await pathExists(dest))) {
 		const detected = await pickFromDetectedDrives();
 		if (detected) {
@@ -176,8 +176,8 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'Device not found at {0}\n\n' +
-					'• Is the board in bootloader mode? (press RESET on the board)\n' +
-					'• Is the board plugged in?\n\n' +
+					'- Is the board in bootloader mode? (press RESET on the board)\n' +
+					'- Is the board plugged in?\n\n' +
 					'Select "Continue" if the device appears after checking cable and pressing RESET.\n\n' +
 					'Otherwise, select a new location for the BAOCHIP device.',
 				dest,
@@ -235,7 +235,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Flashing…'),
+			title: vscode.l10n.t('Baochip: Flashing...'),
 			cancellable: true,
 		},
 		async (_progress, token) => {

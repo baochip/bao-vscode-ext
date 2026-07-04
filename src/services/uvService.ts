@@ -60,7 +60,7 @@ async function run(
 	args: string[],
 	cwd?: string,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
-	log(`→ ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
+	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
 	const r = await runProcess(cmd, args, { cwd });
 	if (r.error) {
 		const msg = `${cmd} failed to start: ${r.error.message}`;
@@ -69,7 +69,7 @@ async function run(
 		throw new Error(msg);
 	}
 	if (r.code === 0) {
-		log(`✓ ${cmd} exited 0`);
+		log(`[ok] ${cmd} exited 0`);
 		return { stdout: r.stdout, stderr: r.stderr, code: 0 };
 	}
 	const msg = `${cmd} failed (exit ${r.code})\n${r.stderr || r.stdout || ''}`.trim();
@@ -244,7 +244,7 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
-	info(vscode.l10n.t('Baochip: Installing uv…'));
+	info(vscode.l10n.t('Baochip: Installing uv...'));
 	const parts = pythonCmd.split(' ').filter(Boolean);
 	const exe = parts[0];
 	const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
@@ -361,12 +361,12 @@ export async function ensureBaoPythonDeps({
 	}
 
 	const reason = venvMissing ? 'missing virtual environment' : 'requirements changed';
-	if (!quiet) info(`Baochip: ${reason} — installing Python deps…`);
+	if (!quiet) info(`Baochip: ${reason} - installing Python deps...`);
 
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing Python deps (uv)…'),
+			title: vscode.l10n.t('Baochip: Installing Python deps (uv)...'),
 			cancellable: false,
 		},
 		async () => {

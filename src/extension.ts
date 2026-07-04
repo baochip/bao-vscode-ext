@@ -155,12 +155,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashLocationItem.tooltip = vscode.l10n.t('Click to set baochip location');
 		flashLocationItem.show();
 
-		// Build target — relevant in both modes; defaults to dabao when not explicitly set
+		// Build target - relevant in both modes; defaults to dabao when not explicitly set
 		targetItem.text = `$(target) ${target || 'dabao'}`;
 		targetItem.tooltip = vscode.l10n.t('Click to select build target');
 		targetItem.show();
 
-		// App name — only relevant in xous-core mode
+		// App name - only relevant in xous-core mode
 		if (mode === 'xous-core') {
 			appItem.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
 			appItem.tooltip = vscode.l10n.t('Click to select xous-core app');
@@ -187,9 +187,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashItem.tooltip = vscode.l10n.t('Flash to device');
 		flashItem.show();
 
-		// Status bar: B•F•M
-		bfmItem.text = '$(rocket) B•F•M';
-		bfmItem.tooltip = vscode.l10n.t('Build • Flash • Monitor'); // reuse tree label
+		// Status bar: B-F-M
+		bfmItem.text = '$(rocket) B-F-M';
+		bfmItem.tooltip = vscode.l10n.t('Build - Flash - Monitor'); // reuse tree label
 		bfmItem.show();
 
 		// Status bar: Settings

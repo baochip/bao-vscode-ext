@@ -54,7 +54,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 		}
 	}
 
-	// 3b) check riscv32imac-unknown-xous-elf — tier-3 target, installed by extracting
+	// 3b) check riscv32imac-unknown-xous-elf - tier-3 target, installed by extracting
 	//     a custom toolchain zip from betrusted-io/rust GitHub releases (not via rustup target add)
 	if (!isXousToolkitInstalled()) {
 		const installLabel = vscode.l10n.t('Install');

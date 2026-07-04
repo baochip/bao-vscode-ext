@@ -139,7 +139,7 @@ def cmd_monitor(args) -> None:
     raw_ctx = _stdin_raw_noecho() if getattr(args, "raw", False) else contextlib.nullcontext()
     raw_ctx.__enter__()
 
-    # Start stdin→serial writer thread
+    # Start stdin->serial writer thread
     writer = threading.Thread(target=_stdin_to_serial, args=(ser, args, stop_event), daemon=True)
     writer.start()
 

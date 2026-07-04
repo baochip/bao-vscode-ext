@@ -26,7 +26,7 @@ export async function fetchLatestXousCoreRev(): Promise<string> {
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Fetching latest xous-core rev…'),
+			title: vscode.l10n.t('Baochip: Fetching latest xous-core rev...'),
 			cancellable: false,
 		},
 		async () => {
@@ -64,7 +64,7 @@ async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
 		fetchETag(`${CI_BASE}/loader.uf2`),
 		fetchETag(`${CI_BASE}/xous.uf2`),
 	]);
-	if (!loaderEtag || !xousEtag) return true; // network unavailable — use cache
+	if (!loaderEtag || !xousEtag) return true; // network unavailable - use cache
 	return loaderEtag === stored.loader && xousEtag === stored.xous;
 }
 
@@ -73,7 +73,7 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Downloading kernel files…'),
+			title: vscode.l10n.t('Baochip: Downloading kernel files...'),
 			cancellable: false,
 		},
 		async () => {
@@ -160,7 +160,7 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 		{
 			modal: true,
 			detail: vscode.l10n.t(
-				'• SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are guaranteed to be from the same commit.\n\n• MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
+				'- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are guaranteed to be from the same commit.\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
 			),
 		},
 		syncLabel,

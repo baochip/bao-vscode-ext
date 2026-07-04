@@ -155,11 +155,11 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	if (appArgs.length === 0) {
 		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
 		term.sendText(
-			`echo [bao] ${vscode.l10n.t('No apps specified — building target "{0}" only.', target)}`,
+			`echo [bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`,
 		);
 	} else {
 		vscode.window.showInformationMessage(
-			vscode.l10n.t('Building "{0}" for app "{1}"…', target, appList),
+			vscode.l10n.t('Building "{0}" for app "{1}"...', target, appList),
 		);
 	}
 
@@ -197,7 +197,7 @@ async function runCargoAndWait(
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Building…'),
+			title: vscode.l10n.t('Baochip: Building...'),
 			cancellable: true,
 		},
 		async (_progress, token) => {
@@ -220,7 +220,7 @@ async function runCargoAndWait(
 /** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */
 export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
 	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building…'));
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building...'));
 	return runCargoAndWait(root, args);
 }
 
@@ -234,12 +234,12 @@ export async function runBuildAndWait(root: string, target: string, app?: string
 		return runCargoAndWait(
 			root,
 			args,
-			vscode.l10n.t('No apps specified — building target "{0}" only.', target),
+			vscode.l10n.t('No apps specified - building target "{0}" only.', target),
 		);
 	}
 
 	vscode.window.showInformationMessage(
-		vscode.l10n.t('Building "{0}" for app "{1}"…', target, appArgs.join(' ')),
+		vscode.l10n.t('Building "{0}" for app "{1}"...', target, appArgs.join(' ')),
 	);
 	return runCargoAndWait(root, args);
 }

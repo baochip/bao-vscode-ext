@@ -25,10 +25,10 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 
 	// At least one folder is open but it's not the configured one.
 	if (folders.length > 0) {
-		const openPaths = folders.map((f) => f.uri.fsPath).join('\n  • ');
+		const openPaths = folders.map((f) => f.uri.fsPath).join('\n  - ');
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
-				'The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  • {1}\n\nChoose what to do:',
+				'The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  - {1}\n\nChoose what to do:',
 				xousRoot,
 				openPaths,
 			),

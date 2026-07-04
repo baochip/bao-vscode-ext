@@ -46,7 +46,7 @@ export async function scaffoldOutOfTreeApp(): Promise<void> {
 
 	if (openFolder) {
 		const useCurrentLabel = vscode.l10n.t('Use current folder: {0}', openFolder.uri.fsPath);
-		const chooseDifferentLabel = vscode.l10n.t('Choose a different folder…');
+		const chooseDifferentLabel = vscode.l10n.t('Choose a different folder...');
 		const choice = await vscode.window.showQuickPick([useCurrentLabel, chooseDifferentLabel], {
 			title: vscode.l10n.t('Where should the project be created?'),
 		});

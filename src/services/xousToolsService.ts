@@ -25,7 +25,7 @@ export async function checkXousAppUf2(): Promise<boolean> {
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing xous-tools…'),
+			title: vscode.l10n.t('Baochip: Installing xous-tools...'),
 			cancellable: false,
 		},
 		async () => {

@@ -50,7 +50,7 @@ export function registerCreateApp() {
 
 		const progressOpts = {
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Creating app "{0}"…', name),
+			title: vscode.l10n.t('Creating app "{0}"...', name),
 		};
 		try {
 			await vscode.window.withProgress(progressOpts, async () => {

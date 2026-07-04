@@ -87,7 +87,7 @@ function readWorkspaceMembers(xousRoot: string): string[] {
 	}
 }
 
-/** Build a map of crate-name → workspace-relative-path by scanning workspace members. */
+/** Build a map of crate-name -> workspace-relative-path by scanning workspace members. */
 function buildWorkspacePackageMap(xousRoot: string): Map<string, string> {
 	const map = new Map<string, string>();
 	for (const member of readWorkspaceMembers(xousRoot)) {
@@ -185,10 +185,10 @@ export async function createBaoApp(
 	// Replace package name
 	cargo = cargo.replace(/\{\{NAME\}\}/g, appName);
 
-	// Remove rev = "{{REV}}" — not needed since we patch with local paths
+	// Remove rev = "{{REV}}" - not needed since we patch with local paths
 	cargo = cargo.replace(/,?\s*rev\s*=\s*"{{REV}}"/g, '');
 
-	// Remove [patch.crates-io] section — workspace members inherit workspace-level patches
+	// Remove [patch.crates-io] section - workspace members inherit workspace-level patches
 	cargo = `${cargo.replace(/\[patch\.crates-io\][\s\S]*?(?=\n\[|\s*$)/, '').trimEnd()}\n`;
 
 	// Generate and append [patch."https://github.com/betrusted-io/xous-core"] section

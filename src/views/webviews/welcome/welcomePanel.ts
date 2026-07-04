@@ -26,7 +26,7 @@ export class WelcomePanel {
 
 		const panel = vscode.window.createWebviewPanel(
 			'baoWelcome',
-			vscode.l10n.t('Welcome • Baochip'),
+			vscode.l10n.t('Welcome - Baochip'),
 			vscode.ViewColumn.Active,
 			{
 				enableScripts: true,
@@ -136,7 +136,7 @@ export class WelcomePanel {
 		);
 
 		// Localized strings injected into the HTML
-		const titleBar = vscode.l10n.t('Welcome • Baochip'); // "Welcome • Baochip"
+		const titleBar = vscode.l10n.t('Welcome - Baochip'); // "Welcome - Baochip"
 		const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
 		const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
 		const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"

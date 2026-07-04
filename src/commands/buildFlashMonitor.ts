@@ -35,7 +35,7 @@ export function registerBuildFlashMonitor() {
 			return;
 		}
 
-		// 1.5) ELF→UF2 conversion (out-of-tree only)
+		// 1.5) ELF->UF2 conversion (out-of-tree only)
 		if (pre.mode === 'out-of-tree') {
 			const converted = await convertElfToUf2(pre.root);
 			if (!converted) return;
@@ -69,14 +69,14 @@ export function registerBuildFlashMonitor() {
 		await vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Notification,
-				title: vscode.l10n.t('Baochip: waiting for {0}…', runPort),
+				title: vscode.l10n.t('Baochip: waiting for {0}...', runPort),
 				cancellable: true,
 			},
 			async (progress, token) => {
 				// small grace period so the bootloader can drop cleanly
 				await new Promise((r) => setTimeout(r, 500));
 
-				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port…') });
+				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port...') });
 				const seen = await waitForPort(runBaoCmd, runPort, {
 					timeoutMs: 20000,
 					intervalMs: 500,
@@ -87,11 +87,11 @@ export function registerBuildFlashMonitor() {
 
 				if (!seen) {
 					vscode.window.showWarningMessage(
-						vscode.l10n.t('Run mode port {0} didn’t appear in time. Trying anyway…', runPort),
+						vscode.l10n.t("Run mode port {0} didn't appear in time. Trying anyway...", runPort),
 					);
 				}
 
-				// Brief stability delay — let the UART settle before the monitor connects
+				// Brief stability delay - let the UART settle before the monitor connects
 				await new Promise((r) => setTimeout(r, 300));
 				if (token.isCancellationRequested) return;
 				await openMonitorTTY('run');

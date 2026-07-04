@@ -30,13 +30,13 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 		return false;
 	}
 
-	chan.appendLine(`[bao] ${vscode.l10n.t('Baochip: Converting ELF to UF2…')}`);
+	chan.appendLine(`[bao] ${vscode.l10n.t('Baochip: Converting ELF to UF2...')}`);
 	chan.show(true);
 
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Converting ELF to UF2…'),
+			title: vscode.l10n.t('Baochip: Converting ELF to UF2...'),
 			cancellable: false,
 		},
 		async () => {
