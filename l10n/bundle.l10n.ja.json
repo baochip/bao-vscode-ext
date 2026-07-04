@@ -237,5 +237,6 @@
 	"Baochip: requirements changed - installing Python deps...": "Baochip: 要件が変更されました - Python の依存関係をインストールしています...",
 	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: uv セットアップをリセットしました。コマンドを再実行して再構成してください。",
 	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "キャッシュされた uv 仮想環境も削除しますか? 次回のコマンド実行時に再構築されます。",
-	"Delete .venv": ".venv を削除"
+	"Delete .venv": ".venv を削除",
+	"Baochip: Installing uv (standalone installer)...": "Baochip: uv をインストール中 (スタンドアロンインストーラー)..."
 }

@@ -1,12 +1,14 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
+import * as https from 'node:https';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { isFullPathCommand } from '@util/shell';
+import { installerScriptUrl, knownUvLocations, uvPathIn } from '@util/uvInstall';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -309,6 +311,152 @@ function resolvePickedPythonExe(): string | undefined {
 	return exe && fs.existsSync(exe) ? exe : undefined;
 }
 
+/**
+ * Directory into which WE install a self-contained uv. Lives inside the extension's global storage
+ * (alongside the venv), so nothing is written to the user's home directory or PATH.
+ */
+function ownUvDir(): string {
+	return path.join(getGlobalVenvRoot(), 'uv');
+}
+
+/**
+ * uv paths to probe inside our own install dir. The standalone installer's UV_INSTALL_DIR layout
+ * has varied by version (binary directly in the dir, or under a `bin/` subdir), so we check both.
+ */
+function ownUvCandidates(): string[] {
+	const dir = ownUvDir();
+	return [uvPathIn(dir), uvPathIn(path.join(dir, 'bin'))];
+}
+
+/** Remove a directory tree, ignoring errors (best-effort temp cleanup). */
+function cleanupDir(dir: string): void {
+	try {
+		fs.rmSync(dir, { recursive: true, force: true });
+	} catch {}
+}
+
+/**
+ * Proxy env overlay so the installer's own downloads honor a corporate proxy: VS Code's `http.proxy`
+ * setting if configured, else the standard proxy env vars. Empty when no proxy is in play.
+ */
+function proxyEnv(): NodeJS.ProcessEnv {
+	const configured = vscode.workspace.getConfiguration('http').get<string>('proxy')?.trim();
+	const proxy =
+		configured ||
+		process.env.HTTPS_PROXY ||
+		process.env.https_proxy ||
+		process.env.HTTP_PROXY ||
+		process.env.http_proxy;
+	return proxy ? { HTTPS_PROXY: proxy, HTTP_PROXY: proxy } : {};
+}
+
+/** Download a URL to a file (following redirects), honoring VS Code's proxy support. */
+function downloadToFile(url: string, dest: string, redirectsLeft = 5): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const req = https.get(url, (res) => {
+			const status = res.statusCode ?? 0;
+			if (status >= 300 && status < 400 && res.headers.location) {
+				res.resume();
+				if (redirectsLeft <= 0) {
+					reject(new Error('too many redirects'));
+					return;
+				}
+				downloadToFile(new URL(res.headers.location, url).toString(), dest, redirectsLeft - 1).then(
+					resolve,
+					reject,
+				);
+				return;
+			}
+			if (status !== 200) {
+				res.resume();
+				reject(new Error(`HTTP ${status}`));
+				return;
+			}
+			const chunks: Buffer[] = [];
+			res.on('data', (c: Buffer) => chunks.push(c));
+			res.on('end', () => {
+				try {
+					// Write the raw bytes so the script is byte-for-byte intact (no re-encoding).
+					fs.writeFileSync(dest, Buffer.concat(chunks));
+					resolve();
+				} catch (e) {
+					reject(e);
+				}
+			});
+			res.on('error', reject);
+		});
+		req.on('error', reject);
+	});
+}
+
+/**
+ * Install uv with Astral's standalone installer into our own global storage, needing no Python.
+ * Fully contained: UV_INSTALL_DIR points at our dir and INSTALLER_NO_MODIFY_PATH stops it from
+ * editing the user's PATH. Returns the uv path on success, or null so the caller can fall back.
+ */
+async function installUvViaStandalone(): Promise<string | null> {
+	const dir = ownUvDir();
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch (e: unknown) {
+		log(`could not create uv install dir ${dir}: ${toMessage(e)}`);
+		return null;
+	}
+
+	const isWin = process.platform === 'win32';
+	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bao-uv-'));
+	const scriptPath = path.join(tmpDir, isWin ? 'install.ps1' : 'install.sh');
+
+	info(vscode.l10n.t('Baochip: Installing uv (standalone installer)...'));
+	try {
+		await downloadToFile(installerScriptUrl(), scriptPath);
+	} catch (e: unknown) {
+		log(`uv installer download failed: ${toMessage(e)}`);
+		cleanupDir(tmpDir);
+		return null;
+	}
+
+	// Contained install: land uv inside our storage and never touch the user's PATH.
+	const installEnv: NodeJS.ProcessEnv = {
+		...pythonUtf8Env(),
+		...proxyEnv(),
+		UV_INSTALL_DIR: dir,
+		INSTALLER_NO_MODIFY_PATH: '1',
+	};
+
+	// We invoke the script THROUGH the interpreter (powershell -File / sh <file>), so no execute bit
+	// is needed. powershell.exe (Windows PowerShell 5.1) is used for the broadest compatibility.
+	const [cmd, args] = isWin
+		? ['powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath]]
+		: ['sh', [scriptPath]];
+
+	log(`-> ${cmd} ${(args as string[]).join(' ')}`);
+	const r = await runProcess(cmd as string, args as string[], { env: installEnv });
+	cleanupDir(tmpDir);
+	if (r.error || r.code !== 0) {
+		log(
+			`uv standalone installer failed: ${r.error?.message ?? `exit ${r.code}`}\n${(
+				r.stderr || r.stdout || ''
+			).trim()}`,
+		);
+		return null;
+	}
+
+	for (const cand of ownUvCandidates()) {
+		if (fs.existsSync(cand) && uvUsable(cand)) {
+			log(`uv installed (standalone) at: ${cand}`);
+			return cand;
+		}
+	}
+	const onPath = whichUvFromPath();
+	if (onPath) {
+		log(`uv installed (standalone), found on PATH: ${onPath}`);
+		return onPath;
+	}
+	log('uv standalone installer completed but uv was not found in the expected locations');
+	return null;
+}
+
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	info(vscode.l10n.t('Baochip: Installing uv...'));
@@ -368,12 +516,14 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 }
 
 async function resolveUvBinary(): Promise<string> {
+	// 1) A uv we already resolved (saved in our own global state).
 	const saved = gGet<string | undefined>(KEY_UV_PATH, undefined);
 	if (saved && uvUsable(saved)) {
 		log(`Using saved uv path: ${saved}`);
 		return saved;
 	}
 
+	// 2) A uv already installed globally (on PATH) - reuse it rather than installing our own.
 	const fromPath = whichUvFromPath();
 	if (fromPath) {
 		await gSet(KEY_UV_PATH, fromPath);
@@ -381,6 +531,25 @@ async function resolveUvBinary(): Promise<string> {
 		return fromPath;
 	}
 
+	// 3) A uv we installed before, or a user standalone/cargo install, found by full path.
+	for (const cand of [...ownUvCandidates(), ...knownUvLocations(os.homedir())]) {
+		if (fs.existsSync(cand) && uvUsable(cand)) {
+			log(`Found existing uv at: ${cand}`);
+			await gSet(KEY_UV_PATH, cand);
+			info(vscode.l10n.t('Baochip: uv ready.'));
+			return cand;
+		}
+	}
+
+	// 4) Install uv, self-contained, needing no Python (Astral standalone installer).
+	const viaStandalone = await installUvViaStandalone();
+	if (viaStandalone) {
+		await gSet(KEY_UV_PATH, viaStandalone);
+		info(vscode.l10n.t('Baochip: uv ready.'));
+		return viaStandalone;
+	}
+
+	// 5) Last resort: install uv into the user's own Python with pip.
 	const pythonCmd = await pickPython();
 	if (process.platform === 'win32') {
 		const sys = pyEval(pythonCmd, 'import platform; print(platform.system())');
