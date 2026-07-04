@@ -29,3 +29,9 @@ jobs:
 
       - name: Integration tests
         run: npm run test:integration
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Python CLI tests
+        run: npm run test:python

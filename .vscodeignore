@@ -18,3 +18,4 @@ vsc-extension-quickstart.md
 **/*.pyc
 out/test/**
 tsconfig.test.json
+resources/tools-bao/tests/**
