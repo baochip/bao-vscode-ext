@@ -6,3 +6,6 @@ npm-debug.log*
 .DS_Store
 resources/tools-bao/**/__pycache__/
 resources/tools-bao/**/*.pyc
+# Integration-test fixture workspace: tests write settings/fake trees here at runtime
+src/test/fixtures/workspace/*
+!src/test/fixtures/workspace/.gitkeep

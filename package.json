@@ -315,22 +315,28 @@
 		"lint:fix": "biome check --write --unsafe .",
 		"format": "biome format --write .",
 		"test": "tsx --test \"src/test/unit/**/*.test.ts\"",
-		"test:integration": "tsc -p tsconfig.test.json && vscode-test"
+		"test:integration": "tsc -p tsconfig.test.json && tsc-alias -p tsconfig.test.json && vscode-test"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.3.0",
+		"@biomejs/biome": "^2.5.0",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "^24.10.1",
-		"@types/vscode": "^1.106.1",
+		"@types/node": "^24.13.2",
+		"@types/sinon": "^21.0.1",
+		"@types/vscode": "~1.106.1",
 		"@vscode/test-cli": "^0.0.15",
 		"@vscode/test-electron": "^3.0.0",
-		"@vscode/vsce": "^3.9.1",
+		"@vscode/vsce": "^3.9.2",
 		"mocha": "^11.7.6",
-		"tsc-alias": "^1.8.16",
+		"sinon": "^22.0.0",
+		"tsc-alias": "^1.8.17",
 		"tsx": "^4.22.4",
-		"typescript": "^5.5.0"
+		"typescript": "^6.0.3"
 	},
 	"dependencies": {
-		"@vscode/codicons": "^0.0.42"
+		"@vscode/codicons": "^0.0.45"
+	},
+	"overrides": {
+		"diff": "8.0.4",
+		"serialize-javascript": "7.0.6"
 	}
 }

@@ -1,7 +1,17 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
 	"files": {
-		"includes": ["**/*", "!node_modules", "!out", "!dist", "!coverage", "!*.vsix", "!.vscode-test"]
+		"includes": [
+			"**/*",
+			"!node_modules",
+			"!out",
+			"!dist",
+			"!coverage",
+			"!*.vsix",
+			"!.vscode-test",
+			"!src/test/fixtures/workspace",
+			"!**/*.svg"
+		]
 	},
 	"formatter": {
 		"indentWidth": 2,
