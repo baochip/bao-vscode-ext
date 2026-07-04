@@ -307,9 +307,10 @@
 	},
 	"main": "./out/extension.js",
 	"scripts": {
+		"clean": "node -e \"fs.rmSync('out',{recursive:true,force:true})\"",
 		"compile": "tsc -p . && tsc-alias -p tsconfig.json",
 		"watch": "tsc -w -p .",
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run clean && npm run compile",
 		"package": "npx vsce package",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write --unsafe .",

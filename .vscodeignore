@@ -12,6 +12,8 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 **/.git/**
 **/node_modules/**
+!node_modules/@vscode/codicons/dist/codicon.css
+!node_modules/@vscode/codicons/dist/codicon.ttf
 **/.github/**
 **/scripts/**
 **/__pycache__/**
