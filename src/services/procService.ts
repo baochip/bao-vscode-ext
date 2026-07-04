@@ -3,6 +3,8 @@ import type * as vscode from 'vscode';
 
 export interface RunOptions {
 	cwd?: string;
+	/** Child environment. When omitted, the child inherits the extension host's process.env. */
+	env?: NodeJS.ProcessEnv;
 	onStdout?: (chunk: string) => void;
 	onStderr?: (chunk: string) => void;
 	token?: vscode.CancellationToken;
@@ -22,7 +24,7 @@ export interface RunResult {
  */
 export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): Promise<RunResult> {
 	return new Promise((resolve) => {
-		const child = spawn(cmd, args, { cwd: opts.cwd, shell: false });
+		const child = spawn(cmd, args, { cwd: opts.cwd, env: opts.env, shell: false });
 		let stdout = '';
 		let stderr = '';
 		let cancelled = false;

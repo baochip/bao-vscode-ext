@@ -54,6 +54,14 @@ async function wsSet<T>(key: string, val: T | undefined): Promise<void> {
 
 /* ------------------------------ subprocess utilities ------------------------------ */
 
+/**
+ * Env that forces a Python child to UTF-8 stdio (and filesystem), so its output matches our UTF-8
+ * decode even on non-UTF-8 OS locales (e.g. Japanese Windows cp932). Harmless for non-Python procs.
+ */
+export function pythonUtf8Env(): NodeJS.ProcessEnv {
+	return { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
+}
+
 /** Run a subprocess; concise logs; only surface stdout/stderr on failure. */
 async function run(
 	cmd: string,
@@ -61,7 +69,7 @@ async function run(
 	cwd?: string,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
 	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
-	const r = await runProcess(cmd, args, { cwd });
+	const r = await runProcess(cmd, args, { cwd, env: pythonUtf8Env() });
 	if (r.error) {
 		const msg = `${cmd} failed to start: ${r.error.message}`;
 		log(`ERROR: ${msg}`);
@@ -80,7 +88,7 @@ async function run(
 
 function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolean; out: string } {
 	try {
-		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: true });
+		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: true, env: pythonUtf8Env() });
 		const out = ((r.stdout || '') + (r.stderr || '')).trim();
 		return { ok: r.status === 0, out };
 	} catch (e: unknown) {
@@ -102,7 +110,11 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 			const tmpFile = path.join(tmpDir, 'snippet.py');
 			fs.writeFileSync(tmpFile, code, 'utf8');
 
-			const res = spawnSync(exe, [...baseArgs, tmpFile], { encoding: 'utf8', shell: false });
+			const res = spawnSync(exe, [...baseArgs, tmpFile], {
+				encoding: 'utf8',
+				shell: false,
+				env: pythonUtf8Env(),
+			});
 			const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
 			return { ok: res.status === 0, out: stdout };
 		} finally {
@@ -135,16 +147,12 @@ function detectWorkingPythons(): { cmd: string; version: string }[] {
 async function pickPython(): Promise<string> {
 	const found = detectWorkingPythons();
 	if (found.length === 0) {
-		const envPath = process.env.PATH || '';
-		errorToast(
-			vscode.l10n.t(
-				'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
-			),
-		);
-		log(`PATH at failure:\n${envPath}`);
-		throw new Error(
+		const msg = vscode.l10n.t(
 			'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
 		);
+		errorToast(msg);
+		log(`PATH at failure:\n${process.env.PATH || ''}`);
+		throw new Error(msg);
 	}
 	const pick = await vscode.window.showQuickPick(
 		found.map((w) => ({ label: w.cmd, description: w.version })),
@@ -154,7 +162,7 @@ async function pickPython(): Promise<string> {
 			placeHolder: vscode.l10n.t('Pick the Python to run "pip install --user uv"'),
 		},
 	);
-	if (!pick) throw new Error('Python selection cancelled.');
+	if (!pick) throw new Error(vscode.l10n.t('Python selection cancelled.'));
 	log(`Python selected for uv install: ${pick.label}`);
 	return pick.label.trim();
 }

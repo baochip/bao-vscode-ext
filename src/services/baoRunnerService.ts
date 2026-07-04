@@ -6,6 +6,7 @@ import {
 	getBaoRunner,
 	getBundledToolsRoot,
 	getGlobalVenvRoot,
+	pythonUtf8Env,
 } from '@services/uvService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
@@ -45,7 +46,7 @@ export async function runBaoCmd(
 	log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
 
 	// runProcess captures both streams; we only surface stdout to the caller when capture is requested
-	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd });
+	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: pythonUtf8Env() });
 	log(`bao.py EXIT ${r.code}`);
 	if (!r.error && r.code === 0) return opts.capture ? r.stdout.trim() : '';
 	const msg = (
