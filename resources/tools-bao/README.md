@@ -4,7 +4,7 @@
 
 ## Requirements
 
-Python 3.7+, then install dependencies:
+Python 3.9+, then install dependencies:
 
 ```sh
 pip install -r requirements.txt
@@ -46,6 +46,20 @@ Send the `boot` command to the bootloader serial port to start run mode.
 
 ```sh
 python bao.py boot -p COM7
+```
+
+### `app`
+App utilities for out-of-tree builds.
+
+#### `app update-rev`
+Update the `xous-core` git `rev` in a `Cargo.toml` (used by out-of-tree kernel sync so the app and kernel come from the same commit).
+
+**Options:**
+- `--file`: path to the `Cargo.toml` to edit (default: `Cargo.toml`)
+- `--rev` (required): new `xous-core` git commit hash
+
+```sh
+python bao.py app update-rev --file Cargo.toml --rev <commit-hash>
 ```
 
 ## Global Options

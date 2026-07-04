@@ -1,3 +1,4 @@
+import argparse
 import sys
 import os
 import codecs
@@ -104,7 +105,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
     finally:
         stop_event.set()
 
-def cmd_monitor(args) -> None:
+def cmd_monitor(args: argparse.Namespace) -> None:
     ser = open_serial(
         args.port,
         args.baud,
@@ -129,6 +130,9 @@ def cmd_monitor(args) -> None:
     consecutive_errors = 0
     MAX_ERRORS = 15       # tolerate brief USB/UART glitches during firmware init
     RETRY_SLEEP_S = 0.05  # pause between error retries to avoid a hot error loop
+    READ_CHUNK = 4096     # bytes to read from the serial port per iteration
+    WRITER_JOIN_TIMEOUT_S = 0.5  # how long to wait for the stdin writer thread on exit
+    IDLE_SLEEP_S = 0.01   # small yield when idle to avoid a hot loop
     stop_event = threading.Event()
 
     # Persistent UTF-8 decoder so a multibyte char split across ser.read() chunks isn't corrupted.
@@ -146,7 +150,7 @@ def cmd_monitor(args) -> None:
     try:
         while not stop_event.is_set():
             try:
-                data = ser.read(4096)
+                data = ser.read(READ_CHUNK)
                 if data:
                     s = rx_decoder.decode(data)  # incremental: split multibyte chars stay intact
                     sys.stdout.write(s)
@@ -157,6 +161,10 @@ def cmd_monitor(args) -> None:
             except SerialException as e:
                 consecutive_errors += 1
                 logging.debug(f"Serial error ({consecutive_errors}/{MAX_ERRORS}): {e}")
+                # Surface a sustained problem early (visible at the default log level),
+                # but stay quiet for brief 1-2 error glitches during normal firmware init.
+                if consecutive_errors == 3:
+                    logging.warning("Serial read errors - the port may be disconnecting...")
                 if consecutive_errors >= MAX_ERRORS:
                     logging.error("Too many serial errors - port may be disconnected.")
                     break
@@ -164,13 +172,13 @@ def cmd_monitor(args) -> None:
                 continue
             # Small yield to avoid a hot loop when idle
             if not stop_event.is_set():
-                time.sleep(0.01)
+                time.sleep(IDLE_SLEEP_S)
     except KeyboardInterrupt:
         pass
     finally:
         try:
             stop_event.set()
-            writer.join(timeout=0.5)
+            writer.join(timeout=WRITER_JOIN_TIMEOUT_S)
         except Exception:
             pass
         # Restore the terminal now that the writer has stopped (main thread -> always runs).
@@ -187,7 +195,7 @@ def cmd_monitor(args) -> None:
         safe_close(ser)
 
 
-def register(subparsers) -> None:
+def register(subparsers: argparse._SubParsersAction) -> None:
     m = subparsers.add_parser("monitor", help="Open a serial monitor")
     m.add_argument("-p", "--port", required=True, help="Serial port (e.g., COM5, /dev/ttyUSB0)")
     m.add_argument("-b", "--baud", type=int, default=DEFAULT_BAUD, help="Baud rate")

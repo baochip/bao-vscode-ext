@@ -37,7 +37,7 @@ def cmd_app_update_rev(args: argparse.Namespace) -> int:
     return 0
 
 
-def register(sub: argparse._SubParsersAction):
+def register(sub: argparse._SubParsersAction) -> None:
     ap = sub.add_parser("app", help="Bao app utilities")
     sp = ap.add_subparsers(dest="app_cmd", required=True)
 

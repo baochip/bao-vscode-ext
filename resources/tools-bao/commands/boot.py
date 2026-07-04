@@ -1,9 +1,10 @@
+import argparse
 import time
 import logging
 import serial
 from utils.serial_utils import DEFAULT_BAUD
 
-def cmd_boot(args) -> int:
+def cmd_boot(args: argparse.Namespace) -> int:
     port = args.port
     baud = args.baud
     try:
@@ -33,7 +34,7 @@ def cmd_boot(args) -> int:
     return 0
 
 
-def register(subparsers) -> None:
+def register(subparsers: argparse._SubParsersAction) -> None:
     boot = subparsers.add_parser(
         "boot",
         help="Send 'boot' to the bootloader serial port to start run mode"

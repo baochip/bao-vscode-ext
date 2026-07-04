@@ -13,7 +13,7 @@ def write_file(path: Path, content: str) -> None:
         f.write(content)
 
 
-def navigate(node, keys: list):
+def navigate(node, keys: list[str]):
     """Walk a tomlkit document by a list of key segments."""
     for key in keys:
         node = node[key]
