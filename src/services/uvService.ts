@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
+import { isFullPathCommand } from '@util/shell';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -88,7 +89,12 @@ async function run(
 
 function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolean; out: string } {
 	try {
-		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: true, env: pythonUtf8Env() });
+		// A full path (contains a path separator) runs WITHOUT a shell so spaces/metacharacters in
+		// the path pass through natively. Bare names ('uv', 'py -3') keep the shell for PATH/PATHEXT
+		// resolution. Using shell:true on a spaced full path would split it at the first space
+		// (Node DEP0190) and falsely report the binary as unusable.
+		const useShell = !isFullPathCommand(cmd);
+		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: useShell, env: pythonUtf8Env() });
 		const out = ((r.stdout || '') + (r.stderr || '')).trim();
 		return { ok: r.status === 0, out };
 	} catch (e: unknown) {
