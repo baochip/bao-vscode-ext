@@ -185,7 +185,6 @@
 	"Baochip: bao.py failed.\n{0}": "Baochip: bao.py が失敗しました。\n{0}",
 	"Baochip: Installing uv...": "Baochip: uv をインストール中...",
 	"Baochip: uv ready.": "Baochip: uv の準備ができました。",
-	"Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.": "Baochip: このワークスペースの uv 設定をリセットしました。再度コマンドを実行して再設定してください。",
 	"That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., \"py -3\" or a Windows python.exe).": "選択した Python は WSL/Linux のようです。Windows の Python（例: \"py -3\" や python.exe）を選んでください。",
 	"Paths, ports, defaults": "パス、ポート、既定値",
 	"Configure extension": "拡張機能を設定",
@@ -235,5 +234,8 @@
 	"{0} failed to start: {1}": "{0} を開始できませんでした: {1}",
 	"{0} failed (exit {1})": "{0} が失敗しました (終了コード {1})",
 	"Baochip: missing virtual environment - installing Python deps...": "Baochip: 仮想環境がありません - Python の依存関係をインストールしています...",
-	"Baochip: requirements changed - installing Python deps...": "Baochip: 要件が変更されました - Python の依存関係をインストールしています..."
+	"Baochip: requirements changed - installing Python deps...": "Baochip: 要件が変更されました - Python の依存関係をインストールしています...",
+	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: uv セットアップをリセットしました。コマンドを再実行して再構成してください。",
+	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "キャッシュされた uv 仮想環境も削除しますか? 次回のコマンド実行時に再構築されます。",
+	"Delete .venv": ".venv を削除"
 }

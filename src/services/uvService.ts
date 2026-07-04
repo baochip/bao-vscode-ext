@@ -40,17 +40,19 @@ export function getGlobalVenvRoot(): string {
 	return ctx().globalStorageUri.fsPath;
 }
 
-/* ------------------------------ workspace state ------------------------------ */
+/* ------------------------------ global state ------------------------------ */
 
-const WS_KEY_UV_PYTHON = 'baochip.ws.uvPythonCommand';
-const WS_KEY_UV_PATH = 'baochip.ws.uvBinaryPath';
-const WS_KEY_REQ_HASH = 'baochip.ws.reqHash'; // sha256 of bundled requirements.txt
+// uv and its venv are machine-global (the venv lives in globalStorage), so these are remembered
+// GLOBALLY, not per-workspace - otherwise every new workspace re-runs the whole uv bootstrap.
+const KEY_UV_PYTHON = 'baochip.uvPythonCommand';
+const KEY_UV_PATH = 'baochip.uvBinaryPath';
+const KEY_REQ_HASH = 'baochip.reqHash'; // sha256 of bundled requirements.txt
 
-function wsGet<T>(key: string, def: T): T {
-	return ctx().workspaceState.get<T>(key, def) ?? def;
+function gGet<T>(key: string, def: T): T {
+	return ctx().globalState.get<T>(key, def) ?? def;
 }
-async function wsSet<T>(key: string, val: T | undefined): Promise<void> {
-	await ctx().workspaceState.update(key, val);
+async function gSet<T>(key: string, val: T | undefined): Promise<void> {
+	await ctx().globalState.update(key, val);
 }
 
 /* ------------------------------ subprocess utilities ------------------------------ */
@@ -68,9 +70,10 @@ async function run(
 	cmd: string,
 	args: string[],
 	cwd?: string,
+	extraEnv?: NodeJS.ProcessEnv,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
 	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
-	const r = await runProcess(cmd, args, { cwd, env: pythonUtf8Env() });
+	const r = await runProcess(cmd, args, { cwd, env: { ...pythonUtf8Env(), ...extraEnv } });
 	if (r.error) {
 		const msg = vscode.l10n.t('{0} failed to start: {1}', cmd, r.error.message);
 		log(`ERROR: ${msg}`);
@@ -297,6 +300,15 @@ function pipInstallFailedMessage(stderr: string): string {
 	return vscode.l10n.t('Baochip: could not install uv with pip. {0}', hint);
 }
 
+/** Resolve the saved bootstrap Python (e.g. "py -3") to its actual executable path, or undefined. */
+function resolvePickedPythonExe(): string | undefined {
+	const pythonCmd = gGet<string | undefined>(KEY_UV_PYTHON, undefined);
+	if (!pythonCmd) return undefined;
+	const r = pyEval(pythonCmd, 'import sys; print(sys.executable)');
+	const exe = r.ok ? r.out.trim() : '';
+	return exe && fs.existsSync(exe) ? exe : undefined;
+}
+
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	info(vscode.l10n.t('Baochip: Installing uv...'));
@@ -356,7 +368,7 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 }
 
 async function resolveUvBinary(): Promise<string> {
-	const saved = wsGet<string | undefined>(WS_KEY_UV_PATH, undefined);
+	const saved = gGet<string | undefined>(KEY_UV_PATH, undefined);
 	if (saved && uvUsable(saved)) {
 		log(`Using saved uv path: ${saved}`);
 		return saved;
@@ -364,7 +376,7 @@ async function resolveUvBinary(): Promise<string> {
 
 	const fromPath = whichUvFromPath();
 	if (fromPath) {
-		await wsSet(WS_KEY_UV_PATH, fromPath);
+		await gSet(KEY_UV_PATH, fromPath);
 		info(vscode.l10n.t('Baochip: uv ready.'));
 		return fromPath;
 	}
@@ -380,11 +392,11 @@ async function resolveUvBinary(): Promise<string> {
 			throw new Error(msg);
 		}
 	}
-	await wsSet(WS_KEY_UV_PYTHON, pythonCmd);
+	await gSet(KEY_UV_PYTHON, pythonCmd);
 	log(`Saving Python for uv bootstrap: ${pythonCmd}`);
 
 	const uvPath = await installUvAndFindBinary(pythonCmd);
-	await wsSet(WS_KEY_UV_PATH, uvPath);
+	await gSet(KEY_UV_PATH, uvPath);
 	info(vscode.l10n.t('Baochip: uv ready.'));
 	return uvPath;
 }
@@ -417,14 +429,15 @@ export async function ensureBaoPythonDeps({
 	fs.mkdirSync(venvRoot, { recursive: true });
 
 	const currentHash = createHash('sha256').update(fs.readFileSync(reqPath)).digest('hex');
-	const prevHash = wsGet<string>(WS_KEY_REQ_HASH, '');
+	const prevHash = gGet<string>(KEY_REQ_HASH, '');
 	log(`requirements.txt path: ${reqPath}`);
 	log(`requirements current hash: ${currentHash}`);
 	log(`requirements previous hash: ${prevHash || '(none)'}`);
 	log(`checking venv: ${venvDir}`);
 
-	// If the venv folder is missing, remake it and reinstall everything.
-	const venvMissing = !fs.existsSync(venvDir);
+	// If the venv folder is missing OR half-built (no pyvenv.cfg, e.g. an interrupted create),
+	// remake it and reinstall everything.
+	const venvMissing = !fs.existsSync(venvDir) || !fs.existsSync(path.join(venvDir, 'pyvenv.cfg'));
 
 	if (!venvMissing && prevHash === currentHash) {
 		log('requirements unchanged and venv present; skipping install.');
@@ -448,9 +461,12 @@ export async function ensureBaoPythonDeps({
 		async () => {
 			const uv = await resolveUvBinary();
 
-			// 1) Ensure (or recreate) the venv in global storage (idempotent)
+			// 1) Ensure (or recreate) the venv in global storage (idempotent). Pin the interpreter to
+			// the Python we bootstrapped with (deterministic) and never let uv silently download one.
 			try {
-				await run(uv, ['venv'], venvRoot);
+				const pyExe = resolvePickedPythonExe();
+				const venvArgs = pyExe ? ['venv', '--python', pyExe] : ['venv'];
+				await run(uv, venvArgs, venvRoot, { UV_PYTHON_DOWNLOADS: 'never' });
 			} catch (e: unknown) {
 				const message = toMessage(e);
 				log(`uv venv failed: ${message}`);
@@ -465,7 +481,9 @@ export async function ensureBaoPythonDeps({
 
 			// 2) Install requirements into that venv
 			try {
-				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot);
+				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot, {
+					UV_PYTHON_DOWNLOADS: 'never',
+				});
 			} catch (e: unknown) {
 				const message = toMessage(e);
 				errorToast(
@@ -478,7 +496,7 @@ export async function ensureBaoPythonDeps({
 			}
 
 			// 3) Cache the current hash
-			await wsSet(WS_KEY_REQ_HASH, currentHash);
+			await gSet(KEY_REQ_HASH, currentHash);
 			log(`requirements hash updated: ${currentHash}`);
 		},
 	);
@@ -487,10 +505,29 @@ export async function ensureBaoPythonDeps({
 }
 
 export async function resetUvSetup() {
-	await wsSet<string | undefined>(WS_KEY_UV_PATH, undefined);
-	await wsSet<string | undefined>(WS_KEY_UV_PYTHON, undefined);
-	info(
-		vscode.l10n.t('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.'),
-	);
+	await gSet<string | undefined>(KEY_UV_PATH, undefined);
+	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
+	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
+	info(vscode.l10n.t('Baochip: reset uv setup. Re-run a command to reconfigure.'));
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
+
+	// Offer to delete the cached venv too, so "reset and retry" forces a clean rebuild.
+	const venvDir = path.join(getGlobalVenvRoot(), '.venv');
+	if (fs.existsSync(venvDir)) {
+		const deleteLabel = vscode.l10n.t('Delete .venv');
+		const choice = await vscode.window.showInformationMessage(
+			vscode.l10n.t(
+				'Also delete the cached uv virtual environment? It will be rebuilt on the next command.',
+			),
+			deleteLabel,
+		);
+		if (choice === deleteLabel) {
+			try {
+				fs.rmSync(venvDir, { recursive: true, force: true });
+				log(`deleted venv: ${venvDir}`);
+			} catch (e: unknown) {
+				log(`could not delete venv: ${toMessage(e)}`);
+			}
+		}
+	}
 }

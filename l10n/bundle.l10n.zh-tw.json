@@ -185,7 +185,6 @@
 	"Baochip: bao.py failed.\n{0}": "Baochip：bao.py 失敗。\n{0}",
 	"Baochip: Installing uv...": "Baochip：正在安裝 uv...",
 	"Baochip: uv ready.": "Baochip：uv 已就緒。",
-	"Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.": "Baochip：已重設此工作區的 uv 設定。請重新執行命令以重新設定。",
 	"That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., \"py -3\" or a Windows python.exe).": "所選的 Python 似乎是 WSL/Linux 版本。請選擇 Windows Python（例如 \"py -3\" 或 python.exe）。",
 	"Paths, ports, defaults": "路徑、埠、預設值",
 	"Configure extension": "設定擴充功能",
@@ -235,5 +234,8 @@
 	"{0} failed to start: {1}": "{0} 啟動失敗: {1}",
 	"{0} failed (exit {1})": "{0} 失敗 (結束代碼 {1})",
 	"Baochip: missing virtual environment - installing Python deps...": "Baochip: 缺少虛擬環境 - 正在安裝 Python 相依套件...",
-	"Baochip: requirements changed - installing Python deps...": "Baochip: 相依需求已變更 - 正在安裝 Python 相依套件..."
+	"Baochip: requirements changed - installing Python deps...": "Baochip: 相依需求已變更 - 正在安裝 Python 相依套件...",
+	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: 已重設 uv 設定。請重新執行命令以重新設定。",
+	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "是否同時刪除快取的 uv 虛擬環境? 下次執行命令時會重建。",
+	"Delete .venv": "刪除 .venv"
 }

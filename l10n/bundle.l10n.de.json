@@ -185,7 +185,6 @@
 	"Baochip: bao.py failed.\n{0}": "Baochip: bao.py ist fehlgeschlagen.\n{0}",
 	"Baochip: Installing uv...": "Baochip: uv wird installiert...",
 	"Baochip: uv ready.": "Baochip: uv ist bereit.",
-	"Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.": "Baochip: uv-Konfiguration für diesen Arbeitsbereich zurückgesetzt. Führen Sie einen Befehl erneut aus, um neu zu konfigurieren.",
 	"That Python appears to be WSL/Linux. Please pick a Windows Python (e.g., \"py -3\" or a Windows python.exe).": "Das gewählte Python scheint WSL/Linux zu sein. Bitte wählen Sie ein Windows-Python (z. B. „py -3“ oder python.exe).",
 	"Paths, ports, defaults": "Pfade, Ports, Standardwerte",
 	"Configure extension": "Erweiterung konfigurieren",
@@ -235,5 +234,8 @@
 	"{0} failed to start: {1}": "{0} konnte nicht gestartet werden: {1}",
 	"{0} failed (exit {1})": "{0} fehlgeschlagen (Exit {1})",
 	"Baochip: missing virtual environment - installing Python deps...": "Baochip: fehlende virtuelle Umgebung - Python-Abhängigkeiten werden installiert...",
-	"Baochip: requirements changed - installing Python deps...": "Baochip: Anforderungen geändert - Python-Abhängigkeiten werden installiert..."
+	"Baochip: requirements changed - installing Python deps...": "Baochip: Anforderungen geändert - Python-Abhängigkeiten werden installiert...",
+	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: uv-Einrichtung zurückgesetzt. Führen Sie einen Befehl erneut aus, um neu zu konfigurieren.",
+	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "Auch die zwischengespeicherte virtuelle uv-Umgebung löschen? Sie wird beim nächsten Befehl neu erstellt.",
+	"Delete .venv": ".venv löschen"
 }
