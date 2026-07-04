@@ -97,7 +97,6 @@
 	"Waiting for run mode serial port...": "正在等待运行模式串口...",
 	"Run mode serial port is still not set. Aborting monitor.": "运行模式串口仍未设置，将取消监视器。",
 	"xous-core path not set": "未设置 xous-core 路径。",
-	"No working Python interpreters detected on PATH. Please install Python (python.org) and retry.": "未在 PATH 中检测到可用的 Python 解释器。请从 python.org 安装后重试。",
 	"Pick the Python to run \"pip install --user uv\"": "选择用于执行 \"pip install --user uv\" 的 Python",
 	"Select Python to install uv": "选择用于安装 uv 的 Python",
 	"Python selection cancelled.": "已取消选择 Python。",
@@ -238,5 +237,7 @@
 	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: 已重置 uv 设置。请重新运行命令以重新配置。",
 	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "是否同时删除缓存的 uv 虚拟环境? 下次运行命令时会重建。",
 	"Delete .venv": "删除 .venv",
-	"Baochip: Installing uv (standalone installer)...": "Baochip：正在安装 uv (独立安装程序)..."
+	"Baochip: Installing uv (standalone installer)...": "Baochip：正在安装 uv (独立安装程序)...",
+	"Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.": "Baochip 需要 uv，但无法自动安装。请自行安装 uv (参见 uv 安装指南)，然后重新运行 Baochip 命令，它将自动检测到 uv。",
+	"Open uv installation guide": "打开 uv 安装指南"
 }

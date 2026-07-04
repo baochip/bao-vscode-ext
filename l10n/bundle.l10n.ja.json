@@ -97,7 +97,6 @@
 	"Waiting for run mode serial port...": "実行モードのシリアルポートを待機中...",
 	"Run mode serial port is still not set. Aborting monitor.": "実行モードのシリアルポートがまだ未設定のため、モニターを中止します。",
 	"xous-core path not set": "xous-core のパスが設定されていません。",
-	"No working Python interpreters detected on PATH. Please install Python (python.org) and retry.": "PATH 上に動作する Python インタープリターが見つかりません。python.org からインストールして再試行してください。",
 	"Pick the Python to run \"pip install --user uv\"": "\"pip install --user uv\" を実行する Python を選択",
 	"Select Python to install uv": "uv をインストールする Python を選択",
 	"Python selection cancelled.": "Python の選択をキャンセルしました。",
@@ -238,5 +237,7 @@
 	"Baochip: reset uv setup. Re-run a command to reconfigure.": "Baochip: uv セットアップをリセットしました。コマンドを再実行して再構成してください。",
 	"Also delete the cached uv virtual environment? It will be rebuilt on the next command.": "キャッシュされた uv 仮想環境も削除しますか? 次回のコマンド実行時に再構築されます。",
 	"Delete .venv": ".venv を削除",
-	"Baochip: Installing uv (standalone installer)...": "Baochip: uv をインストール中 (スタンドアロンインストーラー)..."
+	"Baochip: Installing uv (standalone installer)...": "Baochip: uv をインストール中 (スタンドアロンインストーラー)...",
+	"Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.": "Baochip には uv が必要ですが、自動でインストールできませんでした。uv をご自身でインストールし (uv のインストールガイドを参照)、その後 Baochip コマンドを再実行してください。uv は自動的に検出されます。",
+	"Open uv installation guide": "uv のインストールガイドを開く"
 }

@@ -157,15 +157,33 @@ function detectWorkingPythons(): { cmd: string; version: string }[] {
 	return list;
 }
 
+/** Astral's uv installation guide, offered when uv is required but auto-install failed. */
+const UV_INSTALL_DOCS = 'https://docs.astral.sh/uv/getting-started/installation/';
+
+/**
+ * Show the terminal "uv is required" error (with a button to uv's install guide) and throw.
+ * Reached only when every automatic path to uv has failed. A user who then installs uv themselves
+ * is detected automatically on the next command (resolveUvBinary steps 2-3), no reset needed.
+ */
+async function promptUvRequired(): Promise<never> {
+	const msg = vscode.l10n.t(
+		'Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.',
+	);
+	const openLabel = vscode.l10n.t('Open uv installation guide');
+	const choice = await vscode.window.showErrorMessage(msg, openLabel);
+	if (choice === openLabel) {
+		await vscode.env.openExternal(vscode.Uri.parse(UV_INSTALL_DOCS));
+	}
+	throw new Error(msg);
+}
+
 async function pickPython(): Promise<string> {
 	const found = detectWorkingPythons();
 	if (found.length === 0) {
-		const msg = vscode.l10n.t(
-			'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
-		);
-		errorToast(msg);
+		// The standalone installer has already failed and there is no Python for the pip fallback, so
+		// every automatic path to uv is exhausted. uv - not Python - is what we actually require.
 		log(`PATH at failure:\n${process.env.PATH || ''}`);
-		throw new Error(msg);
+		return await promptUvRequired();
 	}
 	const pick = await vscode.window.showQuickPick(
 		found.map((w) => ({ label: w.cmd, description: w.version })),

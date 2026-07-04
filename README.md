@@ -108,3 +108,20 @@ You may use any of the following:
 
     Baochip: Build • Flash • Monitor
 
+---
+
+## Storage and disk space
+
+The extension installs its Python tooling into VS Code's own global storage - not into your project
+or onto your system PATH - so it is fully self-contained and is removed if you uninstall the
+extension or run `Baochip: Reset uv setup`. If a working `uv` is already installed on your machine,
+the extension reuses it instead of installing its own.
+
+Approximate space used under VS Code global storage:
+
+- uv (installed automatically if not already present): ~35 MB
+- Python virtual environment and dependencies (pyserial, etc.): ~30 MB
+
+If no suitable Python is found on your system, the extension can download a self-contained Python for
+you, which uses roughly an additional 150 MB. Nothing is written outside VS Code's storage.
+
