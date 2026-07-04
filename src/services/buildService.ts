@@ -16,7 +16,7 @@ import { ensureNamedTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
-import { quoteArg, shellCd } from '@util/shell';
+import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs = {
@@ -117,8 +117,7 @@ function outOfTreeFeatureArgs(): string[] {
 
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
 export function runOutOfTreeBuildInTerminal(root: string) {
-	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'));
-	term.sendText(shellCd(root));
+	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
 
 	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().map(quoteArg).join(' ')}`;
 
@@ -147,7 +146,7 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export function runBuildInTerminal(root: string, target: string, app?: string) {
-	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'));
+	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
 
 	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
 	const appList = appArgs.join(' ');
@@ -163,7 +162,6 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 		);
 	}
 
-	term.sendText(shellCd(root));
 	term.sendText(
 		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map(quoteArg).join(' ')}` : ''}`,
 	);

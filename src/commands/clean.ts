@@ -19,8 +19,7 @@ export function registerCleanCommand() {
 			root = resolved;
 		}
 
-		const term = ensureNamedTerminal(vscode.l10n.t('Bao Clean'));
-		term.sendText(`cd "${root}"`);
+		const term = ensureNamedTerminal(vscode.l10n.t('Bao Clean'), root);
 		term.sendText('cargo clean');
 		term.show(true);
 	});

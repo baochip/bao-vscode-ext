@@ -244,5 +244,7 @@
 	"Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}": "Baochip 無法下載 Python 執行階段。請檢查網路以及任何 Proxy 或防火牆，然後重試。\n{0}",
 	"Baochip: extension setup complete.": "Baochip：擴充功能設定完成。",
 	"Reinstall": "重新安裝",
-	"Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.": "從頭重新執行設定？這只會刪除 Baochip 保存在 VS Code 內的 uv、Python 和虛擬環境的私有副本，然後重新安裝。系統中其他位置安裝的 uv 或 Python 不受影響。需要網路連線。"
+	"Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.": "從頭重新執行設定？這只會刪除 Baochip 保存在 VS Code 內的 uv、Python 和虛擬環境的私有副本，然後重新安裝。系統中其他位置安裝的 uv 或 Python 不受影響。需要網路連線。",
+	"Set monitor baud rate": "設定監視器鮑率",
+	"Enter a positive integer": "請輸入一個正整數"
 }
