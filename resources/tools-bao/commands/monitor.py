@@ -1,5 +1,6 @@
 import sys
 import os
+import codecs
 import contextlib
 import logging
 import threading
@@ -112,7 +113,9 @@ def cmd_monitor(args) -> None:
     outf = None
     if getattr(args, "save", None):
         try:
-            outf = open(args.save, "a", encoding="utf-8", buffering=1)  # line-buffered
+            # binary + unbuffered: exact byte capture of the serial stream, no text-mode
+            # CRLF translation, and the log stays current (was: text, line-buffered)
+            outf = open(args.save, "ab", buffering=0)
         except Exception as e:
             logging.error(f"[bao] cannot open --save file: {e}")
             safe_close(ser)
@@ -128,6 +131,9 @@ def cmd_monitor(args) -> None:
     RETRY_SLEEP_S = 0.05  # pause between error retries to avoid a hot error loop
     stop_event = threading.Event()
 
+    # Persistent UTF-8 decoder so a multibyte char split across ser.read() chunks isn't corrupted.
+    rx_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+
     # Own the terminal raw-mode on THIS (main) thread so the restore always runs, even on Ctrl+C:
     # the daemon writer thread can be killed mid-read, so it must NOT own terminal state.
     raw_ctx = _stdin_raw_noecho() if getattr(args, "raw", False) else contextlib.nullcontext()
@@ -142,10 +148,10 @@ def cmd_monitor(args) -> None:
             try:
                 data = ser.read(4096)
                 if data:
-                    s = data.decode(errors="replace")
+                    s = rx_decoder.decode(data)  # incremental: split multibyte chars stay intact
                     sys.stdout.write(s)
                     if outf:
-                        outf.write(s)
+                        outf.write(data)  # raw bytes: exact capture, no CRLF translation
                     sys.stdout.flush()
                 consecutive_errors = 0
             except SerialException as e:
