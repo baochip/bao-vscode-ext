@@ -72,7 +72,7 @@ async function run(
 	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
 	const r = await runProcess(cmd, args, { cwd, env: pythonUtf8Env() });
 	if (r.error) {
-		const msg = `${cmd} failed to start: ${r.error.message}`;
+		const msg = vscode.l10n.t('{0} failed to start: {1}', cmd, r.error.message);
 		log(`ERROR: ${msg}`);
 		chan.show(true);
 		throw new Error(msg);
@@ -81,7 +81,9 @@ async function run(
 		log(`[ok] ${cmd} exited 0`);
 		return { stdout: r.stdout, stderr: r.stderr, code: 0 };
 	}
-	const msg = `${cmd} failed (exit ${r.code})\n${r.stderr || r.stdout || ''}`.trim();
+	const msg = `${vscode.l10n.t('{0} failed (exit {1})', cmd, String(r.code))}\n${
+		r.stderr || r.stdout || ''
+	}`.trim();
 	log(`ERROR: ${msg}`);
 	chan.show(true);
 	throw new Error(msg);
@@ -256,6 +258,45 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 	return Array.from(new Set(paths));
 }
 
+/** Map a pip-install failure (its stderr) to concise, localized, actionable guidance. */
+function pipInstallFailedMessage(stderr: string): string {
+	const s = stderr.toLowerCase();
+	let hint: string;
+	if (s.includes('externally-managed-environment')) {
+		hint = vscode.l10n.t(
+			'This Python is externally managed (PEP 668), so pip will not install into it. Try a different Python, or install uv with its standalone installer or pipx.',
+		);
+	} else if (s.includes('no module named pip')) {
+		hint = vscode.l10n.t(
+			'The selected Python has no pip. Run "python -m ensurepip --upgrade", or pick a different Python.',
+		);
+	} else if (
+		s.includes('certificate_verify_failed') ||
+		s.includes('sslerror') ||
+		s.includes('ssl:') ||
+		s.includes('self-signed certificate')
+	) {
+		hint = vscode.l10n.t(
+			'TLS verification failed, usually a corporate proxy intercepting HTTPS. Ask your IT team for the proxy root certificate and set the SSL_CERT_FILE environment variable, then retry.',
+		);
+	} else if (
+		s.includes('proxyerror') ||
+		s.includes('could not fetch') ||
+		s.includes('timed out') ||
+		s.includes('getaddrinfo') ||
+		s.includes('connection')
+	) {
+		hint = vscode.l10n.t(
+			'Could not reach PyPI. Check your network, set HTTP_PROXY/HTTPS_PROXY if you use a proxy, then retry.',
+		);
+	} else {
+		hint = vscode.l10n.t(
+			'This usually means no network, a proxy or firewall blocking PyPI, or a broken pip. Check your connection and proxy, then retry.',
+		);
+	}
+	return vscode.l10n.t('Baochip: could not install uv with pip. {0}', hint);
+}
+
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	info(vscode.l10n.t('Baochip: Installing uv...'));
@@ -265,8 +306,7 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	try {
 		await run(exe, args);
 	} catch (e: unknown) {
-		const message = toMessage(e);
-		errorToast(vscode.l10n.t('Baochip: Failed to install uv via pip.\n{0}', message));
+		errorToast(pipInstallFailedMessage(toMessage(e)));
 		throw e;
 	}
 
@@ -285,17 +325,34 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 		return onPath;
 	}
 
-	const envPath = process.env.PATH || '';
-	log(`uv not found after install. PATH:\n${envPath}`);
-	throw new Error(
-		process.platform === 'win32'
-			? vscode.l10n.t(
-					'uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.',
-				)
-			: vscode.l10n.t(
-					'uv was installed but not found. Ensure your user bin directory is on PATH or select a different Python.',
-				),
+	log(`uv not found after install. PATH:\n${process.env.PATH || ''}`);
+
+	// Recoverable: name the expected dir and let the user open it or point us at uv directly.
+	const expectedDir = cands.length > 0 ? path.dirname(cands[0]) : '';
+	const notFoundMsg = vscode.l10n.t(
+		'uv was installed but Baochip could not locate the uv executable. Expected it in: {0}. Add that folder to PATH, or use "Enter uv path" to point Baochip at it directly.',
+		expectedDir || '(unknown)',
 	);
+	const openLabel = vscode.l10n.t('Open Folder');
+	const enterLabel = vscode.l10n.t('Enter uv path');
+	const buttons = expectedDir ? [openLabel, enterLabel] : [enterLabel];
+	const choice = await vscode.window.showErrorMessage(notFoundMsg, ...buttons);
+	if (choice === enterLabel) {
+		const entered = await vscode.window.showInputBox({
+			title: vscode.l10n.t('Enter the full path to the uv executable'),
+			ignoreFocusOut: true,
+		});
+		const trimmed = entered?.trim();
+		if (trimmed && uvUsable(trimmed)) {
+			log(`uv path entered manually: ${trimmed}`);
+			return trimmed;
+		}
+		throw new Error(vscode.l10n.t('That uv path is not usable.'));
+	}
+	if (choice === openLabel && expectedDir) {
+		await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(expectedDir));
+	}
+	throw new Error(vscode.l10n.t('uv setup was not completed.'));
 }
 
 async function resolveUvBinary(): Promise<string> {
@@ -374,8 +431,13 @@ export async function ensureBaoPythonDeps({
 		return;
 	}
 
-	const reason = venvMissing ? 'missing virtual environment' : 'requirements changed';
-	if (!quiet) info(`Baochip: ${reason} - installing Python deps...`);
+	if (!quiet) {
+		info(
+			venvMissing
+				? vscode.l10n.t('Baochip: missing virtual environment - installing Python deps...')
+				: vscode.l10n.t('Baochip: requirements changed - installing Python deps...'),
+		);
+	}
 
 	await vscode.window.withProgress(
 		{
@@ -392,7 +454,12 @@ export async function ensureBaoPythonDeps({
 			} catch (e: unknown) {
 				const message = toMessage(e);
 				log(`uv venv failed: ${message}`);
-				errorToast(vscode.l10n.t('Failed to create uv venv:\n{0}', message));
+				errorToast(
+					vscode.l10n.t(
+						'Baochip could not create the uv virtual environment. Often the storage folder is not writable, the disk is full, or antivirus is blocking it. Free space or check permissions, then retry.\n{0}',
+						message,
+					),
+				);
 				throw e;
 			}
 
@@ -401,7 +468,12 @@ export async function ensureBaoPythonDeps({
 				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot);
 			} catch (e: unknown) {
 				const message = toMessage(e);
-				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
+				errorToast(
+					vscode.l10n.t(
+						'Baochip could not install the Python dependencies with uv. Check your network and any proxy or firewall to PyPI, then retry.\n{0}',
+						message,
+					),
+				);
 				throw e;
 			}
 
