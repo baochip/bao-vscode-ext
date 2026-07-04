@@ -47,6 +47,37 @@ export function containedUvEnv(
 	};
 }
 
+export type PipFailureKind = 'pep668' | 'no-pip' | 'ssl' | 'network' | 'generic';
+
+/**
+ * Classify a pip-install failure from its stderr so the caller can pick actionable guidance:
+ * an externally managed Python (PEP 668), a Python without pip, TLS interception (corporate
+ * proxy), an unreachable PyPI, or an unrecognized failure.
+ */
+export function classifyPipFailure(stderr: string): PipFailureKind {
+	const s = stderr.toLowerCase();
+	if (s.includes('externally-managed-environment')) return 'pep668';
+	if (s.includes('no module named pip')) return 'no-pip';
+	if (
+		s.includes('certificate_verify_failed') ||
+		s.includes('sslerror') ||
+		s.includes('ssl:') ||
+		s.includes('self-signed certificate')
+	) {
+		return 'ssl';
+	}
+	if (
+		s.includes('proxyerror') ||
+		s.includes('could not fetch') ||
+		s.includes('timed out') ||
+		s.includes('getaddrinfo') ||
+		s.includes('connection')
+	) {
+		return 'network';
+	}
+	return 'generic';
+}
+
 export interface VenvPlan {
 	/** True when uv must download a managed Python (no usable system Python exists). */
 	managed: boolean;

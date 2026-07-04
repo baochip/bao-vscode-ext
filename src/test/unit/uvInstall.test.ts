@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+	classifyPipFailure,
 	containedUvEnv,
 	installerScriptUrl,
 	knownUvLocations,
@@ -76,4 +77,40 @@ test('venvPlan: downloads a managed Python only when none exists', () => {
 		venvArgs: ['venv', '--python', '3'],
 		downloads: 'automatic',
 	});
+});
+
+test('classifyPipFailure: detects an externally managed Python (PEP 668)', () => {
+	const stderr = 'error: externally-managed-environment\n\nThis environment is externally managed';
+	assert.equal(classifyPipFailure(stderr), 'pep668');
+});
+
+test('classifyPipFailure: detects a Python without pip', () => {
+	assert.equal(classifyPipFailure('C:\\Python\\python.exe: No module named pip'), 'no-pip');
+});
+
+test('classifyPipFailure: detects TLS interception failures', () => {
+	for (const stderr of [
+		'SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] ..."))',
+		'ssl: certificate chain rejected',
+		'unable to get local issuer: self-signed certificate in certificate chain',
+	]) {
+		assert.equal(classifyPipFailure(stderr), 'ssl', stderr);
+	}
+});
+
+test('classifyPipFailure: detects network/proxy failures', () => {
+	for (const stderr of [
+		'ProxyError: Cannot connect to proxy',
+		'Could not fetch URL https://pypi.org/simple/uv/',
+		'Read timed out.',
+		'getaddrinfo ENOTFOUND pypi.org',
+		'Connection refused',
+	]) {
+		assert.equal(classifyPipFailure(stderr), 'network', stderr);
+	}
+});
+
+test('classifyPipFailure: falls back to generic for unrecognized output', () => {
+	assert.equal(classifyPipFailure('something completely different'), 'generic');
+	assert.equal(classifyPipFailure(''), 'generic');
 });

@@ -16,7 +16,6 @@
 	"These apps were not found under {0}: {1}": "Diese Apps wurden in {0} nicht gefunden: {1}",
 	"App \"{0}\" was not found under {1}.": "App „{0}“ wurde in {1} nicht gefunden.",
 	"No apps found under {0}. Create one first.": "Keine Apps unter {0} gefunden. Bitte zuerst eine erstellen.",
-	"No app selected.": "Keine App ausgewählt.",
 	"Bao app set to {0}": "Bao-App auf {0} gesetzt.",
 	"Boot command failed: {0}": "Boot-Befehl fehlgeschlagen: {0}",
 	"Sending 'boot' to {0} @ {1}...": "'boot' wird an {0} @ {1} gesendet...",

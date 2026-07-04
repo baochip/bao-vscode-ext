@@ -8,6 +8,7 @@ import {
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';
+import { parsePortsOutput } from '@util/ports';
 import * as vscode from 'vscode';
 
 type RunBao = (
@@ -72,13 +73,7 @@ export async function listPorts(
 	opts?: { quiet?: boolean },
 ): Promise<string[]> {
 	const out = await runBao(['ports'], cwd, { capture: true, quiet: opts?.quiet });
-	// Support either plain lines or tab-separated fields (take the first column)
-	return out
-		.split(/\r?\n/)
-		.map((l) => l.trim())
-		.filter(Boolean)
-		.map((l) => l.split('\t')[0])
-		.filter(Boolean);
+	return parsePortsOutput(out);
 }
 
 export async function waitForPort(

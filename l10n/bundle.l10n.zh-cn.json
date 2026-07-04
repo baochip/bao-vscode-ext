@@ -16,7 +16,6 @@
 	"These apps were not found under {0}: {1}": "在 {0} 中未找到以下应用：{1}",
 	"App \"{0}\" was not found under {1}.": "应用“{0}”未在 {1} 中找到。",
 	"No apps found under {0}. Create one first.": "{0} 下未找到应用，请先创建一个。",
-	"No app selected.": "未选择应用。",
 	"Bao app set to {0}": "已将 Bao 应用设置为 {0}",
 	"Boot command failed: {0}": "Boot 命令执行失败：{0}",
 	"Sending 'boot' to {0} @ {1}...": "正在发送 'boot' 到 {0}（{1}）...",

@@ -9,6 +9,7 @@ import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { isFullPathCommand } from '@util/shell';
 import {
+	classifyPipFailure,
 	containedUvEnv,
 	installerScriptUrl,
 	knownUvLocations,
@@ -297,39 +298,33 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 
 /** Map a pip-install failure (its stderr) to concise, localized, actionable guidance. */
 function pipInstallFailedMessage(stderr: string): string {
-	const s = stderr.toLowerCase();
 	let hint: string;
-	if (s.includes('externally-managed-environment')) {
-		hint = vscode.l10n.t(
-			'This Python is externally managed (PEP 668), so pip will not install into it. Try a different Python, or install uv with its standalone installer or pipx.',
-		);
-	} else if (s.includes('no module named pip')) {
-		hint = vscode.l10n.t(
-			'The selected Python has no pip. Run "python -m ensurepip --upgrade", or pick a different Python.',
-		);
-	} else if (
-		s.includes('certificate_verify_failed') ||
-		s.includes('sslerror') ||
-		s.includes('ssl:') ||
-		s.includes('self-signed certificate')
-	) {
-		hint = vscode.l10n.t(
-			'TLS verification failed, usually a corporate proxy intercepting HTTPS. Ask your IT team for the proxy root certificate and set the SSL_CERT_FILE environment variable, then retry.',
-		);
-	} else if (
-		s.includes('proxyerror') ||
-		s.includes('could not fetch') ||
-		s.includes('timed out') ||
-		s.includes('getaddrinfo') ||
-		s.includes('connection')
-	) {
-		hint = vscode.l10n.t(
-			'Could not reach PyPI. Check your network, set HTTP_PROXY/HTTPS_PROXY if you use a proxy, then retry.',
-		);
-	} else {
-		hint = vscode.l10n.t(
-			'This usually means no network, a proxy or firewall blocking PyPI, or a broken pip. Check your connection and proxy, then retry.',
-		);
+	switch (classifyPipFailure(stderr)) {
+		case 'pep668':
+			hint = vscode.l10n.t(
+				'This Python is externally managed (PEP 668), so pip will not install into it. Try a different Python, or install uv with its standalone installer or pipx.',
+			);
+			break;
+		case 'no-pip':
+			hint = vscode.l10n.t(
+				'The selected Python has no pip. Run "python -m ensurepip --upgrade", or pick a different Python.',
+			);
+			break;
+		case 'ssl':
+			hint = vscode.l10n.t(
+				'TLS verification failed, usually a corporate proxy intercepting HTTPS. Ask your IT team for the proxy root certificate and set the SSL_CERT_FILE environment variable, then retry.',
+			);
+			break;
+		case 'network':
+			hint = vscode.l10n.t(
+				'Could not reach PyPI. Check your network, set HTTP_PROXY/HTTPS_PROXY if you use a proxy, then retry.',
+			);
+			break;
+		default:
+			hint = vscode.l10n.t(
+				'This usually means no network, a proxy or firewall blocking PyPI, or a broken pip. Check your connection and proxy, then retry.',
+			);
+			break;
 	}
 	return vscode.l10n.t('Baochip: could not install uv with pip. {0}', hint);
 }
