@@ -239,5 +239,7 @@
 	"Delete .venv": ".venv löschen",
 	"Baochip: Installing uv (standalone installer)...": "Baochip: uv wird installiert (eigenständiger Installer)...",
 	"Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.": "Baochip benötigt uv, konnte es aber nicht automatisch installieren. Installieren Sie uv selbst (siehe die uv-Installationsanleitung) und führen Sie dann erneut einen Baochip-Befehl aus - uv wird automatisch erkannt.",
-	"Open uv installation guide": "uv-Installationsanleitung öffnen"
+	"Open uv installation guide": "uv-Installationsanleitung öffnen",
+	"Baochip: no Python found - downloading a Python runtime (one-time, ~150 MB)...": "Baochip: Kein Python gefunden - eine Python-Laufzeit wird heruntergeladen (einmalig, ~150 MB)...",
+	"Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}": "Baochip konnte keine Python-Laufzeit herunterladen. Prüfen Sie Ihr Netzwerk und einen etwaigen Proxy oder eine Firewall und versuchen Sie es erneut.\n{0}"
 }

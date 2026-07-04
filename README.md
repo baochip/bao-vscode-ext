@@ -66,7 +66,7 @@ The extension user interface supports:
 ## Quickstart
 
 ### 1. Install Requirements
-- Python 3
+- Python 3 (optional - if none is found on your system, the extension installs a private copy for you)
 
 ### 2. Open your project
 

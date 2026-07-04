@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { installerScriptUrl, knownUvLocations, uvBinaryName, uvPathIn } from '../../util/uvInstall';
+import {
+	containedUvEnv,
+	installerScriptUrl,
+	knownUvLocations,
+	uvBinaryName,
+	uvPathIn,
+	venvPlan,
+} from '../../util/uvInstall';
 
 test('installerScriptUrl: PowerShell script on Windows, shell script elsewhere', () => {
 	assert.equal(installerScriptUrl('win32'), 'https://astral.sh/uv/install.ps1');
@@ -28,4 +35,45 @@ test('knownUvLocations: standalone and cargo targets for the platform', () => {
 		'C:\\Users\\First Last\\.local\\bin\\uv.exe',
 		'C:\\Users\\First Last\\.cargo\\bin\\uv.exe',
 	]);
+});
+
+test('containedUvEnv: confines managed Python and cache to subdirs of our storage', () => {
+	assert.deepEqual(containedUvEnv('C:\\store', 'win32'), {
+		UV_PYTHON_INSTALL_DIR: 'C:\\store\\python',
+		UV_CACHE_DIR: 'C:\\store\\cache',
+	});
+	assert.deepEqual(containedUvEnv('/root/store', 'linux'), {
+		UV_PYTHON_INSTALL_DIR: '/root/store/python',
+		UV_CACHE_DIR: '/root/store/cache',
+	});
+});
+
+test('venvPlan: pins an explicitly picked Python, no download', () => {
+	assert.deepEqual(venvPlan('/usr/bin/python3', true), {
+		managed: false,
+		venvArgs: ['venv', '--python', '/usr/bin/python3'],
+		downloads: 'never',
+	});
+	// A picked Python wins even if no other system Python was detected.
+	assert.deepEqual(venvPlan('C:\\Py\\python.exe', false), {
+		managed: false,
+		venvArgs: ['venv', '--python', 'C:\\Py\\python.exe'],
+		downloads: 'never',
+	});
+});
+
+test('venvPlan: uses a discovered system Python, no download', () => {
+	assert.deepEqual(venvPlan(undefined, true), {
+		managed: false,
+		venvArgs: ['venv'],
+		downloads: 'never',
+	});
+});
+
+test('venvPlan: downloads a managed Python only when none exists', () => {
+	assert.deepEqual(venvPlan(undefined, false), {
+		managed: true,
+		venvArgs: ['venv', '--python', '3'],
+		downloads: 'automatic',
+	});
 });

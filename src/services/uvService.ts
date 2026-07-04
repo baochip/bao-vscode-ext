@@ -8,7 +8,13 @@ import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { isFullPathCommand } from '@util/shell';
-import { installerScriptUrl, knownUvLocations, uvPathIn } from '@util/uvInstall';
+import {
+	containedUvEnv,
+	installerScriptUrl,
+	knownUvLocations,
+	uvPathIn,
+	venvPlan,
+} from '@util/uvInstall';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -67,6 +73,14 @@ export function pythonUtf8Env(): NodeJS.ProcessEnv {
 	return { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
 }
 
+/**
+ * Base env for every uv invocation: UTF-8 Python stdio plus uv's managed-Python and cache dirs
+ * confined to our global storage, so uv never installs a Python or caches downloads outside VS Code.
+ */
+export function uvEnv(): NodeJS.ProcessEnv {
+	return { ...pythonUtf8Env(), ...containedUvEnv(getGlobalVenvRoot()) };
+}
+
 /** Run a subprocess; concise logs; only surface stdout/stderr on failure. */
 async function run(
 	cmd: string,
@@ -75,7 +89,7 @@ async function run(
 	extraEnv?: NodeJS.ProcessEnv,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
 	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
-	const r = await runProcess(cmd, args, { cwd, env: { ...pythonUtf8Env(), ...extraEnv } });
+	const r = await runProcess(cmd, args, { cwd, env: { ...uvEnv(), ...extraEnv } });
 	if (r.error) {
 		const msg = vscode.l10n.t('{0} failed to start: {1}', cmd, r.error.message);
 		log(`ERROR: ${msg}`);
@@ -648,12 +662,38 @@ export async function ensureBaoPythonDeps({
 		async () => {
 			const uv = await resolveUvBinary();
 
-			// 1) Ensure (or recreate) the venv in global storage (idempotent). Pin the interpreter to
-			// the Python we bootstrapped with (deterministic) and never let uv silently download one.
+			// Choose the venv interpreter: a Python we picked, else any system Python, else a managed
+			// Python that uv downloads for us (confined to our storage via uvEnv). Only the last case
+			// downloads, so users who already have a Python are never made to fetch one.
+			const plan = venvPlan(resolvePickedPythonExe(), detectWorkingPythons().length > 0);
+
+			// 0) No system Python: have uv install a self-contained one before creating the venv.
+			if (plan.managed) {
+				if (!quiet) {
+					info(
+						vscode.l10n.t(
+							'Baochip: no Python found - downloading a Python runtime (one-time, ~150 MB)...',
+						),
+					);
+				}
+				try {
+					await run(uv, ['python', 'install'], venvRoot, { UV_PYTHON_DOWNLOADS: 'automatic' });
+				} catch (e: unknown) {
+					const message = toMessage(e);
+					log(`uv python install failed: ${message}`);
+					errorToast(
+						vscode.l10n.t(
+							'Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}',
+							message,
+						),
+					);
+					throw e;
+				}
+			}
+
+			// 1) Ensure (or recreate) the venv in global storage (idempotent).
 			try {
-				const pyExe = resolvePickedPythonExe();
-				const venvArgs = pyExe ? ['venv', '--python', pyExe] : ['venv'];
-				await run(uv, venvArgs, venvRoot, { UV_PYTHON_DOWNLOADS: 'never' });
+				await run(uv, plan.venvArgs, venvRoot, { UV_PYTHON_DOWNLOADS: plan.downloads });
 			} catch (e: unknown) {
 				const message = toMessage(e);
 				log(`uv venv failed: ${message}`);

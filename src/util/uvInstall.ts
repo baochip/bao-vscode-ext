@@ -31,3 +31,44 @@ export function knownUvLocations(
 	const name = uvBinaryName(platform);
 	return [p.join(homedir, '.local', 'bin', name), p.join(homedir, '.cargo', 'bin', name)];
 }
+
+/**
+ * Env that confines uv's managed-Python installs and download cache to a directory we own (the
+ * extension's global storage), so nothing is written to the user's machine outside VS Code.
+ */
+export function containedUvEnv(
+	storageRoot: string,
+	platform: NodeJS.Platform = process.platform,
+): { UV_PYTHON_INSTALL_DIR: string; UV_CACHE_DIR: string } {
+	const p = platform === 'win32' ? path.win32 : path.posix;
+	return {
+		UV_PYTHON_INSTALL_DIR: p.join(storageRoot, 'python'),
+		UV_CACHE_DIR: p.join(storageRoot, 'cache'),
+	};
+}
+
+export interface VenvPlan {
+	/** True when uv must download a managed Python (no usable system Python exists). */
+	managed: boolean;
+	/** Args for `uv venv`. */
+	venvArgs: string[];
+	/** Whether uv may download a Python while creating the venv. */
+	downloads: 'never' | 'automatic';
+}
+
+/**
+ * Decide how to create the venv's interpreter, preferring an existing Python and only downloading
+ * a managed one as a last resort:
+ *   - an explicitly picked Python  -> pin it, never download
+ *   - any system Python is present -> let uv discover it, never download
+ *   - no Python at all             -> uv installs and uses a managed Python (download allowed)
+ */
+export function venvPlan(pickedExe: string | undefined, hasSystemPython: boolean): VenvPlan {
+	if (pickedExe) {
+		return { managed: false, venvArgs: ['venv', '--python', pickedExe], downloads: 'never' };
+	}
+	if (hasSystemPython) {
+		return { managed: false, venvArgs: ['venv'], downloads: 'never' };
+	}
+	return { managed: true, venvArgs: ['venv', '--python', '3'], downloads: 'automatic' };
+}
