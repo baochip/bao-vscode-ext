@@ -8,7 +8,7 @@ def cmd_boot(args) -> int:
     try:
         ser = serial.Serial(port, baud, timeout=0.2)
     except Exception as e:
-        logging.error(f"[bao] cannot open {port}: {e}")
+        logging.error(f"cannot open {port}: {e}")
         return 2
 
     try:
@@ -25,7 +25,7 @@ def cmd_boot(args) -> int:
             # tiny grace period to ensure the device processes it
             time.sleep(0.1)
     except Exception as e:
-        logging.error(f"[bao] boot command failed on {port}: {e}")
+        logging.error(f"boot command failed on {port}: {e}")
         return 1
 
     print(f"[bao] sent 'boot' on {port}")

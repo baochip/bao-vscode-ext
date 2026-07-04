@@ -4,10 +4,9 @@ from serial.tools import list_ports
 def cmd_ports(args) -> None:
     ports = list(list_ports.comports())
     if getattr(args, "verbose", False):
-        logging.info(f"[bao] pyserial found {len(ports)} port(s)")
+        logging.info(f"pyserial found {len(ports)} port(s)")
     if not ports:
-        logging.warning("[bao] No serial ports found.")
-        print("      Try: python -m serial.tools.list_ports -v")
+        logging.warning("No serial ports found. Try: python -m serial.tools.list_ports -v")
         return
     for p in ports:
         vidpid = ""

@@ -1,4 +1,5 @@
 import argparse
+import logging
 from pathlib import Path
 from utils.toml_utils import navigate, read_toml, write_toml
 
@@ -8,7 +9,7 @@ XOUS_CORE_GIT_URL = "betrusted-io/xous-core"
 def cmd_app_update_rev(args: argparse.Namespace) -> int:
     path = Path(args.file)
     if not path.exists():
-        print(f"error: file not found: {path}")
+        logging.error(f"file not found: {path}")
         return 2
 
     doc = read_toml(path)
@@ -28,7 +29,7 @@ def cmd_app_update_rev(args: argparse.Namespace) -> int:
                 updated = True
 
     if not updated:
-        print(f"error: no dependency with git URL containing '{XOUS_CORE_GIT_URL}' found in {path}")
+        logging.error(f"no dependency with git URL containing '{XOUS_CORE_GIT_URL}' found in {path}")
         return 2
 
     write_toml(path, doc)
