@@ -4,9 +4,11 @@
 src/**
 .gitignore
 .yarnrc
+.nvmrc
+.pre-commit-config.yaml
+biome.json
 vsc-extension-quickstart.md
 **/tsconfig.json
-**/eslint.config.mjs
 **/*.map
 **/*.ts
 **/.vscode-test.*
@@ -15,9 +17,9 @@ vsc-extension-quickstart.md
 !node_modules/@vscode/codicons/dist/codicon.css
 !node_modules/@vscode/codicons/dist/codicon.ttf
 **/.github/**
-**/scripts/**
 **/__pycache__/**
 **/*.pyc
+**/.pytest_cache/**
 out/test/**
 tsconfig.test.json
 resources/tools-bao/tests/**

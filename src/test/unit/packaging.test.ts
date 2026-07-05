@@ -20,16 +20,35 @@ const REQUIRED_FILES = [
 	'media/logo.svg',
 ];
 
+/** Dev-only files that must never ship in the .vsix. */
+const FORBIDDEN_FILES = ['.nvmrc', '.pre-commit-config.yaml', 'biome.json', 'eslint.config.mjs'];
+
+let packagedCache: Set<string> | undefined;
+function listPackagedFiles(): Set<string> {
+	if (!packagedCache) {
+		const vsceBin = path.join(ROOT, 'node_modules', '@vscode', 'vsce', 'vsce');
+		const output = execFileSync(process.execPath, [vsceBin, 'ls'], {
+			cwd: ROOT,
+			encoding: 'utf8',
+			maxBuffer: 10 * 1024 * 1024,
+		});
+		packagedCache = new Set(output.split(/\r?\n/).map((line) => line.trim()));
+	}
+	return packagedCache;
+}
+
 test('packaging: vsce ls includes all welcome webview assets', () => {
-	const vsceBin = path.join(ROOT, 'node_modules', '@vscode', 'vsce', 'vsce');
-	const output = execFileSync(process.execPath, [vsceBin, 'ls'], {
-		cwd: ROOT,
-		encoding: 'utf8',
-		maxBuffer: 10 * 1024 * 1024,
-	});
-	const packaged = new Set(output.split(/\r?\n/).map((line) => line.trim()));
+	const packaged = listPackagedFiles();
 	const missing = REQUIRED_FILES.filter((f) => !packaged.has(f));
 	assert.deepEqual(missing, [], 'files missing from the vsce package listing');
+});
+
+test('packaging: vsce ls excludes dev-only config files and caches', () => {
+	const packaged = listPackagedFiles();
+	const leaked = FORBIDDEN_FILES.filter((f) => packaged.has(f));
+	assert.deepEqual(leaked, [], 'dev-only files leaked into the package listing');
+	const caches = [...packaged].filter((f) => f.includes('.pytest_cache'));
+	assert.deepEqual(caches, [], 'pytest cache leaked into the package listing');
 });
 
 // Stale-output guard: out/ accumulates compiled files from renamed/deleted sources, and
