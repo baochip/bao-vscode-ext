@@ -211,7 +211,7 @@ suite('Build service', () => {
 		assert.equal(await buildService.runBuildAndWait('C:\\fake\\root', 'dabao'), 1);
 	});
 
-	test('runBuildAndWait reports a cancelled build as failed with a channel line', async () => {
+	test('runBuildAndWait reports a cancelled build as null with a channel line, not a failure', async () => {
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const { lines, chan } = fakeChannel();
 		sandbox.stub(logService, 'getChannel').returns(chan);
@@ -219,10 +219,27 @@ suite('Build service', () => {
 
 		const code = await buildService.runBuildAndWait('C:\\fake\\root', 'dabao');
 
-		assert.equal(code, 1);
+		assert.equal(code, null, 'cancellation is distinguishable from failure');
 		assert.ok(
 			lines.some((l) => l.includes('Build cancelled by user.')),
 			`channel notes the cancellation: ${lines.join(' | ')}`,
+		);
+	});
+
+	test('runBuildAndWait surfaces the spawn error message in the channel', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ ...okRun, code: null, error: new Error('spawn cargo ENOENT') });
+
+		const code = await buildService.runBuildAndWait('C:\\fake\\root', 'dabao');
+
+		assert.equal(code, 1);
+		assert.ok(
+			lines.some((l) => l.includes('spawn cargo ENOENT')),
+			`channel carries the real spawn failure: ${lines.join(' | ')}`,
 		);
 	});
 

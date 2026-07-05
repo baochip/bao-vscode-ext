@@ -30,6 +30,7 @@ export function registerBuildFlashMonitor() {
 			pre.mode === 'out-of-tree'
 				? await runOutOfTreeBuildAndWait(pre.root)
 				: await runBuildAndWait(pre.root, pre.target, pre.app);
+		if (code === null) return; // cancelled by the user - not a failure, no error toast
 		if (code !== 0) {
 			vscode.window.showErrorMessage(vscode.l10n.t('Build failed.'));
 			return;

@@ -83,6 +83,16 @@ suite('Build-Flash-Monitor pipeline', () => {
 		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');
 	});
 
+	test('a cancelled build stops the pipeline quietly, with no failure toast', async () => {
+		const p = stubPipeline(sandbox);
+		p.build.resolves(null); // null = user cancelled
+
+		await runPipeline();
+
+		assert.ok(!toastIncludes(p.errors, 'Build failed.'), 'no failure toast for a cancel');
+		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');
+	});
+
 	test('a failing build stops before flash with a "Build failed." toast', async () => {
 		const p = stubPipeline(sandbox);
 		p.build.resolves(1);

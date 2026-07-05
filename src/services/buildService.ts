@@ -192,13 +192,14 @@ function getBuildChannel(): vscode.OutputChannel {
 
 /**
  * Run `cargo <args>` in root, streaming output to the build channel with a cancellable
- * progress notification. Optionally prints announceLine before the command line. Returns exit code.
+ * progress notification. Optionally prints announceLine before the command line.
+ * Returns the exit code, or null when the user cancelled (not a failure).
  */
 async function runCargoAndWait(
 	root: string,
 	args: string[],
 	announceLine?: string,
-): Promise<number> {
+): Promise<number | null> {
 	const chan = getBuildChannel();
 	chan.clear();
 	chan.show(true);
@@ -225,6 +226,13 @@ async function runCargoAndWait(
 			});
 			if (r.cancelled) {
 				chan.appendLine(`[bao] ${vscode.l10n.t('Build cancelled by user.')}`);
+				return null;
+			}
+			if (r.error) {
+				// surface the real spawn failure (e.g. cargo missing), not just a generic exit code
+				chan.appendLine(
+					`[bao] ${vscode.l10n.t('{0} failed to start: {1}', 'cargo', r.error.message)}`,
+				);
 			}
 			const code = r.error ? 1 : (r.code ?? 1);
 			chan.appendLine(`[bao] ${vscode.l10n.t('Build exited with code {0}', code)}`);
@@ -233,15 +241,19 @@ async function runCargoAndWait(
 	);
 }
 
-/** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code. */
-export async function runOutOfTreeBuildAndWait(root: string): Promise<number> {
+/** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code, or null when cancelled. */
+export async function runOutOfTreeBuildAndWait(root: string): Promise<number | null> {
 	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
 	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building...'));
 	return runCargoAndWait(root, args);
 }
 
-/** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code. */
-export async function runBuildAndWait(root: string, target: string, app?: string): Promise<number> {
+/** Pipeline-friendly build: spawn & wait; spinner + output channel; returns exit code, or null when cancelled. */
+export async function runBuildAndWait(
+	root: string,
+	target: string,
+	app?: string,
+): Promise<number | null> {
 	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
 	const args = ['xtask', target, ...appArgs];
 
