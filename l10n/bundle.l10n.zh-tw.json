@@ -247,5 +247,6 @@
 	"Set monitor baud rate": "設定監視器鮑率",
 	"Enter a positive integer": "請輸入一個正整數",
 	"Invalid build target: {0}": "無效的建置目標: {0}",
-	"Invalid app name: {0}": "無效的應用程式名稱: {0}"
+	"Invalid app name: {0}": "無效的應用程式名稱: {0}",
+	"Baochip: Installing RISC-V target...": "Baochip：正在安裝 RISC-V 目標..."
 }

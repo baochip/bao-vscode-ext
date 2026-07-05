@@ -247,5 +247,6 @@
 	"Set monitor baud rate": "Monitor-Baudrate festlegen",
 	"Enter a positive integer": "Geben Sie eine positive ganze Zahl ein",
 	"Invalid build target: {0}": "Ungültiges Build-Ziel: {0}",
-	"Invalid app name: {0}": "Ungültiger App-Name: {0}"
+	"Invalid app name: {0}": "Ungültiger App-Name: {0}",
+	"Baochip: Installing RISC-V target...": "Baochip: RISC-V-Ziel wird installiert..."
 }

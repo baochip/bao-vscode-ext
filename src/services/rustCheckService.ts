@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import { getChannel } from '@services/logService';
+import { runProcess } from '@services/procService';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
@@ -39,10 +41,23 @@ export async function checkRustToolchain(): Promise<boolean> {
 			vscode.l10n.t('Ignore'),
 		);
 		if (choice === installLabel) {
-			const install = spawnSync('rustup', ['target', 'add', 'riscv32imac-unknown-none-elf'], {
-				stdio: 'inherit',
-			});
-			if (install.status !== 0) {
+			// Async with output streamed to the channel: the download takes tens of seconds and a
+			// synchronous spawn would freeze the extension host (with the output invisible).
+			const chan = getChannel(vscode.l10n.t('Bao Build'));
+			chan.show(true);
+			const install = await vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					title: vscode.l10n.t('Baochip: Installing RISC-V target...'),
+					cancellable: false,
+				},
+				() =>
+					runProcess('rustup', ['target', 'add', 'riscv32imac-unknown-none-elf'], {
+						onStdout: (s) => chan.append(s),
+						onStderr: (s) => chan.append(s),
+					}),
+			);
+			if (install.error || install.code !== 0) {
 				vscode.window.showErrorMessage(
 					vscode.l10n.t(
 						'Failed to install target; please run manually:\n rustup target add riscv32imac-unknown-none-elf',

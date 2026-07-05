@@ -247,5 +247,6 @@
 	"Set monitor baud rate": "モニターのボーレートを設定",
 	"Enter a positive integer": "正の整数を入力してください",
 	"Invalid build target: {0}": "無効なビルドターゲット: {0}",
-	"Invalid app name: {0}": "無効なアプリ名: {0}"
+	"Invalid app name: {0}": "無効なアプリ名: {0}",
+	"Baochip: Installing RISC-V target...": "Baochip: RISC-V ターゲットをインストール中..."
 }

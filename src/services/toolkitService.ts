@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { downloadFile, fetchJson } from '@services/httpService';
+import { runProcess } from '@services/procService';
 import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
 import * as vscode from 'vscode';
 
@@ -25,30 +26,26 @@ function hostTriple(): string {
 	return `${arch}-unknown-linux-gnu`;
 }
 
-/** Extract a zip file into dest using the platform's native tools. */
-function extractZip(zipPath: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		let r: ReturnType<typeof spawnSync>;
-		if (process.platform === 'win32') {
-			// Pass paths via env vars (not string interpolation) so a crafted path can't inject PowerShell.
-			r = spawnSync(
-				'powershell',
-				[
-					'-NoProfile',
-					'-Command',
-					'Expand-Archive -LiteralPath $env:BAO_SRC -DestinationPath $env:BAO_DST -Force',
-				],
-				{ stdio: 'inherit', env: { ...process.env, BAO_SRC: zipPath, BAO_DST: dest } },
-			);
-		} else {
-			r = spawnSync('unzip', ['-o', zipPath, '-d', dest], { stdio: 'inherit' });
-		}
-		if (r.status !== 0) {
-			reject(new Error(`Failed to extract ${zipPath} to ${dest}`));
-		} else {
-			resolve();
-		}
-	});
+/** Extract a zip file into dest using the platform's native tools (async - a multi-hundred-MB
+ * extract must not block the extension host). */
+async function extractZip(zipPath: string, dest: string): Promise<void> {
+	const r =
+		process.platform === 'win32'
+			? // Pass paths via env vars (not string interpolation) so a crafted path can't inject PowerShell.
+				await runProcess(
+					'powershell',
+					[
+						'-NoProfile',
+						'-Command',
+						'Expand-Archive -LiteralPath $env:BAO_SRC -DestinationPath $env:BAO_DST -Force',
+					],
+					{ env: { ...process.env, BAO_SRC: zipPath, BAO_DST: dest } },
+				)
+			: await runProcess('unzip', ['-o', zipPath, '-d', dest]);
+	if (r.error || r.code !== 0) {
+		const detail = (r.error?.message || r.stderr || r.stdout || '').trim();
+		throw new Error(`Failed to extract ${zipPath} to ${dest}${detail ? `: ${detail}` : ''}`);
+	}
 }
 
 /** Verify the platform's archive-extraction tool is available, else throw an actionable error. */
