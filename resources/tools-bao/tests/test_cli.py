@@ -51,6 +51,17 @@ def test_boot_with_unopenable_port_exits_2():
     assert "cannot open" in result.stderr
 
 
+def test_verbose_adds_a_traceback_without_duplicating_the_error():
+    verbose = run_bao("-v", "monitor", "-p", NO_SUCH_PORT)
+    assert verbose.returncode == 1
+    assert verbose.stderr.count("[bao] error:") == 1, "error printed exactly once"
+    assert "Traceback" in verbose.stderr
+
+    quiet = run_bao("monitor", "-p", NO_SUCH_PORT)
+    assert quiet.stderr.count("[bao] error:") == 1
+    assert "Traceback" not in quiet.stderr, "traceback only with --verbose"
+
+
 def test_monitor_with_unopenable_port_exits_1_via_dispatcher():
     # open_serial raises; the dispatcher's top-level handler must turn that into
     # a readable error and a nonzero exit (the other half of the exit-code fix).

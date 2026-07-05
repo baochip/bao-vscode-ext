@@ -32,11 +32,9 @@ def main():
         print("\n[bao] aborted by user.")
         sys.exit(1)
     except Exception as e:
+        print(f"[bao] error: {e}", file=sys.stderr)
         if getattr(args, "verbose", False):
-            print(f"[bao] error: {e}", file=sys.stderr)
             traceback.print_exc()
-        else:
-            print(f"[bao] error: {e}", file=sys.stderr)
         sys.exit(1)
 
     # Commands return an int exit code (or None for success); propagate it to the process.
