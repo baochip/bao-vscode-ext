@@ -92,7 +92,12 @@ export async function installXousToolkit(): Promise<void> {
 		},
 		async (progress) => {
 			progress.report({ message: vscode.l10n.t('Fetching release list...') });
-			const releases = (await fetchJson(BETRUSTED_RUST_RELEASES)) as Record<string, unknown>[];
+			// per_page=100: the API's default page holds only 30 releases, which can age the
+			// matching toolchain release off the first page entirely.
+			const releases = (await fetchJson(`${BETRUSTED_RUST_RELEASES}?per_page=100`)) as Record<
+				string,
+				unknown
+			>[];
 
 			// Find releases whose tag starts with the current rustc version
 			const matching = releases.filter((r) => {
