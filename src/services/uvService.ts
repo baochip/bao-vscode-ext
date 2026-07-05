@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
-import * as https from 'node:https';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { downloadFile } from '@services/httpService';
 import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
@@ -377,45 +377,6 @@ function proxyEnv(): NodeJS.ProcessEnv {
 	return proxy ? { HTTPS_PROXY: proxy, HTTP_PROXY: proxy } : {};
 }
 
-/** Download a URL to a file (following redirects), honoring VS Code's proxy support. */
-function downloadToFile(url: string, dest: string, redirectsLeft = 5): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const req = https.get(url, (res) => {
-			const status = res.statusCode ?? 0;
-			if (status >= 300 && status < 400 && res.headers.location) {
-				res.resume();
-				if (redirectsLeft <= 0) {
-					reject(new Error('too many redirects'));
-					return;
-				}
-				downloadToFile(new URL(res.headers.location, url).toString(), dest, redirectsLeft - 1).then(
-					resolve,
-					reject,
-				);
-				return;
-			}
-			if (status !== 200) {
-				res.resume();
-				reject(new Error(`HTTP ${status}`));
-				return;
-			}
-			const chunks: Buffer[] = [];
-			res.on('data', (c: Buffer) => chunks.push(c));
-			res.on('end', () => {
-				try {
-					// Write the raw bytes so the script is byte-for-byte intact (no re-encoding).
-					fs.writeFileSync(dest, Buffer.concat(chunks));
-					resolve();
-				} catch (e) {
-					reject(e);
-				}
-			});
-			res.on('error', reject);
-		});
-		req.on('error', reject);
-	});
-}
-
 /**
  * Install uv with Astral's standalone installer into our own global storage, needing no Python.
  * Fully contained: UV_INSTALL_DIR points at our dir and INSTALLER_NO_MODIFY_PATH stops it from
@@ -436,7 +397,10 @@ async function installUvViaStandalone(): Promise<string | null> {
 
 	info(vscode.l10n.t('Baochip: Installing uv (standalone installer)...'));
 	try {
-		await downloadToFile(installerScriptUrl(), scriptPath);
+		// Shared downloader: timeout, capped redirects, atomic write. In-process requests go
+		// through VS Code's extension-host proxy handling; proxyEnv() below covers only the
+		// installer SUBPROCESS, whose own downloads bypass that handling.
+		await downloadFile(installerScriptUrl(), scriptPath);
 	} catch (e: unknown) {
 		log(`uv installer download failed: ${toMessage(e)}`);
 		cleanupDir(tmpDir);
