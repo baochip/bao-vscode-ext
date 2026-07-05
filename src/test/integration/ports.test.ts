@@ -224,6 +224,7 @@ suite('Ports, monitor, and boot', () => {
 		});
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd, args: ['run', 'python'] });
 		sandbox.stub(baoRunnerService, 'resolveBaoPy').returns('C:\\fake\\bao.py');
+		sandbox.stub(uvService, 'uvEnv').returns({ BAO_TEST_ENV: 'sentinel' });
 		const optionsOf = (call: number) =>
 			create.getCall(call).args[0] as vscode.TerminalOptions & { shellArgs?: string[] };
 		return { terminals, create, optionsOf };
@@ -290,6 +291,15 @@ suite('Ports, monitor, and boot', () => {
 		assert.ok(!String(opts.shellPath).includes('"'), 'no shell quoting applied');
 	});
 
+	test('openMonitorTTY passes the contained uv environment to the terminal', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { optionsOf } = stubMonitorTerminal();
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.equal(optionsOf(0).env?.BAO_TEST_ENV, 'sentinel', 'uvEnv() reaches the terminal');
+	});
+
 	test('openMonitorTTY interrupts and disposes the previous monitor terminal on reopen', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
 		const { terminals, create } = stubMonitorTerminal();
@@ -340,6 +350,23 @@ suite('Ports, monitor, and boot', () => {
 			warnings.getCalls().some((c) => String(c.args[0]).includes('Aborting boot')),
 			'abort warning shown',
 		);
+	});
+
+	test('sendBoot runs bao.py under the contained uv environment', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'uvEnv').returns({ BAO_TEST_ENV: 'sentinel' });
+		const run = sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
+		const { chan } = fakeChannel();
+		sandbox.stub(logService, 'getChannel').returns(chan);
+
+		const ok = await bootService.sendBoot();
+
+		assert.equal(ok, true);
+		const opts = run.firstCall.args[2] as procService.RunOptions;
+		assert.equal(opts.env?.BAO_TEST_ENV, 'sentinel', 'uvEnv() reaches the boot process');
 	});
 
 	test('sendBoot surfaces a failed boot command with its stderr', async () => {

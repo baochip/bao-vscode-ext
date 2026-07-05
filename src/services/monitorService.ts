@@ -1,7 +1,7 @@
 import { resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { ensureSerialPort } from '@services/portsService';
-import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
+import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
@@ -43,6 +43,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 		cwd: getGlobalVenvRoot(),
 		shellPath: cmd,
 		shellArgs,
+		env: uvEnv(),
 	});
 	monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
 		if (t === monitorTerm) {

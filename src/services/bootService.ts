@@ -3,7 +3,7 @@ import { getDefaultBaud } from '@services/configService';
 import { getChannel } from '@services/logService';
 import { ensureSerialPort } from '@services/portsService';
 import { runProcess } from '@services/procService';
-import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
+import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
 import * as vscode from 'vscode';
 
 function getBootChannel(): vscode.OutputChannel {
@@ -32,6 +32,7 @@ export async function sendBoot(): Promise<boolean> {
 
 	const r = await runProcess(cmd, fullArgs, {
 		cwd: root,
+		env: uvEnv(),
 		onStdout: (s) => chan.append(s),
 		onStderr: (s) => chan.append(s),
 	});
