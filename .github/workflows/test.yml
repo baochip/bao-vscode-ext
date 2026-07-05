@@ -8,7 +8,11 @@ on:
 
 jobs:
   test:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +31,13 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # VS Code cannot launch headless on Linux, so the integration suite runs under xvfb there.
+      - name: Integration tests (Linux, under xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+
       - name: Integration tests
+        if: runner.os != 'Linux'
         run: npm run test:integration
 
       - name: Set up uv
