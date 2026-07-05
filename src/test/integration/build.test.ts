@@ -14,6 +14,7 @@ import * as vscode from 'vscode';
 import {
 	activateExtension,
 	cleanupTmpDirs,
+	fakeChannel,
 	makeFakeXousCore,
 	resetBaochipConfig,
 	tmpDir,
@@ -26,19 +27,6 @@ const setCfg = (key: string, value: unknown) =>
 
 /** A successful, empty runProcess result. */
 const okRun = { code: 0, stdout: '', stderr: '', cancelled: false };
-
-/** A fake output channel capturing appendLine text, castable to vscode.OutputChannel. */
-function fakeChannel() {
-	const lines: string[] = [];
-	const chan = {
-		lines,
-		appendLine: (l: string) => lines.push(l),
-		append: () => {},
-		clear: () => {},
-		show: () => {},
-	};
-	return { lines, chan: chan as unknown as vscode.OutputChannel };
-}
 
 /** A fake terminal capturing sendText calls, castable to vscode.Terminal. */
 function fakeTerminal() {

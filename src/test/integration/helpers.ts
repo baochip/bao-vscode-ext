@@ -7,6 +7,19 @@ import * as vscode from 'vscode';
 
 export const EXT_ID = 'baochip.bao-vscode-ext';
 
+/** A fake OutputChannel capturing appendLine text, castable to vscode.OutputChannel. */
+export function fakeChannel(): { lines: string[]; chan: vscode.OutputChannel } {
+	const lines: string[] = [];
+	const chan = {
+		lines,
+		appendLine: (l: string) => lines.push(l),
+		append: () => {},
+		clear: () => {},
+		show: () => {},
+	};
+	return { lines, chan: chan as unknown as vscode.OutputChannel };
+}
+
 /** Get the extension, asserting it is present, and ensure it is activated. */
 export async function activateExtension(): Promise<vscode.Extension<unknown>> {
 	const ext = vscode.extensions.getExtension(EXT_ID);

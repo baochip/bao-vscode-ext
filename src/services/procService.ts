@@ -18,6 +18,12 @@ export interface RunResult {
 	cancelled: boolean;
 }
 
+/** One-line human summary of a failed run: the spawn error, else stderr/stdout, else the exit code. */
+export function describeRunFailure(r: RunResult): string {
+	if (r.error) return r.error.message;
+	return (r.stderr || r.stdout || `exited ${r.code}`).trim();
+}
+
 /**
  * Kill a child and its descendants. child.kill() only signals the direct child, so a build's
  * rustc workers or a uv-run-python grandchild (holding the serial port) would survive a cancel.

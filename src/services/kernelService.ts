@@ -60,13 +60,18 @@ function writeStoredEtags(cacheDir: string, etags: { loader?: string; xous?: str
 	} catch {}
 }
 
-async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
-	const stored = readStoredEtags(cacheDir);
-	if (!stored.loader || !stored.xous) return false;
-	const [loaderEtag, xousEtag] = await Promise.all([
+async function fetchKernelEtags(): Promise<{ loader: string | null; xous: string | null }> {
+	const [loader, xous] = await Promise.all([
 		fetchETag(`${CI_BASE}/loader.uf2`),
 		fetchETag(`${CI_BASE}/xous.uf2`),
 	]);
+	return { loader, xous };
+}
+
+async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
+	const stored = readStoredEtags(cacheDir);
+	if (!stored.loader || !stored.xous) return false;
+	const { loader: loaderEtag, xous: xousEtag } = await fetchKernelEtags();
 	if (!loaderEtag || !xousEtag) return true; // network unavailable - use cache
 	return loaderEtag === stored.loader && xousEtag === stored.xous;
 }
@@ -83,11 +88,8 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 			for (const file of KERNEL_FILES) {
 				await downloadFile(`${CI_BASE}/${file}`, path.join(cacheDir, file));
 			}
-			const [loaderEtag, xousEtag] = await Promise.all([
-				fetchETag(`${CI_BASE}/loader.uf2`),
-				fetchETag(`${CI_BASE}/xous.uf2`),
-			]);
-			writeStoredEtags(cacheDir, { loader: loaderEtag ?? undefined, xous: xousEtag ?? undefined });
+			const { loader, xous } = await fetchKernelEtags();
+			writeStoredEtags(cacheDir, { loader: loader ?? undefined, xous: xous ?? undefined });
 		},
 	);
 }

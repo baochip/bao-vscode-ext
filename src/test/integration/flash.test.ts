@@ -15,6 +15,7 @@ import * as vscode from 'vscode';
 import {
 	activateExtension,
 	cleanupTmpDirs,
+	fakeChannel,
 	makeFakeXousCore,
 	resetBaochipConfig,
 	tmpDir,
@@ -28,18 +29,6 @@ import {
 const cfg = () => vscode.workspace.getConfiguration('baochip');
 const setCfg = (key: string, value: unknown) =>
 	cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
-
-function fakeChannel() {
-	const lines: string[] = [];
-	const chan = {
-		lines,
-		appendLine: (l: string) => lines.push(l),
-		append: () => {},
-		clear: () => {},
-		show: () => {},
-	};
-	return { lines, chan: chan as unknown as vscode.OutputChannel };
-}
 
 suite('Flash service', () => {
 	const sandbox = useSandbox();

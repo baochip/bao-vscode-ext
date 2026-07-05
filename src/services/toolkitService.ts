@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { downloadFile, fetchJson } from '@services/httpService';
-import { runProcess } from '@services/procService';
+import { describeRunFailure, runProcess } from '@services/procService';
 import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
 import * as vscode from 'vscode';
 
@@ -44,8 +44,7 @@ async function extractZip(zipPath: string, dest: string): Promise<void> {
 				)
 			: await runProcess('unzip', ['-o', zipPath, '-d', dest]);
 	if (r.error || r.code !== 0) {
-		const detail = (r.error?.message || r.stderr || r.stdout || '').trim();
-		throw new Error(`Failed to extract ${zipPath} to ${dest}${detail ? `: ${detail}` : ''}`);
+		throw new Error(`Failed to extract ${zipPath} to ${dest}: ${describeRunFailure(r)}`);
 	}
 }
 

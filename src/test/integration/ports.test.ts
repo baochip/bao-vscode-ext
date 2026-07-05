@@ -8,25 +8,13 @@ import * as procService from '@services/procService';
 import * as uvService from '@services/uvService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { activateExtension, resetBaochipConfig, useSandbox } from './helpers';
+import { activateExtension, fakeChannel, resetBaochipConfig, useSandbox } from './helpers';
 
 const cfg = () => vscode.workspace.getConfiguration('baochip');
 const setCfg = (key: string, value: unknown) =>
 	cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 
 const PORTS_OUTPUT = 'COM3\tUSB Serial Device\nCOM7\tBaochip DaBao';
-
-function fakeChannel() {
-	const lines: string[] = [];
-	const chan = {
-		lines,
-		appendLine: (l: string) => lines.push(l),
-		append: () => {},
-		clear: () => {},
-		show: () => {},
-	};
-	return { lines, chan: chan as unknown as vscode.OutputChannel };
-}
 
 suite('Ports, monitor, and boot', () => {
 	const sandbox = useSandbox();

@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 
@@ -6,3 +7,16 @@ from pathlib import Path
 TOOLS_ROOT = Path(__file__).resolve().parent.parent
 if str(TOOLS_ROOT) not in sys.path:
     sys.path.insert(0, str(TOOLS_ROOT))
+
+BAO = TOOLS_ROOT / "bao.py"
+
+
+def run_bao(*args, **kwargs):
+    """Run bao.py as a subprocess so process exit codes are part of the contract."""
+    return subprocess.run(
+        [sys.executable, str(BAO), *args],
+        cwd=str(TOOLS_ROOT),
+        capture_output=True,
+        text=True,
+        **kwargs,
+    )

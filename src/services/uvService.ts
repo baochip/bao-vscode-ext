@@ -754,23 +754,24 @@ export async function rerunExtensionSetup(): Promise<void> {
 	);
 	if (choice !== proceed) return;
 
-	uvBinaryMemo = undefined;
-	depsMemo = undefined;
-	await gSet<string | undefined>(KEY_UV_PATH, undefined);
-	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
-	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
+	await clearUvState();
 	cleanContainedInstall();
 
 	await ensureBaoPythonDeps();
 	info(vscode.l10n.t('Baochip: extension setup complete.'));
 }
 
-export async function resetUvSetup() {
+/** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
+async function clearUvState(): Promise<void> {
 	uvBinaryMemo = undefined;
 	depsMemo = undefined;
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
+}
+
+export async function resetUvSetup() {
+	await clearUvState();
 	info(vscode.l10n.t('Baochip: reset uv setup. Re-run a command to reconfigure.'));
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
 

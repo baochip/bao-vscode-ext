@@ -2,23 +2,14 @@
 process exit codes are part of the contract (a failed update must exit nonzero
 for the extension to detect it)."""
 
-import subprocess
-import sys
-from pathlib import Path
+from conftest import run_bao
 
-TOOLS_ROOT = Path(__file__).resolve().parent.parent
-BAO = TOOLS_ROOT / "bao.py"
 REV = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
 OLD_REV = "0000000000000000000000000000000000000000"
 
 
 def run_update_rev(file_path, rev=REV):
-    return subprocess.run(
-        [sys.executable, str(BAO), "app", "update-rev", "--file", str(file_path), "--rev", rev],
-        cwd=str(TOOLS_ROOT),
-        capture_output=True,
-        text=True,
-    )
+    return run_bao("app", "update-rev", "--file", str(file_path), "--rev", rev)
 
 
 def write_toml(tmp_path, content):

@@ -2,7 +2,7 @@ import { resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud } from '@services/configService';
 import { errorToast, getChannel } from '@services/logService';
 import { ensureSerialPort } from '@services/portsService';
-import { runProcess } from '@services/procService';
+import { describeRunFailure, runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
 import * as vscode from 'vscode';
 
@@ -40,8 +40,7 @@ export async function sendBoot(): Promise<boolean> {
 		chan.appendLine(`[bao] ${vscode.l10n.t('boot command succeeded.')}`);
 		return true;
 	}
-	const detail = r.error ? r.error.message : r.stderr || r.stdout || `exit ${r.code}`;
-	const msg = detail.trim().slice(0, 300);
+	const msg = describeRunFailure(r).slice(0, 300);
 	errorToast(vscode.l10n.t('Boot command failed: {0}', msg)); // toast + central Baochip log
 	chan.appendLine(`[bao] ${vscode.l10n.t('Boot command failed: {0}', msg)}`);
 	return false;

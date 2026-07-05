@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { errorToast, log, warn } from '@services/logService';
-import { runProcess } from '@services/procService';
+import { describeRunFailure, runProcess } from '@services/procService';
 import {
 	ensureBaoPythonDeps,
 	getBaoRunner,
@@ -49,9 +49,7 @@ export async function runBaoCmd(
 	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: uvEnv(), token: opts.token });
 	log(`bao.py EXIT ${r.code}`);
 	if (!r.error && r.code === 0) return opts.capture ? r.stdout.trim() : '';
-	const msg = (
-		r.error ? r.error.message : r.stderr || r.stdout || `bao.py exited ${r.code}`
-	).trim();
+	const msg = describeRunFailure(r);
 	if (!opts.quiet) errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));
 	throw new Error(msg);
 }

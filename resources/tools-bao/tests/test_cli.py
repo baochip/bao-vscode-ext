@@ -2,25 +2,10 @@
 module at startup, so a syntax or import error in any of them breaks every command -
 the --help runs alone catch that whole class of breakage."""
 
-import subprocess
-import sys
-from pathlib import Path
-
 import pytest
+from conftest import run_bao
 
-TOOLS_ROOT = Path(__file__).resolve().parent.parent
-BAO = TOOLS_ROOT / "bao.py"
 NO_SUCH_PORT = "BAO_TEST_NO_SUCH_PORT"
-
-
-def run_bao(*args):
-    return subprocess.run(
-        [sys.executable, str(BAO), *args],
-        cwd=str(TOOLS_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
 
 
 def test_help_lists_every_command():
