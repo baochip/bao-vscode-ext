@@ -73,7 +73,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                 except SerialException:
                     break
                 # Local echo only if explicitly requested
-                if not getattr(args, "no_echo", False):
+                if getattr(args, "echo", False):
                     try:
                         sys.stdout.write(b.decode(errors="replace"))
                         sys.stdout.flush()
@@ -94,7 +94,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                     ser.flush()
                 except SerialException:
                     break
-                if not getattr(args, "no_echo", False):
+                if getattr(args, "echo", False):
                     try:
                         sys.stdout.write(line.decode(errors="replace") + ("\r\n" if tx_eol == b"\r\n" else "\n"))
                         sys.stdout.flush()
@@ -124,7 +124,7 @@ def cmd_monitor(args: argparse.Namespace) -> None:
 
     print(f"[bao] Monitor {args.port} @ {args.baud} - interactive (Ctrl+C to exit)")
     mode = "RAW" if getattr(args, "raw", False) else ("LINE CRLF" if getattr(args, "crlf", False) else "LINE LF")
-    echo = "OFF" if getattr(args, "no_echo", False) else "ON"
+    echo = "ON" if getattr(args, "echo", False) else "OFF"
     print(f"[bao] TX:{mode}  Echo:{echo}")
 
     consecutive_errors = 0
@@ -200,15 +200,13 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     m.add_argument("-p", "--port", required=True, help="Serial port (e.g., COM5, /dev/ttyUSB0)")
     m.add_argument("-b", "--baud", type=int, default=DEFAULT_BAUD, help="Baud rate")
     m.add_argument("--save", help="Append output to a file")
-    m.add_argument("--crlf", action="store_true", help="Use CRLF as TX line ending in line mode (default LF)")
-    m.add_argument("--raw", action="store_true", help="Send keystrokes immediately (raw byte mode)")
-    m.add_argument("--no-echo", action="store_true", help="Do not locally echo typed input")
-
-    # PuTTY-like defaults for direct CLI use
-    m.set_defaults(
-        raw=True,      # per-keystroke
-        no_echo=True,  # device provides echo if any
-        crlf=True,     # Enter sends CRLF in line mode
-    )
+    # PuTTY-like defaults for direct CLI use; each flag has a --no-* form so it can
+    # actually be turned off (store_true + True defaults made "off" unreachable).
+    m.add_argument("--crlf", action=argparse.BooleanOptionalAction, default=True,
+                   help="Use CRLF as TX line ending in line mode")  # Enter sends CRLF in line mode
+    m.add_argument("--raw", action=argparse.BooleanOptionalAction, default=True,
+                   help="Send keystrokes immediately (raw byte mode); --no-raw = line mode")  # per-keystroke
+    m.add_argument("--echo", action=argparse.BooleanOptionalAction, default=False,
+                   help="Locally echo typed input")  # off by default: device provides echo if any
 
     m.set_defaults(func=cmd_monitor)

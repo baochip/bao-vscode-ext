@@ -25,16 +25,17 @@ Open an interactive serial monitor.
 **Options:**
 - `-p, --port` (required): Serial port (e.g., `COM5`, `/dev/ttyUSB0`)
 - `-b, --baud`: Baud rate (default: 1000000)
-- `--raw`: Send keystrokes immediately (raw mode)
-- `--crlf`: Use CRLF as TX line ending (default LF)
-- `--no-echo`: Do not locally echo typed input
+- `--raw` / `--no-raw`: Send keystrokes immediately (raw mode) / send full lines (line mode)
+- `--crlf` / `--no-crlf`: Use CRLF / LF as the TX line ending in line mode
+- `--echo` / `--no-echo`: Locally echo typed input / rely on the device's echo
 - `--save <file>`: Append output to a file
 
-Defaults (PuTTY-style): `--raw`, `--no-echo`, `--crlf` are all enabled.
+Defaults (PuTTY-style): `--raw`, `--no-echo`, `--crlf`.
 
 ```sh
 python bao.py monitor -p COM8
 python bao.py monitor -p /dev/ttyUSB0 --save log.txt
+python bao.py monitor -p COM8 --no-raw --echo   # line mode with local echo
 ```
 
 ### `boot`

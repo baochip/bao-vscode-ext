@@ -17,13 +17,15 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	const port = await ensureSerialPort(resolvedMode);
 	if (!port) return;
 
-	// 2) Settings -> flags (do not localize CLI flags)
+	// 2) Settings -> flags (do not localize CLI flags). Always pass the explicit on/off form:
+	// omitting a flag would fall back to bao.py's PuTTY-style defaults, not the user's setting.
 	const { crlf, raw, echo } = getMonitorFlags();
 	const baud = getDefaultBaud();
-	const flags: string[] = [];
-	if (crlf) flags.push('--crlf');
-	if (raw) flags.push('--raw');
-	if (!echo) flags.push('--no-echo');
+	const flags: string[] = [
+		crlf ? '--crlf' : '--no-crlf',
+		raw ? '--raw' : '--no-raw',
+		echo ? '--echo' : '--no-echo',
+	];
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const shellArgs = [...args, resolveBaoPy(), 'monitor', '-p', port, '-b', String(baud), ...flags];

@@ -271,11 +271,10 @@ suite('Ports, monitor, and boot', () => {
 		await monitorService.openMonitorTTY('run');
 
 		const shellArgs = optionsOf(0).shellArgs ?? [];
-		assert.ok(
-			!shellArgs.includes('--crlf') &&
-				!shellArgs.includes('--raw') &&
-				!shellArgs.includes('--no-echo'),
-			`all flags omitted: ${shellArgs.join(' ')}`,
+		assert.deepEqual(
+			shellArgs.slice(-3),
+			['--no-crlf', '--no-raw', '--echo'],
+			'explicit off/on forms passed so bao.py defaults cannot win',
 		);
 	});
 
