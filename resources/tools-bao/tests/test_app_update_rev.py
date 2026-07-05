@@ -77,6 +77,23 @@ def test_updates_aliased_dependency(tmp_path):
     assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
 
 
+def test_replaces_branch_and_tag_pins_with_the_rev(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        'bao1x-api = { git = "https://github.com/betrusted-io/xous-core", branch = "main" }\n'
+        'bio-lib = { git = "https://github.com/betrusted-io/xous-core", tag = "v0.9" }\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert updated.count(f'rev = "{REV}"') == 2
+    # cargo allows only one of branch/tag/rev on a git dependency
+    assert "branch" not in updated and "tag" not in updated
+
+
 def test_leaves_other_git_dependencies_alone(tmp_path):
     file_path = write_toml(
         tmp_path,

@@ -25,6 +25,10 @@ def cmd_app_update_rev(args: argparse.Namespace) -> int:
             if not isinstance(dep_val, dict):
                 continue
             if XOUS_CORE_GIT_URL in str(dep_val.get("git", "")):
+                # cargo allows only one of branch/tag/rev on a git dep - drop any existing
+                # pin so setting rev cannot produce a manifest cargo rejects
+                dep_val.pop("branch", None)
+                dep_val.pop("tag", None)
                 dep_val["rev"] = args.rev
                 updated = True
 
