@@ -14,7 +14,8 @@ import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
 const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/commits/dev';
-const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
+// Exported for the real-world drift tests, which probe the endpoint for liveness.
+export const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
 const KERNEL_FILES = ['loader.uf2', 'xous.uf2'] as const;
 
 /**

@@ -8,7 +8,8 @@ import { runProcess } from '@services/procService';
 import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
 import * as vscode from 'vscode';
 
-const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
+// Exported for the real-world drift tests, which check the release list still parses.
+export const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
 
 /** Check if the Xous target is already installed in the current rustc sysroot. */
 export function isXousToolkitInstalled(): boolean {

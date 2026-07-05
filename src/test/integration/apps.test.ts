@@ -1,5 +1,4 @@
 import * as assert from 'node:assert';
-import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
@@ -185,27 +184,6 @@ suite('App service and scaffolding', () => {
 			!fs.existsSync(path.join(root, 'apps-dabao', 'my_app')),
 			'no half-created app directory',
 		);
-	});
-
-	test('createBaoApp against a real xous-core checkout finds every template dep', async function () {
-		// Opt-in (BAO_TEST_REAL_XOUS=1): clones the public xous-core repo, so it needs network
-		// and a few hundred MB - wired into one CI leg, skipped everywhere else.
-		if (!process.env.BAO_TEST_REAL_XOUS) this.skip();
-		this.timeout(600_000);
-		const root = path.join(tmpDir(), 'xous-core');
-		const clone = spawnSync('git', ['clone', '--depth', '1', XOUS_CORE_REPO, root], {
-			encoding: 'utf8',
-		});
-		assert.equal(clone.status, 0, `git clone failed: ${clone.stderr}`);
-
-		await appService.createBaoApp(root, 'probe_app', 'dabao');
-
-		const cargo = fs.readFileSync(path.join(root, 'apps-dabao', 'probe_app', 'Cargo.toml'), 'utf8');
-		assert.ok(!cargo.includes(`git = "${XOUS_CORE_REPO}"`), 'no xous-core git deps left');
-		for (const m of cargo.matchAll(/path = "([^"]+)"/g)) {
-			const target = path.resolve(root, 'apps-dabao', 'probe_app', m[1]);
-			assert.ok(fs.existsSync(path.join(target, 'Cargo.toml')), `path dep exists on disk: ${m[1]}`);
-		}
 	});
 
 	test('createBaoApp rejects an app directory that already exists', async () => {
