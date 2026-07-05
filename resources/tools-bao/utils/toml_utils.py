@@ -3,7 +3,9 @@ from tomlkit import parse as toml_parse, dumps as toml_dumps
 
 
 def read_file(path: Path) -> str:
-    with path.open("r", encoding="utf-8") as f:
+    # utf-8-sig: accepts (and strips) a BOM some Windows editors prepend; identical to
+    # plain utf-8 for BOM-less files
+    with path.open("r", encoding="utf-8-sig") as f:
         return f.read()
 
 

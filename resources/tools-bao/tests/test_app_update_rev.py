@@ -109,6 +109,67 @@ def test_leaves_other_git_dependencies_alone(tmp_path):
     assert f'other-lib = {{ git = "https://github.com/example/other-repo", rev = "{OLD_REV}" }}' in updated
 
 
+def test_ignores_sibling_repos_with_a_xous_core_prefix(tmp_path):
+    content = (
+        '[dependencies]\n'
+        f'core-utils = {{ git = "https://github.com/betrusted-io/xous-core-utils", rev = "{OLD_REV}" }}\n'
+    )
+    file_path = write_toml(tmp_path, content)
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 2, "a sibling repo must not count as a match"
+    assert file_path.read_text(encoding="utf-8") == content, "file untouched"
+
+
+def test_matches_the_dot_git_url_form(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core.git", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
+
+
+def test_updates_dev_build_and_target_dependency_sections(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[dev-dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n'
+        '\n'
+        '[build-dependencies]\n'
+        f'bio-lib = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n'
+        '\n'
+        "[target.'cfg(unix)'.dependencies]\n"
+        f'usb-bao1x = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert updated.count(f'rev = "{REV}"') == 3, "all three sections updated"
+    assert OLD_REV not in updated
+
+
+def test_reads_a_cargo_toml_with_a_bom(tmp_path):
+    file_path = tmp_path / "Cargo.toml"
+    file_path.write_text(
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+        encoding="utf-8-sig",
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
+
+
 def test_missing_file_exits_nonzero(tmp_path):
     result = run_update_rev(tmp_path / "does-not-exist" / "Cargo.toml")
 
