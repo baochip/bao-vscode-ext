@@ -610,13 +610,14 @@ async function ensureBaoPythonDepsUncached({
 	const reqPath = path.join(toolsRoot, 'requirements.txt');
 	const venvDir = path.join(venvRoot, '.venv');
 
+	// Ensure the global storage directory exists before creating the venv there; callers also
+	// rely on it as the cwd for uv launches, so it must exist on every return path.
+	fs.mkdirSync(venvRoot, { recursive: true });
+
 	if (!fs.existsSync(reqPath)) {
 		log(`No requirements file found at: ${reqPath} (skipping install)`);
 		return;
 	}
-
-	// Ensure the global storage directory exists before creating the venv there.
-	fs.mkdirSync(venvRoot, { recursive: true });
 
 	const currentHash = createHash('sha256').update(fs.readFileSync(reqPath)).digest('hex');
 	const prevHash = gGet<string>(KEY_REQ_HASH, '');

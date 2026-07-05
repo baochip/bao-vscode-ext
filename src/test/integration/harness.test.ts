@@ -49,6 +49,7 @@ suite('Harness canary', () => {
 			.update('serialPortBootloader', 'COM99', vscode.ConfigurationTarget.Workspace);
 
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const runStub = sandbox
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });

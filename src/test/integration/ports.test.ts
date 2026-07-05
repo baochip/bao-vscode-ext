@@ -218,9 +218,10 @@ suite('Ports, monitor, and boot', () => {
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd, args: ['run', 'python'] });
 		sandbox.stub(baoRunnerService, 'resolveBaoPy').returns('C:\\fake\\bao.py');
 		sandbox.stub(uvService, 'uvEnv').returns({ BAO_TEST_ENV: 'sentinel' });
+		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const optionsOf = (call: number) =>
 			create.getCall(call).args[0] as vscode.TerminalOptions & { shellArgs?: string[] };
-		return { terminals, create, optionsOf };
+		return { terminals, create, optionsOf, deps };
 	}
 
 	test('openMonitorTTY launches bao.py monitor with the port, baud, and default flags', async () => {
@@ -317,17 +318,39 @@ suite('Ports, monitor, and boot', () => {
 
 	test('openMonitorTTY opens no terminal when no port is resolved', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves(undefined);
-		const { create } = stubMonitorTerminal();
+		const { create, deps } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
 		assert.ok(create.notCalled, 'no terminal without a port');
+		assert.ok(deps.notCalled, 'no dependency work when the port prompt is cancelled');
+	});
+
+	test('openMonitorTTY ensures Python deps before creating the terminal', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { create, deps } = stubMonitorTerminal();
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.ok(deps.calledOnce, 'deps ensured');
+		assert.ok(deps.calledBefore(create), 'venv ready before bao.py launches');
+	});
+
+	test('openMonitorTTY still opens the terminal when the deps check fails', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { create, deps } = stubMonitorTerminal();
+		deps.rejects(new Error('uv install failed'));
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.ok(create.calledOnce, 'launch proceeds so the real error stays visible');
 	});
 
 	/* ------------------------------ sendBoot ------------------------------ */
 
 	test('sendBoot aborts with a warning when the bootloader port stays unset', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves(undefined);
+		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const { chan } = fakeChannel();
 		sandbox.stub(logService, 'getChannel').returns(chan);
 		const warnings = sandbox.stub(
@@ -342,12 +365,14 @@ suite('Ports, monitor, and boot', () => {
 			warnings.getCalls().some((c) => String(c.args[0]).includes('Aborting boot')),
 			'abort warning shown',
 		);
+		assert.ok(deps.notCalled, 'no dependency work when the port prompt is cancelled');
 	});
 
 	test('sendBoot runs bao.py under the contained uv environment', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		sandbox.stub(uvService, 'uvEnv').returns({ BAO_TEST_ENV: 'sentinel' });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const run = sandbox
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
@@ -361,9 +386,43 @@ suite('Ports, monitor, and boot', () => {
 		assert.equal(opts.env?.BAO_TEST_ENV, 'sentinel', 'uvEnv() reaches the boot process');
 	});
 
+	test('sendBoot ensures Python deps before running bao.py', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
+		const run = sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
+		const { chan } = fakeChannel();
+		sandbox.stub(logService, 'getChannel').returns(chan);
+
+		const ok = await bootService.sendBoot();
+
+		assert.equal(ok, true);
+		assert.ok(deps.calledOnce, 'deps ensured');
+		assert.ok(deps.calledBefore(run), 'venv ready before bao.py runs');
+	});
+
+	test('sendBoot still boots when the deps check fails', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').rejects(new Error('uv install failed'));
+		const run = sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
+		const { chan } = fakeChannel();
+		sandbox.stub(logService, 'getChannel').returns(chan);
+
+		const ok = await bootService.sendBoot();
+
+		assert.equal(ok, true, 'launch proceeds so the real error stays visible');
+		assert.ok(run.calledOnce, 'bao.py still invoked');
+	});
+
 	test('sendBoot surfaces a failed boot command with its stderr', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		sandbox
 			.stub(procService, 'runProcess')
 			.resolves({ code: 2, stdout: '', stderr: 'cannot open COM7', cancelled: false });

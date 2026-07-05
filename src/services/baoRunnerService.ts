@@ -19,6 +19,20 @@ export function resolveBaoPy(): string {
 }
 
 /**
+ * Best-effort Python dependency check before launching bao.py: installs deps into the global
+ * venv when missing (which also creates the storage dir uv runs in). A failure is logged and
+ * swallowed so the launch itself surfaces the real error.
+ */
+export async function ensureBaoDepsQuietly(): Promise<void> {
+	try {
+		await ensureBaoPythonDeps({ quiet: true });
+	} catch (e: unknown) {
+		const message = toMessage(e);
+		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
+	}
+}
+
+/**
  * Run tools-bao via uv, never direct Python.
  * Ensures Python deps are installed first and uses global storage as default CWD so uv finds .venv.
  */
@@ -31,12 +45,7 @@ export async function runBaoCmd(
 	const baoPath = resolveBaoPy();
 
 	// Ensure deps before we run anything
-	try {
-		await ensureBaoPythonDeps({ quiet: true });
-	} catch (e: unknown) {
-		const message = toMessage(e);
-		warn(vscode.l10n.t('Baochip: dependency check failed, proceeding anyway.\n{0}', message));
-	}
+	await ensureBaoDepsQuietly();
 
 	const fullArgs = [...args, baoPath, ...baoArgs];
 

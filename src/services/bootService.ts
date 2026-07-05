@@ -1,4 +1,4 @@
-import { resolveBaoPy } from '@services/baoRunnerService';
+import { ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud } from '@services/configService';
 import { errorToast, getChannel } from '@services/logService';
 import { ensureSerialPort } from '@services/portsService';
@@ -26,6 +26,10 @@ export async function sendBoot(): Promise<boolean> {
 	const chan = getBootChannel();
 	chan.show(true);
 	chan.appendLine(`[bao] ${vscode.l10n.t("Sending 'boot' to {0} @ {1}...", port, baud)}`);
+
+	// Boot runs bao.py directly (not via runBaoCmd), so the venv and its deps must be
+	// prepared here or a fresh install hits ModuleNotFoundError.
+	await ensureBaoDepsQuietly();
 
 	const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
 	const fullArgs = [...args, bao, 'boot', '-p', port, '-b', String(baud)];

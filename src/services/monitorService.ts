@@ -1,4 +1,4 @@
-import { resolveBaoPy } from '@services/baoRunnerService';
+import { ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { ensureSerialPort } from '@services/portsService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
@@ -26,6 +26,10 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 		raw ? '--raw' : '--no-raw',
 		echo ? '--echo' : '--no-echo',
 	];
+
+	// The terminal runs bao.py directly (not via runBaoCmd), so the venv and its deps must be
+	// prepared here or a fresh install hits ModuleNotFoundError inside the terminal.
+	await ensureBaoDepsQuietly();
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const shellArgs = [...args, resolveBaoPy(), 'monitor', '-p', port, '-b', String(baud), ...flags];
