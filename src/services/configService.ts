@@ -57,12 +57,14 @@ export const getMonitorFlags = () => ({
 	echo: cfg().get<boolean>('monitor.echo') ?? false,
 });
 
-export const getKernelMode = (): string => {
+/** Kernel-file sourcing modes a user can choose; 'ask' (not part of this type) means unchosen. */
+export type KernelMode = 'ci-sync' | 'manual';
+
+export const getKernelMode = (): KernelMode | 'ask' => {
 	const m = cfg().get<string>('outOfTree.kernelMode');
 	return m === 'ci-sync' || m === 'manual' ? m : 'ask';
 };
-export const setKernelMode = (mode: 'ci-sync' | 'manual') =>
-	updateSetting('outOfTree.kernelMode', mode);
+export const setKernelMode = (mode: KernelMode) => updateSetting('outOfTree.kernelMode', mode);
 
 export const getKernelFilesPath = () => cfg().get<string>('outOfTree.kernelFilesPath') || '';
 export const setKernelFilesPath = (p: string) => updateSetting('outOfTree.kernelFilesPath', p);

@@ -114,6 +114,46 @@ suite('Kernel files service', () => {
 		assert.equal(cfg().inspect('outOfTree.kernelMode')?.workspaceValue, undefined);
 	});
 
+	/* ------------------------------ resolveKernelFiles (mode not yet chosen) ------------------------------ */
+
+	test('resolveKernelFiles with no mode chosen shows the setup modal; cancel aborts with no download', async () => {
+		const info = sandbox.stub(
+			vscode.window,
+			'showInformationMessage',
+		) as unknown as sinon.SinonStub;
+		info.resolves(undefined);
+		const download = sandbox.stub(httpService, 'downloadFile');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.equal(files, null);
+		assert.ok(info.calledOnce, 'setup modal shown before any kernel work');
+		assert.ok(download.notCalled, 'no CI kernels downloaded without a chosen mode');
+		assert.ok(errors.notCalled, 'clean abort, no error toast');
+	});
+
+	test('resolveKernelFiles with no mode chosen: picking Manage my own files continues in the same run', async () => {
+		const folder = tmpDir();
+		fs.writeFileSync(path.join(folder, 'loader.uf2'), 'l', 'utf8');
+		fs.writeFileSync(path.join(folder, 'xous.uf2'), 'x', 'utf8');
+		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
+			'Manage my own files',
+		);
+		(sandbox.stub(vscode.window, 'showOpenDialog') as unknown as sinon.SinonStub).resolves([
+			vscode.Uri.file(folder),
+		]);
+
+		const files = await kernelService.resolveKernelFiles();
+
+		// Compare against the persisted folder (Uri.fsPath can change drive-letter case on Windows).
+		const savedFolder = cfg().get<string>('outOfTree.kernelFilesPath') ?? '';
+		assert.ok(files, 'kernel files resolved in the same run');
+		assert.equal(files?.loader, path.join(savedFolder, 'loader.uf2'));
+		assert.equal(files?.xous, path.join(savedFolder, 'xous.uf2'));
+		assert.equal(cfg().get<string>('outOfTree.kernelMode'), 'manual', 'choice persisted');
+	});
+
 	/* ------------------------------ resolveKernelFiles (manual) ------------------------------ */
 
 	test('resolveKernelFiles (manual) errors when no folder is configured', async () => {

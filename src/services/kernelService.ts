@@ -4,6 +4,7 @@ import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getKernelFilesPath,
 	getKernelMode,
+	type KernelMode,
 	setKernelFilesPath,
 	setKernelMode,
 } from '@services/configService';
@@ -11,8 +12,6 @@ import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
-
-export type KernelMode = 'ci-sync' | 'manual';
 
 const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/commits/dev';
 const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
@@ -91,11 +90,15 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 
 /**
  * Resolves the paths to loader.uf2 and xous.uf2 for out-of-tree flashing.
+ * Prompts for the kernel mode first if it is not configured yet (null on cancel).
  * Downloads from CI if needed (ci-sync), or reads from the user's folder (manual).
  * Returns null on failure.
  */
 export async function resolveKernelFiles(): Promise<{ loader: string; xous: string } | null> {
-	const mode = getKernelMode() as KernelMode;
+	// A fresh user can hit Flash before ever building, so the one-time mode prompt must
+	// happen here too, not only on the build path.
+	const mode = await ensureKernelModeConfigured();
+	if (!mode) return null;
 
 	if (mode === 'manual') {
 		const folder = getKernelFilesPath();
@@ -150,7 +153,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
  */
 export async function ensureKernelModeConfigured(): Promise<KernelMode | undefined> {
 	const saved = getKernelMode();
-	if (saved !== 'ask') return saved as KernelMode;
+	if (saved !== 'ask') return saved;
 
 	const syncLabel = vscode.l10n.t('Sync to latest');
 	const manualLabel = vscode.l10n.t('Manage my own files');
