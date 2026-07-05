@@ -10,6 +10,7 @@ import {
 	getXousCorePath,
 	setShowWelcome,
 } from '@services/configService';
+import { escapeHtml } from '@util/html';
 import * as vscode from 'vscode';
 
 export class WelcomePanel {
@@ -135,19 +136,22 @@ export class WelcomePanel {
 			vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'),
 		);
 
-		// Localized strings injected into the HTML
-		const titleBar = vscode.l10n.t('Welcome - Baochip'); // "Welcome - Baochip"
-		const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
-		const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
-		const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"
-		const xousLinkTitle = vscode.l10n.t('Open xous-core on GitHub'); // "Open xous-core on GitHub"
+		// Localized strings injected into the HTML - escaped so a translation containing markup
+		// characters can never alter the page structure (defense-in-depth; the CSP is already tight).
+		const titleBar = escapeHtml(vscode.l10n.t('Welcome - Baochip')); // "Welcome - Baochip"
+		const h1 = escapeHtml(vscode.l10n.t('Welcome to Baochip')); // "Welcome to Baochip"
+		const sub = escapeHtml(vscode.l10n.t('Quick actions to get you started.')); // "Quick actions to get you started."
+		const chkLabel = escapeHtml(vscode.l10n.t('Show Welcome on extension startup')); // "Show Welcome on extension startup"
+		const xousLinkTitle = escapeHtml(vscode.l10n.t('Open xous-core on GitHub')); // "Open xous-core on GitHub"
 		const xousLinkText = 'betrusted-io/xous-core'; // keep repo slug literal
-		const btnConfigureTitle = vscode.l10n.t('Configure extension');
-		const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
-		const btnCreateTitle = vscode.l10n.t('Create new app');
-		const btnCreateSub = vscode.l10n.t('Start a new app from a template');
-		const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
-		const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
+		const btnConfigureTitle = escapeHtml(vscode.l10n.t('Configure extension'));
+		const btnConfigureSub = escapeHtml(vscode.l10n.t('Paths, ports, defaults'));
+		const btnCreateTitle = escapeHtml(vscode.l10n.t('Create new app'));
+		const btnCreateSub = escapeHtml(vscode.l10n.t('Start a new app from a template'));
+		const footerLead = escapeHtml(
+			vscode.l10n.t('Found a bug or have a feature request for the extension?'),
+		);
+		const footerLink = escapeHtml(vscode.l10n.t('Open an issue on GitHub')); // "Open an issue on GitHub"
 
 		return /* html */ `
       <!doctype html>
