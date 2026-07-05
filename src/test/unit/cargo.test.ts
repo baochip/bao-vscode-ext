@@ -4,6 +4,7 @@ import {
 	addWorkspaceMemberToToml,
 	buildOutOfTreeFeatures,
 	generateXousPatchSection,
+	isValidCrateName,
 	isValidFeatureName,
 	parseCargoPackageName,
 	parseWorkspaceMembers,
@@ -47,6 +48,18 @@ test('isValidFeatureName: accepts typical cargo feature names', () => {
 test('isValidFeatureName: rejects empty, whitespace, flag-like, and metachar values', () => {
 	for (const n of ['', ' ', 'foo bar', '--config', '-foo', 'a;b', 'a"b', 'a`b', 'a&b']) {
 		assert.equal(isValidFeatureName(n), false, n);
+	}
+});
+
+test('isValidCrateName: accepts real cargo package names', () => {
+	for (const n of ['myapp', 'MyApp', 'foo_bar', 'foo-bar', 'a', '_private', '2fast']) {
+		assert.equal(isValidCrateName(n), true, n);
+	}
+});
+
+test('isValidCrateName: rejects path, metachar, and feature-only syntax', () => {
+	for (const n of ['', ' ', 'a b', 'a/b', 'a.b', 'a+b', '../up', 'a;b', 'a$(x)', 'a`b', '-lead']) {
+		assert.equal(isValidCrateName(n), false, n);
 	}
 });
 

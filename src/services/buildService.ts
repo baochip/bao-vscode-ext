@@ -15,7 +15,8 @@ import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
-import { buildOutOfTreeFeatures, parseCargoPackageName } from '@util/cargo';
+import { isLikelyValidAppName } from '@util/appName';
+import { buildOutOfTreeFeatures, isValidCrateName, parseCargoPackageName } from '@util/cargo';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
@@ -119,13 +120,17 @@ function outOfTreeFeatureArgs(): string[] {
 export function runOutOfTreeBuildInTerminal(root: string) {
 	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
 
-	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs().map(quoteArg).join(' ')}`;
+	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs()
+		.map((a) => quoteArg(a))
+		.join(' ')}`;
 
 	// Read package name to construct ELF path for xous-app-uf2
 	try {
 		const cargo = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
 		const pkgName = parseCargoPackageName(cargo);
-		if (pkgName) {
+		// Only chain the UF2 step for a well-formed crate name: the value comes straight from
+		// the workspace's Cargo.toml, so anything else must not reach the command line.
+		if (pkgName && isValidCrateName(pkgName)) {
 			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
 			const uf2Cmd = `xous-app-uf2 --elf ${quoteArg(elfPath)}`;
 			// PowerShell 5.x (shipped with Windows) does not support &&
@@ -146,10 +151,23 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export function runBuildInTerminal(root: string, target: string, app?: string) {
-	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
-
 	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
 	const appList = appArgs.join(' ');
+
+	// Target and app names are workspace-controlled settings interpolated into a shell command
+	// line; allow only known/identifier-like values so shell metacharacters never reach the
+	// terminal (quoteArg cannot make $ or backtick inert inside PowerShell double quotes).
+	if (!BUILD_TARGETS.includes(target)) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
+		return;
+	}
+	const badApp = appArgs.find((a) => !isLikelyValidAppName(a));
+	if (badApp !== undefined) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid app name: {0}', badApp));
+		return;
+	}
+
+	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
 
 	if (appArgs.length === 0) {
 		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
@@ -163,7 +181,7 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	}
 
 	term.sendText(
-		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map(quoteArg).join(' ')}` : ''}`,
+		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
 	);
 	term.show(true);
 }

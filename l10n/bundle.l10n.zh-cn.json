@@ -245,5 +245,7 @@
 	"Reinstall": "重新安装",
 	"Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.": "从头重新运行设置？这只会删除 Baochip 保存在 VS Code 内的 uv、Python 和虚拟环境的私有副本，然后重新安装它们。系统中其他位置安装的 uv 或 Python 不受影响。需要网络连接。",
 	"Set monitor baud rate": "设置监视器波特率",
-	"Enter a positive integer": "请输入一个正整数"
+	"Enter a positive integer": "请输入一个正整数",
+	"Invalid build target: {0}": "无效的构建目标: {0}",
+	"Invalid app name: {0}": "无效的应用名称: {0}"
 }

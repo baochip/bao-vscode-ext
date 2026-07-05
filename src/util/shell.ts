@@ -4,9 +4,17 @@ export function shellCd(dir: string, platform: NodeJS.Platform = process.platfor
 	return `cd '${dir.replace(/'/g, "'\\''")}'`;
 }
 
-/** Quote a command-line token: double-quote it (escaping inner ") when it contains whitespace, a quote, or a backtick. */
-export function quoteArg(s: string): string {
-	return /\s|["`]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
+/**
+ * Quote a command-line token for the platform's default shell, unless it consists entirely of
+ * shell-safe characters. POSIX wraps in single quotes (every metacharacter inert, same style as
+ * shellCd). Windows wraps in double quotes with embedded " escaped; PowerShell still expands $
+ * and backtick inside double quotes, so shell-active values must be rejected before they reach
+ * a command line (see the build target / app name / crate name checks in buildService).
+ */
+export function quoteArg(s: string, platform: NodeJS.Platform = process.platform): string {
+	if (/^[A-Za-z0-9_.,:=+/-]+$/.test(s)) return s;
+	if (platform === 'win32') return `"${s.replace(/"/g, '\\"')}"`;
+	return `'${s.replace(/'/g, "'\\''")}'`;
 }
 
 /**

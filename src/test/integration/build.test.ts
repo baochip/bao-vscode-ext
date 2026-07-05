@@ -296,4 +296,50 @@ suite('Build service', () => {
 		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
 		assert.ok(!sent[0].includes('xous-app-uf2'), 'no UF2 chain without a package name');
 	});
+
+	test('runOutOfTreeBuildInTerminal skips the UF2 chain for a malformed crate name', async () => {
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'Cargo.toml'), '[package]\nname = "my;app $(x)"\n', 'utf8');
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		buildService.runOutOfTreeBuildInTerminal(root);
+
+		assert.equal(sent.length, 1);
+		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
+		assert.ok(!sent[0].includes('my;app'), 'malformed name never reaches the terminal');
+		assert.ok(!sent[0].includes('xous-app-uf2'), 'no UF2 chain');
+	});
+
+	/* ------------------------------ runBuildInTerminal ------------------------------ */
+
+	test('runBuildInTerminal sends cargo xtask with the target and app words', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello world');
+
+		assert.deepEqual(sent, ['cargo xtask dabao hello world']);
+	});
+
+	test('runBuildInTerminal rejects a build target outside the known list', async () => {
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
+
+		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
+
+		assert.ok(ensure.notCalled, 'no terminal opened');
+		assert.ok(String(errors.firstCall.args[0]).includes('Invalid build target'));
+	});
+
+	test('runBuildInTerminal rejects an app word with shell metacharacters', async () => {
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
+
+		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello $(evil)');
+
+		assert.ok(ensure.notCalled, 'no terminal opened');
+		assert.ok(String(errors.firstCall.args[0]).includes('Invalid app name'));
+	});
 });

@@ -75,6 +75,15 @@ export function isValidFeatureName(name: string): boolean {
 	return /^[A-Za-z0-9_][A-Za-z0-9_./+-]*$/.test(name);
 }
 
+/**
+ * Whether a string is a valid cargo package (crate) name: ASCII alphanumeric, `_` or `-`.
+ * Stricter than feature syntax (no `.` `/` `+`); the app-name rule in @util/appName is in turn
+ * a stricter lowercase UX subset of this.
+ */
+export function isValidCrateName(name: string): boolean {
+	return /^[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(name);
+}
+
 /** Build the cargo `--features` args for an out-of-tree Baochip build: the board feature, fixed defaults, then any extras. */
 export function buildOutOfTreeFeatures(target: string, extraFeatures: string[]): string[] {
 	const boardFeature = `board-${target || 'dabao'}`;
