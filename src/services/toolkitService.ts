@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { downloadFile, fetchJson } from '@services/httpService';
-import { parseRustcVersion } from '@util/rust';
+import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
 import * as vscode from 'vscode';
 
 const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
@@ -108,8 +108,10 @@ export async function installXousToolkit(): Promise<void> {
 				);
 			}
 
-			// Use the last matching release (highest patch)
-			const release = matching[matching.length - 1];
+			// Pick the highest patch by its tag suffix - the API lists releases newest-first, so
+			// positional picks are ordering-dependent (last = oldest, the pre-fix bug).
+			const tags = matching.map((r) => String(r.tag_name));
+			const release = matching[pickHighestPatchIndex(tags, rustVersion)];
 			const assets = release.assets as Record<string, unknown>[];
 
 			const host = hostTriple();
