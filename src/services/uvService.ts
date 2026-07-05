@@ -506,7 +506,23 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	throw new Error(vscode.l10n.t('uv setup was not completed.'));
 }
 
+/*
+ * Session cache: without it every command re-probes uv with a synchronous `--version` (and
+ * re-hashes requirements.txt), and the pipeline's port wait triggers that every 500ms - each
+ * probe blocks the extension host. Cleared by resetUvSetup/rerunExtensionSetup. The probe
+ * itself stays synchronous by design: it now runs once per session, and making it async would
+ * ripple into the deliberately-deferred shell:true version probes.
+ */
+let sessionUvPath: string | undefined;
+let sessionDepsOk = false;
+
 async function resolveUvBinary(): Promise<string> {
+	if (sessionUvPath) return sessionUvPath;
+	sessionUvPath = await resolveUvBinaryUncached();
+	return sessionUvPath;
+}
+
+async function resolveUvBinaryUncached(): Promise<string> {
 	// 1) A uv we already resolved (saved in our own global state).
 	const saved = gGet<string | undefined>(KEY_UV_PATH, undefined);
 	if (saved && uvUsable(saved)) {
@@ -575,6 +591,8 @@ export async function ensureBaoPythonDeps({
 }: {
 	quiet?: boolean;
 } = {}): Promise<void> {
+	if (sessionDepsOk) return; // verified earlier this session (see the cache note above)
+
 	const toolsRoot = getBundledToolsRoot();
 	const venvRoot = getGlobalVenvRoot();
 	const reqPath = path.join(toolsRoot, 'requirements.txt');
@@ -582,6 +600,7 @@ export async function ensureBaoPythonDeps({
 
 	if (!fs.existsSync(reqPath)) {
 		log(`No requirements file found at: ${reqPath} (skipping install)`);
+		sessionDepsOk = true;
 		return;
 	}
 
@@ -601,6 +620,7 @@ export async function ensureBaoPythonDeps({
 
 	if (!venvMissing && prevHash === currentHash) {
 		log('requirements unchanged and venv present; skipping install.');
+		sessionDepsOk = true;
 		return;
 	}
 
@@ -687,6 +707,7 @@ export async function ensureBaoPythonDeps({
 		},
 	);
 
+	sessionDepsOk = true;
 	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
@@ -724,6 +745,8 @@ export async function rerunExtensionSetup(): Promise<void> {
 	);
 	if (choice !== proceed) return;
 
+	sessionUvPath = undefined;
+	sessionDepsOk = false;
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
@@ -734,6 +757,8 @@ export async function rerunExtensionSetup(): Promise<void> {
 }
 
 export async function resetUvSetup() {
+	sessionUvPath = undefined;
+	sessionDepsOk = false;
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
