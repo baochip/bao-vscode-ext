@@ -22,9 +22,6 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 	refresh() {
 		this._onDidChangeTreeData.fire(undefined);
 	}
-	refreshMonitor() {
-		this._onDidChangeTreeData.fire(this.monitorNode);
-	}
 
 	getTreeItem(el: TreeItem) {
 		// Dynamically update tooltip to show the chosen mode/port/baud
@@ -52,7 +49,6 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 
 	getChildren(element?: TreeItem) {
 		if (!element) {
-			const _welcome = new TreeItem(vscode.l10n.t('Welcome'), Commands.openWelcome, 'home');
 			const setBootloaderPort = new TreeItem(
 				vscode.l10n.t('Set bootloader mode serial port'),
 				Commands.setBootloaderSerialPort,

@@ -26,7 +26,3 @@ export function scanArtifacts(xousRoot: string): BaoArtifact[] {
 	}
 	return artifacts;
 }
-
-export async function fetchArtifacts(cwd: string): Promise<BaoArtifact[]> {
-	return scanArtifacts(cwd);
-}

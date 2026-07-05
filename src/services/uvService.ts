@@ -417,12 +417,12 @@ async function installUvViaStandalone(): Promise<string | null> {
 
 	// We invoke the script THROUGH the interpreter (powershell -File / sh <file>), so no execute bit
 	// is needed. powershell.exe (Windows PowerShell 5.1) is used for the broadest compatibility.
-	const [cmd, args] = isWin
+	const [cmd, args]: [string, string[]] = isWin
 		? ['powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath]]
 		: ['sh', [scriptPath]];
 
-	log(`-> ${cmd} ${(args as string[]).join(' ')}`);
-	const r = await runProcess(cmd as string, args as string[], { env: installEnv });
+	log(`-> ${cmd} ${args.join(' ')}`);
+	const r = await runProcess(cmd, args, { env: installEnv });
 	cleanupDir(tmpDir);
 	if (r.error || r.code !== 0) {
 		log(

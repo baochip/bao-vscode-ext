@@ -60,7 +60,7 @@ def _stdin_raw_noecho():
 def _stdin_to_serial(ser, args, stop_event: threading.Event):
     """Forward user input to the serial port (raw: per-byte, line: per-line)."""
     try:
-        if getattr(args, "raw", False):
+        if args.raw:
             # Raw mode: per-byte. cmd_monitor (main thread) owns the terminal raw-mode; this
             # thread only reads stdin and writes to serial, so it never touches terminal state.
             while not stop_event.is_set():
@@ -73,7 +73,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                 except SerialException:
                     break
                 # Local echo only if explicitly requested
-                if getattr(args, "echo", False):
+                if args.echo:
                     try:
                         sys.stdout.write(b.decode(errors="replace"))
                         sys.stdout.flush()
@@ -81,7 +81,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                         pass
         else:
             # Line mode: read a full line, normalize line ending
-            tx_eol = b"\r\n" if getattr(args, "crlf", False) else b"\n"
+            tx_eol = b"\r\n" if args.crlf else b"\n"
             while not stop_event.is_set():
                 line = sys.stdin.buffer.readline()
                 if not line:
@@ -94,7 +94,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                     ser.flush()
                 except SerialException:
                     break
-                if getattr(args, "echo", False):
+                if args.echo:
                     try:
                         sys.stdout.write(line.decode(errors="replace") + ("\r\n" if tx_eol == b"\r\n" else "\n"))
                         sys.stdout.flush()
@@ -112,7 +112,7 @@ def cmd_monitor(args: argparse.Namespace) -> int:
         timeout=0.1,
     )
     outf = None
-    if getattr(args, "save", None):
+    if args.save:
         try:
             # binary + unbuffered: exact byte capture of the serial stream, no text-mode
             # CRLF translation, and the log stays current (was: text, line-buffered)
@@ -123,8 +123,8 @@ def cmd_monitor(args: argparse.Namespace) -> int:
             return 2
 
     print(f"[bao] Monitor {args.port} @ {args.baud} - interactive (Ctrl+C to exit)")
-    mode = "RAW" if getattr(args, "raw", False) else ("LINE CRLF" if getattr(args, "crlf", False) else "LINE LF")
-    echo = "ON" if getattr(args, "echo", False) else "OFF"
+    mode = "RAW" if args.raw else ("LINE CRLF" if args.crlf else "LINE LF")
+    echo = "ON" if args.echo else "OFF"
     print(f"[bao] TX:{mode}  Echo:{echo}")
 
     consecutive_errors = 0
@@ -141,7 +141,7 @@ def cmd_monitor(args: argparse.Namespace) -> int:
 
     # Own the terminal raw-mode on THIS (main) thread so the restore always runs, even on Ctrl+C:
     # the daemon writer thread can be killed mid-read, so it must NOT own terminal state.
-    raw_ctx = _stdin_raw_noecho() if getattr(args, "raw", False) else contextlib.nullcontext()
+    raw_ctx = _stdin_raw_noecho() if args.raw else contextlib.nullcontext()
     raw_ctx.__enter__()
 
     # Start stdin->serial writer thread

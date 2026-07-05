@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { type BaoArtifact, fetchArtifacts } from '@services/artifactsService';
+import { scanArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 import { getChannel } from '@services/logService';
 import { toMessage } from '@util/error';
@@ -214,7 +214,7 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 }
 
 export async function gatherArtifacts(root: string) {
-	const images = await fetchArtifacts(root).catch<BaoArtifact[]>(() => []);
+	const images = scanArtifacts(root);
 	const byRole: Record<'loader' | 'xous' | 'apps', string | undefined> = {
 		loader: images.find((artifact) => artifact.role === 'loader')?.path,
 		xous: images.find((artifact) => artifact.role === 'xous')?.path,

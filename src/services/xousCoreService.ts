@@ -8,11 +8,6 @@ import { toMessage } from '@util/error';
 import { isDirectory, isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
-/** Check each open workspace folder for apps-dabao/ and return the root if found. */
-function detectXousCoreInWorkspace(): string | undefined {
-	return findXousCoreInWorkspace();
-}
-
 /**
  * If xousCorePath is not yet configured, scan the open workspace for xous-core
  * and save it automatically. Safe to call on activation.
@@ -20,7 +15,7 @@ function detectXousCoreInWorkspace(): string | undefined {
 export async function autoDetectXousCore(): Promise<void> {
 	const existing = getXousCorePath();
 	if (existing && fs.existsSync(existing)) return; // already configured
-	const found = detectXousCoreInWorkspace();
+	const found = findXousCoreInWorkspace();
 	if (found) {
 		await setXousCorePath(found);
 		log(`xous-core auto-detected: ${found}`);
@@ -35,7 +30,7 @@ export async function ensureXousCorePath(): Promise<string> {
 	}
 
 	// Try workspace auto-detection before prompting
-	const detected = detectXousCoreInWorkspace();
+	const detected = findXousCoreInWorkspace();
 	if (detected) {
 		await setXousCorePath(detected);
 		log(`xous-core auto-detected: ${detected}`);

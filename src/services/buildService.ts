@@ -10,7 +10,7 @@ import {
 } from '@services/configService';
 import { getChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
-import { getOutOfTreeRoot, getProjectMode, type ProjectMode } from '@services/projectModeService';
+import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
@@ -20,12 +20,9 @@ import { buildOutOfTreeFeatures, isValidCrateName, parseCargoPackageName } from 
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
-export type BuildPrereqs = {
-	mode: ProjectMode;
-	root: string;
-	target: string;
-	app?: string;
-};
+export type BuildPrereqs =
+	| { mode: 'xous-core'; root: string; target: string; app?: string }
+	| { mode: 'out-of-tree'; root: string };
 
 /** Return the configured build target, prompting to select one if unset. Returns undefined if the user declines. */
 export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
@@ -45,15 +42,9 @@ export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
 
 /** Prompt the user to pick a build target, persist it, and return it (or undefined if cancelled). */
 export async function promptAndSaveBuildTarget(): Promise<string | undefined> {
-	const targets = BUILD_TARGETS;
-	if (!targets || targets.length === 0) {
-		vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));
-		return undefined;
-	}
-
 	const current = getBuildTarget();
 	const picked = await vscode.window.showQuickPick(
-		targets.map((t) => ({
+		BUILD_TARGETS.map((t) => ({
 			label: t,
 			description: t === current ? vscode.l10n.t('current') : undefined,
 		})),
@@ -76,7 +67,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 		const root = getOutOfTreeRoot();
 		if (!root) return;
-		return { mode: 'out-of-tree', root, target: '' };
+		return { mode: 'out-of-tree', root };
 	}
 
 	const root = await resolveXousRootOrNotify();

@@ -120,13 +120,8 @@ export async function installXousToolkit(): Promise<void> {
 			const host = hostTriple();
 
 			// Require an asset matching the host triple - no wrong-host fallback (would install a broken toolchain).
-			const isXousAsset = (a: Record<string, unknown>) => {
-				const name = a.name;
-				return (
-					(typeof name === 'string' && name.split('_')[0] === XOUS_TARGET_TRIPLE.split('-')[0]) ||
-					(typeof name === 'string' && name.startsWith('riscv32imac'))
-				);
-			};
+			const isXousAsset = (a: Record<string, unknown>) =>
+				typeof a.name === 'string' && a.name.startsWith(XOUS_TARGET_TRIPLE.split('-')[0]);
 			const hostAsset = assets.find((a) => {
 				const name = a.name;
 				return typeof name === 'string' && name.includes(host) && isXousAsset(a);

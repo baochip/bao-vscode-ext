@@ -205,9 +205,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		modeItem.tooltip = vscode.l10n.t('Build mode: {0} (click to change in settings)', mode);
 		modeItem.show();
 
+		// One full-tree refresh repaints every node (incl. the monitor); the docs tree is static.
 		tree.refresh();
-		tree.refreshMonitor();
-		docsTree.refresh();
 	};
 
 	refreshUI();

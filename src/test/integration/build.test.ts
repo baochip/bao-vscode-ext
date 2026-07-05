@@ -173,7 +173,7 @@ suite('Build service', () => {
 
 		const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 		assert.ok(wsRoot, 'test host has a workspace folder');
-		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot, target: '' });
+		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot });
 	});
 
 	/* ------------------------------ runBuildAndWait / runOutOfTreeBuildAndWait ------------------------------ */
