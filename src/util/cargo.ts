@@ -28,46 +28,54 @@ export function transformAppCargoToml(template: string, appName: string): string
 	// Replace package name
 	let cargo = template.replace(/\{\{NAME\}\}/g, appName);
 
-	// Remove rev = "{{REV}}" - not needed since we patch with local paths
+	// Remove rev = "{{REV}}" - in-tree deps are rewritten to local path deps afterwards
 	cargo = cargo.replace(/,?\s*rev\s*=\s*"{{REV}}"/g, '');
 
 	// Remove [patch.crates-io] section - workspace members inherit workspace-level patches
 	return `${cargo.replace(/\[patch\.crates-io\][\s\S]*?(?=\n\[|\s*$)/, '').trimEnd()}\n`;
 }
 
+const XOUS_GIT_RE = new RegExp(
+	`git\\s*=\\s*"${XOUS_CORE_REPO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`,
+);
+
 /**
- * Generate a [patch."https://github.com/betrusted-io/xous-core"] section by
- * finding all git deps in the Cargo.toml that point to xous-core and mapping
- * them to local workspace paths.
+ * Rewrite every xous-core git dependency to a path dependency into the checkout at `xousRoot`.
+ * In-tree apps are members of the xous-core workspace, so sibling crates are referenced
+ * directly by path; a [patch] section would not work anyway (cargo only honors patches in the
+ * workspace ROOT manifest and ignores them in members). Other keys of each entry (features,
+ * optional, ...) are preserved; branch/tag/rev pins are dropped with the git source; deps on
+ * other git repos and registry deps are untouched. Returns the rewritten manifest plus the
+ * crates that could not be found in the tree (stale checkout - caller decides how to surface).
  */
-export function generateXousPatchSection(
+export function rewriteXousGitDepsToPaths(
 	cargoContent: string,
 	pkgMap: Map<string, string>,
 	newDir: string,
 	xousRoot: string,
-): string {
-	const entries: string[] = [];
-	// Match dependency entries that use the xous-core git URL
-	const pattern =
-		/^\s*([\w-]+)\s*=\s*\{[^}]*git\s*=\s*"https:\/\/github\.com\/betrusted-io\/xous-core"[^}]*\}/gm;
-	const seen = new Set<string>();
-	for (const m of cargoContent.matchAll(pattern)) {
-		const entry = m[0];
-		const depKey = m[1].trim();
-		// Crate may be aliased via package = "..."
-		const pkgMatch = entry.match(/package\s*=\s*"([^"]+)"/);
-		const pkgName = pkgMatch ? pkgMatch[1] : depKey;
-		if (seen.has(pkgName)) continue;
-		seen.add(pkgName);
-		const memberPath = pkgMap.get(pkgName);
-		if (memberPath) {
-			const absPath = path.join(xousRoot, memberPath);
-			const relPath = path.relative(newDir, absPath).replace(/\\/g, '/');
-			entries.push(`${pkgName} = { path = "${relPath}" }`);
-		}
-	}
-	if (entries.length === 0) return '';
-	return `\n[patch."${XOUS_CORE_REPO}"]\n${entries.join('\n')}\n`;
+): { toml: string; missing: string[] } {
+	const missing = new Set<string>();
+	const toml = cargoContent.replace(
+		/^([ \t]*)([\w-]+)(\s*=\s*)\{([^}]*)\}/gm,
+		(whole, indent: string, depKey: string, eq: string, body: string) => {
+			if (!XOUS_GIT_RE.test(body)) return whole;
+			// Crate may be aliased via package = "..."
+			const pkgMatch = body.match(/package\s*=\s*"([^"]+)"/);
+			const pkgName = pkgMatch ? pkgMatch[1] : depKey;
+			const memberPath = pkgMap.get(pkgName);
+			if (!memberPath) {
+				missing.add(pkgName);
+				return whole;
+			}
+			const relPath = path.relative(newDir, path.join(xousRoot, memberPath)).replace(/\\/g, '/');
+			const newBody = body
+				.replace(/git\s*=\s*"[^"]*"/, `path = "${relPath}"`)
+				.replace(/,\s*(?:branch|tag|rev)\s*=\s*"[^"]*"/g, '')
+				.replace(/(?:branch|tag|rev)\s*=\s*"[^"]*"\s*,\s*/g, '');
+			return `${indent}${depKey}${eq}{${newBody}}`;
+		},
+	);
+	return { toml, missing: [...missing] };
 }
 
 /** Whether a string is a plausible cargo feature name (defense-in-depth for values that become CLI args). */

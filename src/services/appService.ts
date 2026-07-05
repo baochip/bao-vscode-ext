@@ -8,8 +8,8 @@ import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import {
 	addWorkspaceMemberToToml,
-	generateXousPatchSection,
 	parseWorkspaceMembers,
+	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
 } from '@util/cargo';
 import { isDirectory } from '@util/fsUtil';
@@ -145,18 +145,26 @@ export async function createBaoApp(
 		throw new Error(vscode.l10n.t('No out-of-tree template available for target "{0}".', target));
 	}
 
-	// Build workspace map for patch generation
+	// Build workspace map for the path-dep rewrite
 	const pkgMap = buildWorkspacePackageMap(xousRoot);
 
 	// Process Cargo.toml
 	const template = fs.readFileSync(path.join(templateDir, 'Cargo.toml'), 'utf8');
 	let cargo = transformAppCargoToml(template, appName);
 
-	// Generate and append [patch."https://github.com/betrusted-io/xous-core"] section
-	const patchSection = generateXousPatchSection(cargo, pkgMap, newDir, xousRoot);
-	if (patchSection) {
-		cargo += patchSection;
+	// In-tree apps reference sibling xous-core crates by path: cargo ignores [patch] sections
+	// in member manifests, so keeping the git deps would silently resolve them from GitHub
+	// instead of this tree.
+	const rewrite = rewriteXousGitDepsToPaths(cargo, pkgMap, newDir, xousRoot);
+	if (rewrite.missing.length > 0) {
+		throw new Error(
+			vscode.l10n.t(
+				'Could not find {0} in your xous-core checkout. Update xous-core and try again.',
+				rewrite.missing.join(', '),
+			),
+		);
 	}
+	cargo = rewrite.toml;
 
 	// Write app files
 	fs.mkdirSync(newDir, { recursive: true });

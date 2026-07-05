@@ -3,11 +3,11 @@ import { test } from 'node:test';
 import {
 	addWorkspaceMemberToToml,
 	buildOutOfTreeFeatures,
-	generateXousPatchSection,
 	isValidCrateName,
 	isValidFeatureName,
 	parseCargoPackageName,
 	parseWorkspaceMembers,
+	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
 } from '../../util/cargo';
 
@@ -132,39 +132,77 @@ const PKG_MAP = new Map([
 	['utralib', 'utralib'],
 ]);
 
-test('generateXousPatchSection: maps xous-core git deps to local workspace paths', () => {
+test('rewriteXousGitDepsToPaths: rewrites xous-core git deps to path deps, preserving other keys', () => {
 	const cargo = [
 		'[dependencies]',
-		'xous = { git = "https://github.com/betrusted-io/xous-core" }',
+		'xous = { git = "https://github.com/betrusted-io/xous-core", features = ["std"], optional = true }',
 		'utralib = { git = "https://github.com/betrusted-io/xous-core" }',
 	].join('\n');
-	const out = generateXousPatchSection(cargo, PKG_MAP, '/xc/apps-dabao/new_app', '/xc');
-	assert.ok(out.includes('[patch."https://github.com/betrusted-io/xous-core"]'), out);
-	assert.ok(out.includes('xous = { path = "../../xous-rs" }'), out);
-	assert.ok(out.includes('utralib = { path = "../../utralib" }'), out);
+	const { toml, missing } = rewriteXousGitDepsToPaths(
+		cargo,
+		PKG_MAP,
+		'/xc/apps-dabao/new_app',
+		'/xc',
+	);
+	assert.deepEqual(missing, []);
+	assert.ok(
+		toml.includes('xous = { path = "../../xous-rs", features = ["std"], optional = true }'),
+		toml,
+	);
+	assert.ok(toml.includes('utralib = { path = "../../utralib" }'), toml);
+	assert.ok(!toml.includes('git ='), 'no xous-core git source left');
+	assert.ok(!toml.includes('[patch'), 'no patch section emitted');
 });
 
-test('generateXousPatchSection: resolves aliased deps via package = "..."', () => {
+test('rewriteXousGitDepsToPaths: resolves aliased deps via package = "..." and keeps the alias', () => {
 	const cargo =
 		'my-alias = { package = "xous", git = "https://github.com/betrusted-io/xous-core" }';
-	const out = generateXousPatchSection(cargo, PKG_MAP, '/xc/apps-dabao/new_app', '/xc');
-	assert.ok(out.includes('xous = { path = "../../xous-rs" }'), out);
-	assert.ok(!out.includes('my-alias'), 'patch entry uses the real package name');
+	const { toml, missing } = rewriteXousGitDepsToPaths(
+		cargo,
+		PKG_MAP,
+		'/xc/apps-dabao/new_app',
+		'/xc',
+	);
+	assert.deepEqual(missing, []);
+	assert.ok(
+		toml.includes('my-alias = { package = "xous", path = "../../xous-rs" }'),
+		`alias kept, source swapped:\n${toml}`,
+	);
 });
 
-test('generateXousPatchSection: dedupes repeated deps and skips unknown packages', () => {
+test('rewriteXousGitDepsToPaths: drops branch/tag/rev pins along with the git source', () => {
+	const cargo =
+		'xous = { git = "https://github.com/betrusted-io/xous-core", branch = "main", optional = true }';
+	const { toml } = rewriteXousGitDepsToPaths(cargo, PKG_MAP, '/xc/apps-dabao/new_app', '/xc');
+	assert.ok(toml.includes('xous = { path = "../../xous-rs", optional = true }'), toml);
+	assert.ok(!toml.includes('branch'), 'branch pin dropped');
+});
+
+test('rewriteXousGitDepsToPaths: reports crates missing from the tree and leaves them untouched', () => {
 	const cargo = [
-		'xous = { git = "https://github.com/betrusted-io/xous-core" }',
 		'xous = { git = "https://github.com/betrusted-io/xous-core" }',
 		'mystery = { git = "https://github.com/betrusted-io/xous-core" }',
 	].join('\n');
-	const out = generateXousPatchSection(cargo, PKG_MAP, '/xc/apps-dabao/new_app', '/xc');
-	const occurrences = out.split('xous = { path').length - 1;
-	assert.equal(occurrences, 1, 'each package patched once');
-	assert.ok(!out.includes('mystery'), 'packages not in the workspace map are skipped');
+	const { toml, missing } = rewriteXousGitDepsToPaths(
+		cargo,
+		PKG_MAP,
+		'/xc/apps-dabao/new_app',
+		'/xc',
+	);
+	assert.deepEqual(missing, ['mystery']);
+	assert.ok(
+		toml.includes('mystery = { git = "https://github.com/betrusted-io/xous-core" }'),
+		'unknown crate left as-is for the caller to reject',
+	);
 });
 
-test('generateXousPatchSection: empty when nothing points at xous-core', () => {
-	const cargo = 'serde = { version = "1" }\nlocal = { path = "../local" }';
-	assert.equal(generateXousPatchSection(cargo, PKG_MAP, '/xc/apps-dabao/a', '/xc'), '');
+test('rewriteXousGitDepsToPaths: leaves other git repos and registry deps untouched', () => {
+	const cargo = [
+		'serde = { version = "1" }',
+		'other = { git = "https://github.com/betrusted-io/xous-usb-hid.git", branch = "main" }',
+		'local = { path = "../local" }',
+	].join('\n');
+	const { toml, missing } = rewriteXousGitDepsToPaths(cargo, PKG_MAP, '/xc/apps-dabao/a', '/xc');
+	assert.deepEqual(missing, []);
+	assert.equal(toml, cargo, 'nothing rewritten');
 });

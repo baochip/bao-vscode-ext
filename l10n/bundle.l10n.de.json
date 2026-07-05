@@ -248,5 +248,6 @@
 	"Enter a positive integer": "Geben Sie eine positive ganze Zahl ein",
 	"Invalid build target: {0}": "Ungültiges Build-Ziel: {0}",
 	"Invalid app name: {0}": "Ungültiger App-Name: {0}",
-	"Baochip: Installing RISC-V target...": "Baochip: RISC-V-Ziel wird installiert..."
+	"Baochip: Installing RISC-V target...": "Baochip: RISC-V-Ziel wird installiert...",
+	"Could not find {0} in your xous-core checkout. Update xous-core and try again.": "{0} wurde in Ihrem xous-core-Checkout nicht gefunden. Aktualisieren Sie xous-core und versuchen Sie es erneut."
 }

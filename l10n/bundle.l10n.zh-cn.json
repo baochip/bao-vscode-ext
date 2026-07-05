@@ -248,5 +248,6 @@
 	"Enter a positive integer": "请输入一个正整数",
 	"Invalid build target: {0}": "无效的构建目标: {0}",
 	"Invalid app name: {0}": "无效的应用名称: {0}",
-	"Baochip: Installing RISC-V target...": "Baochip：正在安装 RISC-V 目标..."
+	"Baochip: Installing RISC-V target...": "Baochip：正在安装 RISC-V 目标...",
+	"Could not find {0} in your xous-core checkout. Update xous-core and try again.": "在 xous-core 检出中找不到 {0}。请更新 xous-core 后重试。"
 }

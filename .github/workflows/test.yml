@@ -32,9 +32,12 @@ jobs:
         run: npm test
 
       # VS Code cannot launch headless on Linux, so the integration suite runs under xvfb there.
+      # The Linux leg also runs the opt-in real-xous-core checkout test (network + a shallow clone).
       - name: Integration tests (Linux, under xvfb)
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:integration
+        env:
+          BAO_TEST_REAL_XOUS: "1"
 
       - name: Integration tests
         if: runner.os != 'Linux'

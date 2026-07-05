@@ -1,6 +1,8 @@
 import * as assert from 'node:assert';
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_CORE_REPO } from '@constants';
 import * as appService from '@services/appService';
 import * as kernelService from '@services/kernelService';
 import * as outOfTreeScaffoldService from '@services/outOfTreeScaffoldService';
@@ -116,26 +118,42 @@ suite('App service and scaffolding', () => {
 
 	/* ------------------------------ createBaoApp (real bundled template) ------------------------------ */
 
-	/** A fake xous-core whose workspace carries a member matching a template dep (bao1x-api). */
-	function makeXousCoreWithLib(): string {
+	/** Every xous-core crate the dabao template depends on via git. */
+	const TEMPLATE_XOUS_CRATES = [
+		'bao1x-hal',
+		'bao1x-api',
+		'bao1x-hal-service',
+		'bao1x-emu',
+		'usb-bao1x',
+		'aes',
+		'bio-lib',
+	];
+
+	/** A fake xous-core whose workspace carries the given crates as libs/<name> members. */
+	function makeXousCoreWithLibs(crates: string[]): string {
 		const { root } = makeFakeXousCore(tmpDir(), { apps: ['hello'] });
-		const libDir = path.join(root, 'libs', 'bao1x-api');
-		fs.mkdirSync(libDir, { recursive: true });
-		fs.writeFileSync(
-			path.join(libDir, 'Cargo.toml'),
-			'[package]\nname = "bao1x-api"\nversion = "0.1.0"\n',
-			'utf8',
-		);
+		for (const crate of crates) {
+			const libDir = path.join(root, 'libs', crate);
+			fs.mkdirSync(libDir, { recursive: true });
+			fs.writeFileSync(
+				path.join(libDir, 'Cargo.toml'),
+				`[package]\nname = "${crate}"\nversion = "0.1.0"\n`,
+				'utf8',
+			);
+		}
+		const members = ['apps-dabao/hello', ...crates.map((c) => `libs/${c}`)]
+			.map((m) => `  "${m}",`)
+			.join('\n');
 		fs.writeFileSync(
 			path.join(root, 'Cargo.toml'),
-			'[workspace]\nmembers = [\n  "apps-dabao/hello",\n  "libs/bao1x-api",\n]\n',
+			`[workspace]\nmembers = [\n${members}\n]\n`,
 			'utf8',
 		);
 		return root;
 	}
 
-	test('createBaoApp scaffolds from the bundled template with local patch paths', async () => {
-		const root = makeXousCoreWithLib();
+	test('createBaoApp scaffolds from the bundled template with local path deps and no patch section', async () => {
+		const root = makeXousCoreWithLibs(TEMPLATE_XOUS_CRATES);
 
 		await appService.createBaoApp(root, 'my_app', 'dabao');
 
@@ -144,18 +162,50 @@ suite('App service and scaffolding', () => {
 		assert.ok(cargo.includes('name = "my_app"'), 'package name substituted');
 		assert.ok(!cargo.includes('{{NAME}}') && !cargo.includes('{{REV}}'), 'no placeholders left');
 		assert.ok(!cargo.includes('[patch.crates-io]'), 'crates-io patch section removed');
-		assert.ok(
-			cargo.includes('[patch."https://github.com/betrusted-io/xous-core"]'),
-			'xous-core patch section appended',
-		);
-		assert.ok(
-			cargo.includes('bao1x-api = { path = "../../libs/bao1x-api" }'),
-			`workspace member patched by local path:\n${cargo}`,
-		);
+		assert.ok(!cargo.includes('[patch'), 'no patch section of any kind');
+		assert.ok(!cargo.includes(`git = "${XOUS_CORE_REPO}"`), 'no xous-core git deps left');
+		for (const crate of TEMPLATE_XOUS_CRATES) {
+			assert.ok(
+				cargo.includes(`path = "../../libs/${crate}"`),
+				`${crate} rewritten to a local path dep:\n${cargo}`,
+			);
+		}
+		assert.ok(cargo.includes('xous-usb-hid = { git ='), 'deps on other git repos stay git deps');
 		assert.ok(fs.existsSync(path.join(appDir, 'src', 'main.rs')), 'template src copied');
 		assert.ok(fs.existsSync(path.join(appDir, '.cargo', 'config.toml')), 'cargo config copied');
 		const members = parseWorkspaceMembers(fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8'));
 		assert.ok(members.includes('apps-dabao/my_app'), `new app registered: ${members.join(', ')}`);
+	});
+
+	test('createBaoApp rejects a stale checkout missing template crates, creating nothing', async () => {
+		const root = makeXousCoreWithLibs(['bao1x-api']); // most template crates absent
+
+		await assert.rejects(appService.createBaoApp(root, 'my_app', 'dabao'), /Could not find/);
+		assert.ok(
+			!fs.existsSync(path.join(root, 'apps-dabao', 'my_app')),
+			'no half-created app directory',
+		);
+	});
+
+	test('createBaoApp against a real xous-core checkout finds every template dep', async function () {
+		// Opt-in (BAO_TEST_REAL_XOUS=1): clones the public xous-core repo, so it needs network
+		// and a few hundred MB - wired into one CI leg, skipped everywhere else.
+		if (!process.env.BAO_TEST_REAL_XOUS) this.skip();
+		this.timeout(600_000);
+		const root = path.join(tmpDir(), 'xous-core');
+		const clone = spawnSync('git', ['clone', '--depth', '1', XOUS_CORE_REPO, root], {
+			encoding: 'utf8',
+		});
+		assert.equal(clone.status, 0, `git clone failed: ${clone.stderr}`);
+
+		await appService.createBaoApp(root, 'probe_app', 'dabao');
+
+		const cargo = fs.readFileSync(path.join(root, 'apps-dabao', 'probe_app', 'Cargo.toml'), 'utf8');
+		assert.ok(!cargo.includes(`git = "${XOUS_CORE_REPO}"`), 'no xous-core git deps left');
+		for (const m of cargo.matchAll(/path = "([^"]+)"/g)) {
+			const target = path.resolve(root, 'apps-dabao', 'probe_app', m[1]);
+			assert.ok(fs.existsSync(path.join(target, 'Cargo.toml')), `path dep exists on disk: ${m[1]}`);
+		}
 	});
 
 	test('createBaoApp rejects an app directory that already exists', async () => {

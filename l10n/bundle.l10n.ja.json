@@ -248,5 +248,6 @@
 	"Enter a positive integer": "正の整数を入力してください",
 	"Invalid build target: {0}": "無効なビルドターゲット: {0}",
 	"Invalid app name: {0}": "無効なアプリ名: {0}",
-	"Baochip: Installing RISC-V target...": "Baochip: RISC-V ターゲットをインストール中..."
+	"Baochip: Installing RISC-V target...": "Baochip: RISC-V ターゲットをインストール中...",
+	"Could not find {0} in your xous-core checkout. Update xous-core and try again.": "xous-core チェックアウト内に {0} が見つかりませんでした。xous-core を更新して再試行してください。"
 }
