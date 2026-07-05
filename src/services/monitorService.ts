@@ -2,7 +2,6 @@ import { resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { ensureSerialPort } from '@services/portsService';
 import { getBaoRunner, getGlobalVenvRoot } from '@services/uvService';
-import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
 let monitorTerm: vscode.Terminal | undefined;
@@ -27,19 +26,11 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	if (!echo) flags.push('--no-echo');
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
-	const full = [
-		quoteArg(cmd),
-		...args.map(quoteArg),
-		quoteArg(resolveBaoPy()),
-		'monitor',
-		'-p',
-		quoteArg(port),
-		'-b',
-		String(baud),
-		...flags,
-	].join(' ');
+	const shellArgs = [...args, resolveBaoPy(), 'monitor', '-p', port, '-b', String(baud), ...flags];
 
-	// 3) Launch terminal
+	// 3) Launch terminal - it runs uv directly (shellPath/shellArgs), so no shell ever parses the
+	// command line: spaces in the uv path are safe regardless of the user's default shell
+	// (a PowerShell line starting with a quoted path is an expression, not an invocation).
 	try {
 		monitorTerm?.sendText('\x03'); // Ctrl+C - let bao.py close the serial port cleanly
 		monitorTerm?.dispose();
@@ -47,7 +38,12 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	monitorTermListener?.dispose();
 	const label = resolvedMode === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 	const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
-	monitorTerm = vscode.window.createTerminal({ name: termName, cwd: getGlobalVenvRoot() });
+	monitorTerm = vscode.window.createTerminal({
+		name: termName,
+		cwd: getGlobalVenvRoot(),
+		shellPath: cmd,
+		shellArgs,
+	});
 	monitorTermListener = vscode.window.onDidCloseTerminal((t) => {
 		if (t === monitorTerm) {
 			monitorTerm = undefined;
@@ -55,7 +51,6 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 			monitorTermListener = undefined;
 		}
 	});
-	monitorTerm.sendText(full);
 	monitorTerm.show();
 }
 

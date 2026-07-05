@@ -201,35 +201,63 @@ suite('Ports, monitor, and boot', () => {
 
 	/* ------------------------------ openMonitorTTY ------------------------------ */
 
-	function stubMonitorTerminal() {
-		const sent: string[] = [];
-		const term = {
-			sendText: (t: string) => sent.push(t),
-			show: () => {},
-			dispose: () => {},
-		};
-		const create = sandbox
-			.stub(vscode.window, 'createTerminal')
-			.returns(term as unknown as vscode.Terminal);
-		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
-		return { sent, create };
+	interface FakeTerminal {
+		sendText: sinon.SinonSpy;
+		show: sinon.SinonSpy;
+		dispose: sinon.SinonSpy;
+	}
+
+	// The monitor terminal runs uv directly via shellPath/shellArgs (no shell parses a command
+	// line), so the fakes capture createTerminal options instead of sent text.
+	function stubMonitorTerminal(cmd = 'uv') {
+		const terminals: FakeTerminal[] = [];
+		const create = (
+			sandbox.stub(vscode.window, 'createTerminal') as unknown as sinon.SinonStub
+		).callsFake(() => {
+			const term: FakeTerminal = {
+				sendText: sandbox.spy(),
+				show: sandbox.spy(),
+				dispose: sandbox.spy(),
+			};
+			terminals.push(term);
+			return term as unknown as vscode.Terminal;
+		});
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd, args: ['run', 'python'] });
+		sandbox.stub(baoRunnerService, 'resolveBaoPy').returns('C:\\fake\\bao.py');
+		const optionsOf = (call: number) =>
+			create.getCall(call).args[0] as vscode.TerminalOptions & { shellArgs?: string[] };
+		return { terminals, create, optionsOf };
 	}
 
 	test('openMonitorTTY launches bao.py monitor with the port, baud, and default flags', async () => {
 		const ensurePort = sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
-		const { sent, create } = stubMonitorTerminal();
+		const { terminals, create, optionsOf } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
 		assert.ok(ensurePort.calledOnceWith('run'));
 		assert.ok(create.calledOnce, 'terminal created');
-		assert.equal(sent.length, 1, 'one command sent');
-		assert.ok(sent[0].startsWith('uv run python '), sent[0]);
-		assert.ok(sent[0].includes(' monitor -p COM5 -b 1000000'), sent[0]);
-		assert.ok(
-			sent[0].includes('--crlf') && sent[0].includes('--raw') && sent[0].includes('--no-echo'),
-			`default flags present: ${sent[0]}`,
+		const opts = optionsOf(0);
+		assert.equal(opts.shellPath, 'uv', 'uv is the terminal process');
+		assert.deepEqual(
+			opts.shellArgs,
+			[
+				'run',
+				'python',
+				'C:\\fake\\bao.py',
+				'monitor',
+				'-p',
+				'COM5',
+				'-b',
+				'1000000',
+				'--crlf',
+				'--raw',
+				'--no-echo',
+			],
+			'argv with port, baud, and default flags',
 		);
+		assert.ok(terminals[0].sendText.notCalled, 'no command line typed into the terminal');
+		assert.ok(terminals[0].show.calledOnce, 'terminal shown');
 	});
 
 	test('openMonitorTTY honors the monitor flag settings', async () => {
@@ -237,14 +265,42 @@ suite('Ports, monitor, and boot', () => {
 		await setCfg('monitor.raw', false);
 		await setCfg('monitor.echo', true);
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
-		const { sent } = stubMonitorTerminal();
+		const { optionsOf } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
+		const shellArgs = optionsOf(0).shellArgs ?? [];
 		assert.ok(
-			!sent[0].includes('--crlf') && !sent[0].includes('--raw') && !sent[0].includes('--no-echo'),
-			`all flags omitted: ${sent[0]}`,
+			!shellArgs.includes('--crlf') &&
+				!shellArgs.includes('--raw') &&
+				!shellArgs.includes('--no-echo'),
+			`all flags omitted: ${shellArgs.join(' ')}`,
 		);
+	});
+
+	test('openMonitorTTY passes a uv path containing spaces verbatim (A17 regression)', async () => {
+		const spacedUv = 'C:\\Users\\Jean Doe\\AppData\\globalStorage\\uv\\uv.exe';
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { optionsOf } = stubMonitorTerminal(spacedUv);
+
+		await monitorService.openMonitorTTY('run');
+
+		const opts = optionsOf(0);
+		assert.equal(opts.shellPath, spacedUv, 'path reaches the terminal unmodified');
+		assert.ok(!String(opts.shellPath).includes('"'), 'no shell quoting applied');
+	});
+
+	test('openMonitorTTY interrupts and disposes the previous monitor terminal on reopen', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { terminals, create } = stubMonitorTerminal();
+
+		await monitorService.openMonitorTTY('run');
+		await monitorService.openMonitorTTY('run');
+
+		assert.equal(create.callCount, 2, 'a fresh terminal per open');
+		assert.ok(terminals[0].sendText.calledOnceWith('\x03'), 'Ctrl+C sent to the old monitor');
+		assert.ok(terminals[0].dispose.calledOnce, 'old terminal disposed');
+		assert.ok(terminals[1].sendText.notCalled, 'new terminal receives no typed command');
 	});
 
 	test('openMonitorTTY without a mode uses the default monitor port preference', async () => {
