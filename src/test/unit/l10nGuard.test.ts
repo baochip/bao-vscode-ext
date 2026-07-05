@@ -119,3 +119,36 @@ test('l10n: no bundle key is orphaned (unused in src)', () => {
 		assert.deepEqual(orphans, [], `orphaned keys in ${path.basename(file)}`);
 	}
 });
+
+/** The set of {N} placeholder indices in a string (e.g. "{0} of {1}" -> {"0","1"}). */
+function placeholders(s: string): Set<string> {
+	return new Set([...s.matchAll(/\{(\d+)\}/g)].map((m) => m[1]));
+}
+
+test('l10n: every translation preserves the {N} placeholders of its English key', () => {
+	for (const file of bundleFiles()) {
+		const bundle = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>;
+		const mismatches: string[] = [];
+		for (const [key, value] of Object.entries(bundle)) {
+			const want = [...placeholders(key)].sort();
+			const got = [...placeholders(value)].sort();
+			if (want.join(',') !== got.join(',')) {
+				mismatches.push(`"${key}" expects {${want}} but has {${got}}`);
+			}
+		}
+		assert.deepEqual(mismatches, [], `placeholder mismatch in ${path.basename(file)}`);
+	}
+});
+
+test('l10n: every l10n.t() key in src is a string literal (statically checkable)', () => {
+	// A non-literal key (l10n.t(someVar)) cannot be extracted or verified by the guards above,
+	// so it would silently escape the bundle checks. Keep every key a literal.
+	const offenders: string[] = [];
+	for (const file of listSourceFiles(SRC_DIR)) {
+		const source = fs.readFileSync(file, 'utf8');
+		for (const m of source.matchAll(/\bl10n\.t\(\s*([^'"\s)])/g)) {
+			offenders.push(`${path.relative(ROOT, file)}: l10n.t(${m[1]}...`);
+		}
+	}
+	assert.deepEqual(offenders, [], 'l10n.t() called with a non-literal key');
+});

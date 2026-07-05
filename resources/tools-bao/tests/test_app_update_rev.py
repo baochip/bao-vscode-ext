@@ -170,6 +170,24 @@ def test_reads_a_cargo_toml_with_a_bom(tmp_path):
     assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
 
 
+def test_string_form_dependencies_are_skipped_not_crashed(tmp_path):
+    # Deps written as a bare version string (not a table) have no git URL and must be ignored;
+    # the xous-core table dep is still updated.
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        'serde = "1.0"\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert 'serde = "1.0"' in updated, "string dep left untouched"
+    assert f'rev = "{REV}"' in updated
+
+
 def test_missing_file_exits_nonzero(tmp_path):
     result = run_update_rev(tmp_path / "does-not-exist" / "Cargo.toml")
 

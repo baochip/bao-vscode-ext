@@ -110,20 +110,25 @@ suite('Ports, monitor, and boot', () => {
 		);
 	});
 
-	test('promptAndSaveSerialPort surfaces a ports-listing failure', async () => {
+	test('promptAndSaveSerialPort surfaces a ports-listing failure with a single toast', async () => {
 		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
 			'OK',
 		);
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('bao.py exploded'));
-		sandbox.stub(vscode.window, 'showWarningMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
 		const port = await portsService.promptAndSaveSerialPort('run');
 
 		assert.equal(port, undefined);
+		assert.equal(errors.callCount, 1, 'exactly one error toast');
+		assert.ok(String(errors.firstCall.args[0]).includes('Could not list ports'));
 		assert.ok(
-			errors.getCalls().some((c) => String(c.args[0]).includes('Could not list ports')),
-			'listing-failure error shown',
+			!warnings.getCalls().some((c) => String(c.args[0]).includes('No serial ports found')),
+			'a listing failure is not reported as "no ports found"',
 		);
 	});
 

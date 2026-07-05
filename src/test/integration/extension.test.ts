@@ -1,7 +1,6 @@
 import * as assert from 'node:assert';
 import * as vscode from 'vscode';
-
-const EXT_ID = 'baochip.bao-vscode-ext';
+import { activateExtension } from './helpers';
 
 suite('Extension smoke', () => {
 	let manifest: {
@@ -14,10 +13,8 @@ suite('Extension smoke', () => {
 	let commands: Set<string>;
 
 	suiteSetup(async () => {
-		const ext = vscode.extensions.getExtension(EXT_ID);
-		assert.ok(ext, 'extension should be present');
-		await ext.activate();
-		manifest = ext.packageJSON;
+		const ext = await activateExtension();
+		manifest = ext.packageJSON as typeof manifest;
 		commands = new Set(await vscode.commands.getCommands(true));
 	});
 

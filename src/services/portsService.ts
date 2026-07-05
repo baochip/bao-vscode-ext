@@ -141,13 +141,17 @@ export async function pickSerialPort(
 	);
 	if (clicked !== okLabel) return undefined;
 
-	const lines = await runBao(['ports'], cwd, { capture: true }).catch((err: unknown) => {
-		// errorToast: toast + central Baochip log (a bare toast leaves no trace to debug later)
+	// quiet: this function shows the single failure toast itself. A listing failure returns
+	// undefined, kept distinct from a successful empty result ("No serial ports found" below).
+	let lines: string;
+	try {
+		lines = await runBao(['ports'], cwd, { capture: true, quiet: true });
+	} catch (err: unknown) {
 		errorToast(vscode.l10n.t('Could not list ports: {0}', (err as Error)?.message || String(err)));
-		return '';
-	});
+		return undefined;
+	}
 
-	const items = (lines || '')
+	const items = lines
 		.split(/\r?\n/)
 		.map((s) => s.trim())
 		.filter(Boolean)
