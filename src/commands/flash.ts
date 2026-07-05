@@ -1,8 +1,6 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
-import { promptAndSaveApp } from '@services/appService';
 import { ensureBuildTargetOrPrompt } from '@services/buildService';
-import { getXousAppName } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
@@ -25,12 +23,8 @@ export function registerFlashCommand() {
 		const target = await ensureBuildTargetOrPrompt();
 		if (!target) return;
 
-		// No app set yet: prompt to pick one, then continue the flash in the same run.
-		if (!getXousAppName()) {
-			const picked = await promptAndSaveApp();
-			if (!picked) return;
-		}
-
+		// No app check: flash pushes the already-built UF2s from disk, so which app is
+		// configured is irrelevant here (it only matters at build time).
 		await decideAndFlash(root);
 	});
 }

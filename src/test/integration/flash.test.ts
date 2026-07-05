@@ -1,9 +1,14 @@
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Commands } from '@commands/commandIds';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import * as appService from '@services/appService';
+import * as buildService from '@services/buildService';
 import * as flashService from '@services/flashService';
 import * as logService from '@services/logService';
+import * as projectModeService from '@services/projectModeService';
+import * as xousCoreService from '@services/xousCoreService';
 import { realPath } from '@util/fsUtil';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -46,6 +51,21 @@ suite('Flash service', () => {
 	teardown(async () => {
 		await resetBaochipConfig();
 		cleanupTmpDirs();
+	});
+
+	/* ------------------------------ flash command ------------------------------ */
+
+	test('the Flash command flashes without an app configured (app is a build-time concern)', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves('C:\\fake\\xous-core');
+		sandbox.stub(buildService, 'ensureBuildTargetOrPrompt').resolves('dabao');
+		const flash = sandbox.stub(flashService, 'decideAndFlash').resolves(true);
+		const pickApp = sandbox.stub(appService, 'promptAndSaveApp');
+
+		await vscode.commands.executeCommand(Commands.flash);
+
+		assert.ok(flash.calledOnce, 'flash proceeded');
+		assert.ok(pickApp.notCalled, 'no app picker for a flash');
 	});
 
 	/* ------------------------------ ensureFlashLocation ------------------------------ */
