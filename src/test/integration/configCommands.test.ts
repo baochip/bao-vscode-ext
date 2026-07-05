@@ -5,6 +5,7 @@ import {
 	getDefaultBaud,
 	getExtraFeatures,
 	getKernelMode,
+	getMonitorDefaultPort,
 	getMonitorFlags,
 } from '@services/configService';
 import type * as sinon from 'sinon';
@@ -76,8 +77,8 @@ suite('Config and selection commands', () => {
 
 		assert.equal(cfg().get<string>('monitorDefaultPort'), 'bootloader');
 		assert.ok(
-			info.getCalls().some((c) => String(c.args[0]).includes('bootloader')),
-			'confirmation toast names the picked mode',
+			info.getCalls().some((c) => String(c.args[0]).includes('Bootloader')),
+			'confirmation toast shows the localized label, not the raw enum value',
 		);
 	});
 
@@ -193,6 +194,16 @@ suite('Config and selection commands', () => {
 
 		await setCfg('outOfTree.kernelMode', 'manual');
 		assert.equal(getKernelMode(), 'manual');
+	});
+
+	test('getMonitorDefaultPort coerces unknown values to run', async () => {
+		assert.equal(getMonitorDefaultPort(), 'run', 'default when unset');
+
+		await setCfg('monitorDefaultPort', 'garbage');
+		assert.equal(getMonitorDefaultPort(), 'run', 'unknown value coerced to run');
+
+		await setCfg('monitorDefaultPort', 'bootloader');
+		assert.equal(getMonitorDefaultPort(), 'bootloader');
 	});
 
 	test('getExtraFeatures filters out values that are not valid cargo feature names', async () => {

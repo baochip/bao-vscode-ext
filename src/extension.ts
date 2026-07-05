@@ -1,5 +1,4 @@
 import { Commands } from '@commands/commandIds';
-import { withCommand } from '@commands/withCommand';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -11,7 +10,7 @@ import {
 	getXousAppName,
 } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
-import { rerunExtensionSetup, resetUvSetup, setExtensionContext } from '@services/uvService';
+import { setExtensionContext } from '@services/uvService';
 import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
@@ -91,15 +90,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	const bfmItem = makeStatusItem(91, Commands.buildFlashMonitor);
 	const modeItem = makeStatusItem(90, Commands.setBuildMode);
 	const settingsItem = makeStatusItem(89, Commands.openSettings);
-
-	context.subscriptions.push(
-		withCommand(Commands.resetUvSetup, async () => {
-			await resetUvSetup();
-		}),
-		withCommand(Commands.rerunSetup, async () => {
-			await rerunExtensionSetup();
-		}),
-	);
 
 	// Single UI refresher
 	const refreshUI = () => {

@@ -41,7 +41,7 @@ def test_updates_every_xous_core_dependency(tmp_path):
     result = run_update_rev(file_path)
 
     assert result.returncode == 0
-    assert f"updated xous-core rev to {REV}" in result.stdout
+    assert f"[bao] updated xous-core rev to {REV}" in result.stdout
     updated = file_path.read_text(encoding="utf-8")
     assert updated.count(f'rev = "{REV}"') == 2
     assert OLD_REV not in updated

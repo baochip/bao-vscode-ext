@@ -35,8 +35,7 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 			{ modal: true },
 			vscode.l10n.t('Open configured xous-core'),
 			vscode.l10n.t('Use current workspace instead'),
-			vscode.l10n.t('Cancel'),
-		);
+		); // modal dialogs get a built-in Cancel
 
 		if (choice === vscode.l10n.t('Open configured xous-core')) {
 			await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);

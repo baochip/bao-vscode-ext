@@ -138,7 +138,7 @@ export async function createBaoApp(
 	const newDir = path.join(appsDir, appName);
 
 	if (fs.existsSync(newDir)) {
-		throw new Error(`App directory already exists: ${newDir}`);
+		throw new Error(vscode.l10n.t('App directory already exists: {0}', newDir));
 	}
 
 	const templateDir = path.join(

@@ -5,6 +5,7 @@ import {
 	setBootloaderSerialPort,
 	setRunSerialPort,
 } from '@services/configService';
+import { errorToast } from '@services/logService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import { pollUntil } from '@util/poll';
@@ -110,7 +111,7 @@ export async function waitForPort(
 	);
 	if (result === 'error') {
 		const msg = toMessage(lastError);
-		vscode.window.showErrorMessage(vscode.l10n.t('Could not list ports: {0}', msg));
+		errorToast(vscode.l10n.t('Could not list ports: {0}', msg));
 	}
 	return result === 'found';
 }
@@ -137,9 +138,8 @@ export async function pickSerialPort(
 	if (clicked !== okLabel) return undefined;
 
 	const lines = await runBao(['ports'], cwd, { capture: true }).catch((err: unknown) => {
-		vscode.window.showErrorMessage(
-			vscode.l10n.t('Could not list ports: {0}', (err as Error)?.message || String(err)),
-		);
+		// errorToast: toast + central Baochip log (a bare toast leaves no trace to debug later)
+		errorToast(vscode.l10n.t('Could not list ports: {0}', (err as Error)?.message || String(err)));
 		return '';
 	});
 

@@ -72,7 +72,7 @@ def cmd_app_update_rev(args: argparse.Namespace) -> int:
         return 2
 
     write_toml(path, doc)
-    print(f"updated xous-core rev to {args.rev}")
+    print(f"[bao] updated xous-core rev to {args.rev}")
     return 0
 
 

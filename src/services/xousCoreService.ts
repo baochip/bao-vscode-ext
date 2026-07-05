@@ -1,4 +1,3 @@
-import * as fs from 'node:fs';
 import { XOUS_CORE_REPO } from '@constants';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { getXousCorePath, setXousCorePath } from '@services/configService';
@@ -14,7 +13,7 @@ import * as vscode from 'vscode';
  */
 export async function autoDetectXousCore(): Promise<void> {
 	const existing = getXousCorePath();
-	if (existing && fs.existsSync(existing)) return; // already configured
+	if (existing && isDirectory(existing)) return; // already configured (a stray FILE does not count)
 	const found = findXousCoreInWorkspace();
 	if (found) {
 		await setXousCorePath(found);

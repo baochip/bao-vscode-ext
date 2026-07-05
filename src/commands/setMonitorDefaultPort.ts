@@ -25,7 +25,10 @@ export function registerSetMonitorDefaultPort(refreshUI: () => void) {
 
 		await setMonitorDefaultPort(picked.value);
 		vscode.window.showInformationMessage(
-			vscode.l10n.t('Default monitor port set to: {0}', picked.value),
+			vscode.l10n.t(
+				'Default monitor port set to: {0}',
+				picked.value === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader'),
+			),
 		);
 		refreshUI();
 	});

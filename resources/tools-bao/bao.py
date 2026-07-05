@@ -29,7 +29,7 @@ def main():
     try:
         code = args.func(args)
     except KeyboardInterrupt:
-        print("\n[bao] aborted by user.")
+        print("\n[bao] aborted by user.", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"[bao] error: {e}", file=sys.stderr)

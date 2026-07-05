@@ -18,8 +18,11 @@ export const getDefaultBaud = () => {
 };
 export const setDefaultBaud = (baud: number) => updateSetting('monitor.defaultBaud', baud);
 
-export const getMonitorDefaultPort = (): 'run' | 'bootloader' =>
-	cfg().get<'run' | 'bootloader'>('monitorDefaultPort') ?? 'run';
+export const getMonitorDefaultPort = (): 'run' | 'bootloader' => {
+	// validate like getKernelMode: a hand-edited value must not slip through the typed cast
+	const v = cfg().get<string>('monitorDefaultPort');
+	return v === 'bootloader' ? 'bootloader' : 'run';
+};
 export const setMonitorDefaultPort = (v: 'run' | 'bootloader') =>
 	updateSetting('monitorDefaultPort', v);
 

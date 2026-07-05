@@ -9,6 +9,7 @@ import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
 import { withCommand } from '@commands/withCommand';
 import { openMonitorTTY, stopMonitorTTY } from '@services/monitorService';
+import { rerunExtensionSetup, resetUvSetup } from '@services/uvService';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
 import { registerSelectBuildTarget } from './commands/selectBuildTarget';
@@ -38,5 +39,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 			await vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'Baochip');
 		}),
 		withCommand(Commands.openWelcome, () => WelcomePanel.show(context)),
+		withCommand(Commands.resetUvSetup, () => resetUvSetup()),
+		withCommand(Commands.rerunSetup, () => rerunExtensionSetup()),
 	);
 }
