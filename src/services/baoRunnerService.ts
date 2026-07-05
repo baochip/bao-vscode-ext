@@ -25,7 +25,7 @@ export function resolveBaoPy(): string {
 export async function runBaoCmd(
 	baoArgs: string[],
 	cwd?: string,
-	opts: { capture?: boolean; quiet?: boolean } = {},
+	opts: { capture?: boolean; quiet?: boolean; token?: vscode.CancellationToken } = {},
 ): Promise<string> {
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
 	const baoPath = resolveBaoPy();
@@ -46,7 +46,7 @@ export async function runBaoCmd(
 	log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
 
 	// runProcess captures both streams; we only surface stdout to the caller when capture is requested
-	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: uvEnv() });
+	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: uvEnv(), token: opts.token });
 	log(`bao.py EXIT ${r.code}`);
 	if (!r.error && r.code === 0) return opts.capture ? r.stdout.trim() : '';
 	const msg = (

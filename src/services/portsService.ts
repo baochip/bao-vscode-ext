@@ -15,7 +15,7 @@ import * as vscode from 'vscode';
 type RunBao = (
 	args: string[],
 	cwd?: string,
-	opts?: { capture?: boolean; quiet?: boolean },
+	opts?: { capture?: boolean; quiet?: boolean; token?: vscode.CancellationToken },
 ) => Promise<string>;
 
 /** Ensure a serial port is set for the given mode: prompt to pick one and re-check. Returns the port or undefined. */
@@ -71,9 +71,13 @@ export async function promptAndSaveSerialPort(
 export async function listPorts(
 	runBao: RunBao,
 	cwd?: string,
-	opts?: { quiet?: boolean },
+	opts?: { quiet?: boolean; token?: vscode.CancellationToken },
 ): Promise<string[]> {
-	const out = await runBao(['ports'], cwd, { capture: true, quiet: opts?.quiet });
+	const out = await runBao(['ports'], cwd, {
+		capture: true,
+		quiet: opts?.quiet,
+		token: opts?.token,
+	});
 	return parsePortsOutput(out);
 }
 
@@ -93,7 +97,7 @@ export async function waitForPort(
 	const result = await pollUntil(
 		async () => {
 			try {
-				const ports = await listPorts(runBao, opts?.cwd, { quiet: true });
+				const ports = await listPorts(runBao, opts?.cwd, { quiet: true, token: opts?.token });
 				return ports.includes(targetPort);
 			} catch (e: unknown) {
 				lastError = e;

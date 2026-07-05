@@ -63,4 +63,6 @@ export function stopMonitorTTY() {
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTerm = undefined;
+	monitorTermListener?.dispose(); // otherwise the onDidCloseTerminal handler leaks
+	monitorTermListener = undefined;
 }

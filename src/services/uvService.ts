@@ -507,19 +507,23 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 }
 
 /*
- * Session cache: without it every command re-probes uv with a synchronous `--version` (and
- * re-hashes requirements.txt), and the pipeline's port wait triggers that every 500ms - each
- * probe blocks the extension host. Cleared by resetUvSetup/rerunExtensionSetup. The probe
- * itself stays synchronous by design: it now runs once per session, and making it async would
- * ripple into the deliberately-deferred shell:true version probes.
+ * Session cache + concurrency guard: without it every command re-probes uv with a synchronous
+ * `--version` (and re-hashes requirements.txt), and the pipeline's port wait triggers that every
+ * 500ms - each probe blocks the extension host. We also memoize the in-flight bootstrap promise
+ * so two first-run commands can't both run the installer into the same dirs. On success the memo
+ * is kept (fast path for later commands); on failure it is cleared so the next command retries.
+ * Cleared by resetUvSetup/rerunExtensionSetup. The probe itself stays synchronous by design: it
+ * runs once per session, and making it async would ripple into the deferred shell:true probes.
  */
-let sessionUvPath: string | undefined;
-let sessionDepsOk = false;
+let uvBinaryMemo: Promise<string> | undefined;
+let depsMemo: Promise<void> | undefined;
 
 async function resolveUvBinary(): Promise<string> {
-	if (sessionUvPath) return sessionUvPath;
-	sessionUvPath = await resolveUvBinaryUncached();
-	return sessionUvPath;
+	uvBinaryMemo ??= resolveUvBinaryUncached().catch((e) => {
+		uvBinaryMemo = undefined; // don't cache a failed bootstrap
+		throw e;
+	});
+	return uvBinaryMemo;
 }
 
 async function resolveUvBinaryUncached(): Promise<string> {
@@ -586,13 +590,21 @@ export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 
-export async function ensureBaoPythonDeps({
+export async function ensureBaoPythonDeps(opts: { quiet?: boolean } = {}): Promise<void> {
+	// Memoized so a resolved run is the "already done" fast path and concurrent first-run
+	// commands share one install; cleared on failure so the next command retries.
+	depsMemo ??= ensureBaoPythonDepsUncached(opts).catch((e) => {
+		depsMemo = undefined;
+		throw e;
+	});
+	return depsMemo;
+}
+
+async function ensureBaoPythonDepsUncached({
 	quiet = false,
 }: {
 	quiet?: boolean;
 } = {}): Promise<void> {
-	if (sessionDepsOk) return; // verified earlier this session (see the cache note above)
-
 	const toolsRoot = getBundledToolsRoot();
 	const venvRoot = getGlobalVenvRoot();
 	const reqPath = path.join(toolsRoot, 'requirements.txt');
@@ -600,7 +612,6 @@ export async function ensureBaoPythonDeps({
 
 	if (!fs.existsSync(reqPath)) {
 		log(`No requirements file found at: ${reqPath} (skipping install)`);
-		sessionDepsOk = true;
 		return;
 	}
 
@@ -620,7 +631,6 @@ export async function ensureBaoPythonDeps({
 
 	if (!venvMissing && prevHash === currentHash) {
 		log('requirements unchanged and venv present; skipping install.');
-		sessionDepsOk = true;
 		return;
 	}
 
@@ -707,7 +717,6 @@ export async function ensureBaoPythonDeps({
 		},
 	);
 
-	sessionDepsOk = true;
 	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
@@ -745,8 +754,8 @@ export async function rerunExtensionSetup(): Promise<void> {
 	);
 	if (choice !== proceed) return;
 
-	sessionUvPath = undefined;
-	sessionDepsOk = false;
+	uvBinaryMemo = undefined;
+	depsMemo = undefined;
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
@@ -757,8 +766,8 @@ export async function rerunExtensionSetup(): Promise<void> {
 }
 
 export async function resetUvSetup() {
-	sessionUvPath = undefined;
-	sessionDepsOk = false;
+	uvBinaryMemo = undefined;
+	depsMemo = undefined;
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
