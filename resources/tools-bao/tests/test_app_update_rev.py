@@ -179,6 +179,56 @@ def test_string_form_dependencies_are_skipped_not_crashed(tmp_path):
     assert f'rev = "{REV}"' in updated
 
 
+def test_updates_patch_table_alongside_dependencies(tmp_path):
+    # The out-of-tree template pins getrandom under [patch.crates-io]; a rev update must
+    # move it together with [dependencies] or the manifest mixes two xous-core commits.
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n'
+        '\n'
+        '[patch.crates-io]\n'
+        f'getrandom = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert updated.count(f'rev = "{REV}"') == 2, "both the dependency and the patch entry updated"
+    assert OLD_REV not in updated
+
+
+def test_patch_only_manifest_counts_as_a_match(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[patch.crates-io]\n'
+        f'getrandom = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
+
+
+def test_leaves_other_patch_entries_alone(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n'
+        '\n'
+        '[patch.crates-io]\n'
+        f'serde = {{ git = "https://github.com/example/serde-fork", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert f'serde = {{ git = "https://github.com/example/serde-fork", rev = "{OLD_REV}" }}' in updated
+
+
 def test_missing_file_exits_nonzero(tmp_path):
     result = run_update_rev(tmp_path / "does-not-exist" / "Cargo.toml")
 

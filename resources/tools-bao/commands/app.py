@@ -20,7 +20,7 @@ def _is_xous_core_url(url: str) -> bool:
 
 def _dependency_tables(doc):
     """Every table that can hold dependency entries: the top-level and per-target
-    dependency sections, plus [workspace.dependencies]."""
+    dependency sections, [workspace.dependencies], and each [patch.<source>] table."""
     tables = []
     for name in DEP_SECTIONS:
         try:
@@ -43,6 +43,16 @@ def _dependency_tables(doc):
                 dep_table = cfg_table.get(name)
                 if isinstance(dep_table, dict):
                     tables.append(dep_table)
+    # [patch.<source>] entries (e.g. the template's [patch.crates-io] getrandom pin) carry
+    # git/rev the same way dependency entries do.
+    try:
+        patch = navigate(doc, ["patch"])
+    except (KeyError, TypeError):
+        patch = None
+    if isinstance(patch, dict):
+        for source_table in patch.values():
+            if isinstance(source_table, dict):
+                tables.append(source_table)
     return tables
 
 
