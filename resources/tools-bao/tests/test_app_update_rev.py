@@ -188,6 +188,20 @@ def test_no_matching_dependency_exits_nonzero(tmp_path):
     assert file_path.read_text(encoding="utf-8") == content, "file untouched on failure"
 
 
+def test_write_leaves_no_temp_file_behind(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    # the atomic write goes through a sibling .tmp file that must be replaced away
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
 def test_preserves_comments_and_formatting(tmp_path):
     file_path = write_toml(
         tmp_path,

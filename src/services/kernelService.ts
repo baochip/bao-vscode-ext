@@ -32,7 +32,9 @@ export async function fetchLatestXousCoreRev(): Promise<string> {
 		async () => {
 			const data = (await fetchJson(GITHUB_API_COMMITS)) as Record<string, unknown>;
 			const sha = data?.sha;
-			if (typeof sha !== 'string' || sha.length < 7) {
+			// Shape-validate: the value gets spliced into Cargo.toml via String.replace, where a
+			// crafted response could smuggle $-replacement patterns or TOML syntax.
+			if (typeof sha !== 'string' || !/^[0-9a-f]{7,40}$/i.test(sha)) {
 				throw new Error(vscode.l10n.t('Unexpected response from GitHub API.'));
 			}
 			return sha;

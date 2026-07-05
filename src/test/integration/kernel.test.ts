@@ -47,6 +47,21 @@ suite('Kernel files service', () => {
 		wipeKernelCache();
 	});
 
+	/* ------------------------------ fetchLatestXousCoreRev ------------------------------ */
+
+	test('fetchLatestXousCoreRev returns a well-formed sha', async () => {
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+
+		assert.equal(await kernelService.fetchLatestXousCoreRev(), SHA);
+	});
+
+	test('fetchLatestXousCoreRev rejects a sha that is not plain hex', async () => {
+		// the value gets spliced into Cargo.toml via String.replace, so shape matters
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: 'abcdef1$&`beef00' });
+
+		await assert.rejects(kernelService.fetchLatestXousCoreRev(), /Unexpected response/);
+	});
+
 	/* ------------------------------ ensureKernelModeConfigured ------------------------------ */
 
 	test('ensureKernelModeConfigured returns a saved mode without prompting', async () => {

@@ -143,17 +143,21 @@ export async function installXousToolkit(): Promise<void> {
 			const assetName = hostAsset.name as string;
 
 			progress.report({ message: vscode.l10n.t('Downloading {0}...', assetName) });
-			// Use a fixed local filename, never the remote-controlled asset name (path traversal / injection).
-			const tmpZip = path.join(os.tmpdir(), 'baochip-xous-toolkit.zip');
-			await downloadFile(downloadUrl, tmpZip);
-
-			progress.report({ message: vscode.l10n.t('Extracting toolchain...') });
-			// Extract to a staging dir and validate the expected target layout before touching the
-			// sysroot, so a malformed/wrong archive can't corrupt the toolchain.
+			// Everything lands inside a private mkdtemp staging dir - no predictable path in the
+			// shared tmp dir for another process to pre-create or symlink. The zip keeps a fixed
+			// local filename, never the remote-controlled asset name (path traversal / injection).
 			const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-toolkit-'));
 			try {
-				await extractZip(tmpZip, stageDir);
-				const stagedTarget = path.join(stageDir, 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
+				const tmpZip = path.join(stageDir, 'baochip-xous-toolkit.zip');
+				await downloadFile(downloadUrl, tmpZip);
+
+				progress.report({ message: vscode.l10n.t('Extracting toolchain...') });
+				// Extract to a staging subdir and validate the expected target layout before
+				// touching the sysroot, so a malformed/wrong archive can't corrupt the toolchain.
+				const extractDir = path.join(stageDir, 'extracted');
+				fs.mkdirSync(extractDir);
+				await extractZip(tmpZip, extractDir);
+				const stagedTarget = path.join(extractDir, 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
 				if (!fs.existsSync(stagedTarget)) {
 					throw new Error(
 						vscode.l10n.t(
@@ -162,12 +166,9 @@ export async function installXousToolkit(): Promise<void> {
 						),
 					);
 				}
-				fs.cpSync(stageDir, sysroot, { recursive: true });
+				fs.cpSync(extractDir, sysroot, { recursive: true });
 			} finally {
 				fs.rmSync(stageDir, { recursive: true, force: true });
-				try {
-					fs.unlinkSync(tmpZip);
-				} catch {}
 			}
 		},
 	);
