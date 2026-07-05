@@ -105,7 +105,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
     finally:
         stop_event.set()
 
-def cmd_monitor(args: argparse.Namespace) -> None:
+def cmd_monitor(args: argparse.Namespace) -> int:
     ser = open_serial(
         args.port,
         args.baud,
@@ -120,7 +120,7 @@ def cmd_monitor(args: argparse.Namespace) -> None:
         except Exception as e:
             logging.error(f"cannot open --save file: {e}")
             safe_close(ser)
-            return
+            return 2
 
     print(f"[bao] Monitor {args.port} @ {args.baud} - interactive (Ctrl+C to exit)")
     mode = "RAW" if getattr(args, "raw", False) else ("LINE CRLF" if getattr(args, "crlf", False) else "LINE LF")
@@ -134,6 +134,7 @@ def cmd_monitor(args: argparse.Namespace) -> None:
     WRITER_JOIN_TIMEOUT_S = 0.5  # how long to wait for the stdin writer thread on exit
     IDLE_SLEEP_S = 0.01   # small yield when idle to avoid a hot loop
     stop_event = threading.Event()
+    exit_code = 0  # nonzero when the monitor ends because of a failure (disconnect)
 
     # Persistent UTF-8 decoder so a multibyte char split across ser.read() chunks isn't corrupted.
     rx_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
@@ -167,6 +168,7 @@ def cmd_monitor(args: argparse.Namespace) -> None:
                     logging.warning("Serial read errors - the port may be disconnecting...")
                 if consecutive_errors >= MAX_ERRORS:
                     logging.error("Too many serial errors - port may be disconnected.")
+                    exit_code = 1
                     break
                 time.sleep(RETRY_SLEEP_S)
                 continue
@@ -193,6 +195,7 @@ def cmd_monitor(args: argparse.Namespace) -> None:
         except Exception:
             pass
         safe_close(ser)
+    return exit_code
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:

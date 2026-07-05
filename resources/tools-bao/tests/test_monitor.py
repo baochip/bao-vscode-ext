@@ -1,0 +1,74 @@
+"""Exit-code tests for the monitor command: failure paths must return nonzero so the
+dispatcher (sys.exit(code or 0)) reports them - a failed monitor must not exit 0."""
+
+import argparse
+
+import pytest
+from serial.serialutil import SerialException
+
+from commands import monitor
+
+
+class FakeSerial:
+    """Minimal serial stand-in for the monitor's read loop."""
+
+    def __init__(self, read_behavior):
+        self.read_behavior = read_behavior
+        self.closed = False
+
+    def read(self, n):
+        return self.read_behavior()
+
+    def close(self):
+        self.closed = True
+
+
+@pytest.fixture
+def quiet_writer(monkeypatch):
+    """Replace the stdin->serial writer thread body: under pytest stdin is at EOF, so the
+    real writer would set stop_event immediately and end the monitor before the code under
+    test ever runs."""
+    monkeypatch.setattr(monitor, "_stdin_to_serial", lambda ser, args, stop_event: None)
+
+
+def make_args(**overrides):
+    base = dict(port="COM9", baud=1000000, save=None, raw=False, crlf=True, echo=False)
+    base.update(overrides)
+    return argparse.Namespace(**base)
+
+
+def test_unwritable_save_file_returns_2(monkeypatch, tmp_path):
+    ser = FakeSerial(lambda: b"")
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    # a directory path cannot be opened as the --save file
+    code = monitor.cmd_monitor(make_args(save=str(tmp_path)))
+
+    assert code == 2
+    assert ser.closed, "serial port released on the failure path"
+
+
+def test_persistent_serial_errors_return_1(monkeypatch, quiet_writer):
+    def explode():
+        raise SerialException("device disconnected")
+
+    ser = FakeSerial(explode)
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    code = monitor.cmd_monitor(make_args())
+
+    assert code == 1
+    assert ser.closed
+
+
+def test_keyboard_interrupt_is_a_clean_exit(monkeypatch, quiet_writer):
+    def interrupt():
+        raise KeyboardInterrupt
+
+    ser = FakeSerial(interrupt)
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    code = monitor.cmd_monitor(make_args())
+
+    assert code == 0
+    assert ser.closed
