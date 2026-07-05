@@ -104,7 +104,8 @@ function buildWorkspacePackageMap(xousRoot: string): Map<string, string> {
 	return map;
 }
 
-function addWorkspaceMember(xousRoot: string, member: string): void {
+/** Returns true when the member was added; false when the members array could not be edited. */
+function addWorkspaceMember(xousRoot: string, member: string): boolean {
 	const cargoPath = path.join(xousRoot, 'Cargo.toml');
 	const content = fs.readFileSync(cargoPath, 'utf8');
 	const updated = addWorkspaceMemberToToml(content, member);
@@ -115,18 +116,24 @@ function addWorkspaceMember(xousRoot: string, member: string): void {
 				member,
 			),
 		);
-		return;
+		return false;
 	}
 	fs.writeFileSync(cargoPath, updated, 'utf8');
+	return true;
 }
 
 /* ------------------------------ app creation ------------------------------ */
 
+/**
+ * Scaffold a new in-tree app from the bundled template. Returns true when the app was also
+ * registered in the root workspace members; false when it was created but the members array
+ * could not be edited automatically (the user was told to add it manually).
+ */
 export async function createBaoApp(
 	xousRoot: string,
 	appName: string,
 	target: string,
-): Promise<void> {
+): Promise<boolean> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
 	const newDir = path.join(appsDir, appName);
 
@@ -168,22 +175,31 @@ export async function createBaoApp(
 
 	// Write app files
 	fs.mkdirSync(newDir, { recursive: true });
-	fs.writeFileSync(path.join(newDir, 'Cargo.toml'), cargo, 'utf8');
+	try {
+		fs.writeFileSync(path.join(newDir, 'Cargo.toml'), cargo, 'utf8');
 
-	// Copy src/
-	fs.cpSync(path.join(templateDir, 'src'), path.join(newDir, 'src'), { recursive: true });
+		// Copy src/
+		fs.cpSync(path.join(templateDir, 'src'), path.join(newDir, 'src'), { recursive: true });
 
-	// Copy .cargo/config.toml
-	fs.mkdirSync(path.join(newDir, '.cargo'), { recursive: true });
-	fs.copyFileSync(
-		path.join(templateDir, '.cargo', 'config.toml'),
-		path.join(newDir, '.cargo', 'config.toml'),
-	);
+		// Copy .cargo/config.toml
+		fs.mkdirSync(path.join(newDir, '.cargo'), { recursive: true });
+		fs.copyFileSync(
+			path.join(templateDir, '.cargo', 'config.toml'),
+			path.join(newDir, '.cargo', 'config.toml'),
+		);
+	} catch (e) {
+		// Remove the partial app dir so a retry is not blocked by "already exists".
+		try {
+			fs.rmSync(newDir, { recursive: true, force: true });
+		} catch {}
+		throw e;
+	}
 
 	// Register in workspace Cargo.toml
-	addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
+	const registered = addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
 
 	try {
 		await vscode.workspace.saveAll();
 	} catch {}
+	return registered;
 }

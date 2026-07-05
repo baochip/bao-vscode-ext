@@ -5,6 +5,7 @@ import { XOUS_CORE_REPO } from '@constants';
 import * as appService from '@services/appService';
 import * as kernelService from '@services/kernelService';
 import * as outOfTreeScaffoldService from '@services/outOfTreeScaffoldService';
+import * as uvService from '@services/uvService';
 import * as workspaceService from '@services/workspaceService';
 import * as xousCoreService from '@services/xousCoreService';
 import { parseWorkspaceMembers } from '@util/cargo';
@@ -176,6 +177,64 @@ suite('App service and scaffolding', () => {
 		assert.ok(members.includes('apps-dabao/my_app'), `new app registered: ${members.join(', ')}`);
 	});
 
+	test('createBaoApp returns true and registers the app on the happy path', async () => {
+		const root = makeXousCoreWithLibs(TEMPLATE_XOUS_CRATES);
+
+		const registered = await appService.createBaoApp(root, 'reg_app', 'dabao');
+
+		assert.equal(registered, true, 'app registered in the workspace members');
+	});
+
+	test('createBaoApp cleans up the app directory when a copy step fails', async () => {
+		// A fake extension root whose bundled template has a Cargo.toml but NO src/ directory:
+		// the src copy then fails naturally after the app dir was already created (the node fs
+		// module is frozen in this host, so the failure cannot be injected with a stub).
+		const fakeExtRoot = tmpDir();
+		const templateDir = path.join(fakeExtRoot, 'resources', 'templates', 'out-of-tree', 'dabao');
+		fs.mkdirSync(templateDir, { recursive: true });
+		fs.writeFileSync(
+			path.join(templateDir, 'Cargo.toml'),
+			'[package]\nname = "{{NAME}}"\n\n[dependencies]\n' +
+				'bao1x-api = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }\n',
+			'utf8',
+		);
+		sandbox.stub(uvService, 'getExtensionRoot').returns(fakeExtRoot);
+		const root = makeXousCoreWithLibs(['bao1x-api']);
+
+		await assert.rejects(appService.createBaoApp(root, 'my_app', 'dabao'));
+		assert.ok(
+			!fs.existsSync(path.join(root, 'apps-dabao', 'my_app')),
+			'partial app directory removed so a retry is not blocked',
+		);
+	});
+
+	test('createBaoApp returns false when the members array cannot be edited', async () => {
+		const root = makeXousCoreWithLibs(TEMPLATE_XOUS_CRATES);
+		// single-line members array: parseable for the package map, but the member-append
+		// edit (which needs the multi-line form) cannot apply
+		const members = ['apps-dabao/hello', ...TEMPLATE_XOUS_CRATES.map((c) => `libs/${c}`)]
+			.map((m) => `"${m}"`)
+			.join(', ');
+		fs.writeFileSync(
+			path.join(root, 'Cargo.toml'),
+			`[workspace]\nmembers = [${members}]\n`,
+			'utf8',
+		);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const registered = await appService.createBaoApp(root, 'my_app', 'dabao');
+
+		assert.equal(registered, false, 'caller can pick an honest toast');
+		assert.ok(fs.existsSync(path.join(root, 'apps-dabao', 'my_app')), 'app itself was created');
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('Add it manually')),
+			'manual-add warning shown',
+		);
+	});
+
 	test('createBaoApp rejects a stale checkout missing template crates, creating nothing', async () => {
 		const root = makeXousCoreWithLibs(['bao1x-api']); // most template crates absent
 
@@ -233,6 +292,28 @@ suite('App service and scaffolding', () => {
 		assert.ok(updateFolders.calledOnce, 'project folder added to the workspace');
 		const folderArg = updateFolders.firstCall.args[2] as { uri: vscode.Uri };
 		assert.equal(folderArg.uri.fsPath.toLowerCase(), projectDir.toLowerCase());
+	});
+
+	test('scaffoldOutOfTreeApp refuses a folder that already has a src directory', async () => {
+		const projectDir = tmpDir();
+		fs.mkdirSync(path.join(projectDir, 'src'));
+		fs.writeFileSync(path.join(projectDir, 'src', 'main.rs'), 'fn main() {} // precious', 'utf8');
+		stubScaffoldPrompts(projectDir, 'my_oot_app');
+		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('src folder already exists')),
+			'src-overwrite refusal shown',
+		);
+		assert.equal(
+			fs.readFileSync(path.join(projectDir, 'src', 'main.rs'), 'utf8'),
+			'fn main() {} // precious',
+			'existing sources untouched',
+		);
+		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'nothing scaffolded');
 	});
 
 	test('scaffoldOutOfTreeApp refuses a folder that already has a Cargo.toml', async () => {

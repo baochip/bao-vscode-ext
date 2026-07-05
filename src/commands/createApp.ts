@@ -53,13 +53,19 @@ export function registerCreateApp() {
 			title: vscode.l10n.t('Creating app "{0}"...', name),
 		};
 		try {
-			await vscode.window.withProgress(progressOpts, async () => {
-				await createBaoApp(root, name, target);
-			});
+			const registered = await vscode.window.withProgress(progressOpts, () =>
+				createBaoApp(root, name, target),
+			);
 
 			await setXousAppName(name);
 			vscode.window.showInformationMessage(
-				vscode.l10n.t('Created {0}/{1} and added to workspace.', appsDir, name),
+				registered
+					? vscode.l10n.t('Created {0}/{1} and added to workspace.', appsDir, name)
+					: vscode.l10n.t(
+							'Created {0}/{1}. Add it to the workspace members manually.',
+							appsDir,
+							name,
+						),
 			);
 			await revealAppFolder(root, name, target);
 		} catch (e: unknown) {

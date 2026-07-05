@@ -19,7 +19,14 @@ export function parseWorkspaceMembers(toml: string): string[] {
  * or null when the members array could not be located.
  */
 export function addWorkspaceMemberToToml(toml: string, member: string): string | null {
-	const updated = toml.replace(/(^members\s*=\s*\[[\s\S]*?)(\n\])/m, `$1\n  "${member}",$2`);
+	const updated = toml.replace(
+		/(^members\s*=\s*\[[\s\S]*?)(\n\])/m,
+		(_m, body: string, close: string) => {
+			// a last member without a trailing comma would make the appended entry invalid TOML
+			const needsComma = /"\s*$/.test(body);
+			return `${body}${needsComma ? ',' : ''}\n  "${member}",${close}`;
+		},
+	);
 	return updated === toml ? null : updated;
 }
 

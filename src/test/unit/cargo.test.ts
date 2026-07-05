@@ -100,6 +100,18 @@ test('addWorkspaceMemberToToml: null when the members array cannot be found', ()
 	assert.equal(addWorkspaceMemberToToml('[package]\nname = "x"\n', 'apps-dabao/new_app'), null);
 });
 
+test('addWorkspaceMemberToToml: inserts a comma when the last member has none', () => {
+	const toml = '[workspace]\nmembers = [\n  "apps-dabao/hello",\n  "libs/util"\n]\n';
+	const updated = addWorkspaceMemberToToml(toml, 'apps-dabao/new_app');
+	assert.ok(updated, 'members array found');
+	assert.ok(updated.includes('"libs/util",'), 'missing comma added so the TOML stays valid');
+	assert.deepEqual(parseWorkspaceMembers(updated), [
+		'apps-dabao/hello',
+		'libs/util',
+		'apps-dabao/new_app',
+	]);
+});
+
 const APP_TEMPLATE = [
 	'[package]',
 	'name = "{{NAME}}"',

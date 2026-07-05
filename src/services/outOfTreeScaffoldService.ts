@@ -81,6 +81,16 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		);
 		return;
 	}
+	// The template copy below would silently overwrite existing sources.
+	if (fs.existsSync(path.join(projectDir, 'src'))) {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t(
+				'A src folder already exists in {0}. Move it first or pick an empty folder.',
+				projectDir,
+			),
+		);
+		return;
+	}
 
 	let rev: string;
 	try {
