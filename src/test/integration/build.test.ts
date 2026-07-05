@@ -316,6 +316,33 @@ suite('Build service', () => {
 		assert.ok(!sent[0].includes('xous-app-uf2'), 'no UF2 chain');
 	});
 
+	test('runOutOfTreeBuildInTerminal rejects a shell-active build target before any terminal work', async () => {
+		await setCfg('buildTarget', 'dabao$(calc)');
+		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
+
+		buildService.runOutOfTreeBuildInTerminal(tmpDir());
+
+		assert.ok(err.calledOnce, 'invalid target is surfaced to the user');
+		assert.ok(
+			String(err.firstCall.args[0]).includes('dabao$(calc)'),
+			`message names the bad value: ${err.firstCall.args[0]}`,
+		);
+		assert.ok(ensure.notCalled, 'no terminal is created and nothing is sent');
+	});
+
+	test('runOutOfTreeBuildInTerminal builds the board feature from a valid configured target', async () => {
+		await setCfg('buildTarget', 'baosec');
+		const root = tmpDir(); // no Cargo.toml: build command only
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		buildService.runOutOfTreeBuildInTerminal(root);
+
+		assert.equal(sent.length, 1);
+		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);
+	});
+
 	/* ------------------------------ runBuildInTerminal ------------------------------ */
 
 	test('runBuildInTerminal sends cargo xtask with the target and app words', async () => {

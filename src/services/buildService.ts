@@ -109,6 +109,16 @@ function outOfTreeFeatureArgs(): string[] {
 
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
 export function runOutOfTreeBuildInTerminal(root: string) {
+	// The build target is a workspace-controlled setting interpolated into `board-${target}` on
+	// a shell command line; allow only known values so shell metacharacters never reach the
+	// terminal (quoteArg cannot make $ or backtick inert inside PowerShell double quotes).
+	// Empty is fine: it becomes the default board feature downstream.
+	const target = getBuildTarget();
+	if (target && !BUILD_TARGETS.includes(target)) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
+		return;
+	}
+
 	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
 
 	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs()
