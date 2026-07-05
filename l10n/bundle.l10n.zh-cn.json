@@ -251,5 +251,6 @@
 	"Baochip: Installing RISC-V target...": "Baochip：正在安装 RISC-V 目标...",
 	"Could not find {0} in your xous-core checkout. Update xous-core and try again.": "在 xous-core 检出中找不到 {0}。请更新 xous-core 后重试。",
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "{0} 中已存在 src 文件夹。请先移走它或选择一个空文件夹。",
-	"Created {0}/{1}. Add it to the workspace members manually.": "已创建 {0}/{1}。请手动将其添加到工作区成员。"
+	"Created {0}/{1}. Add it to the workspace members manually.": "已创建 {0}/{1}。请手动将其添加到工作区成员。",
+	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 内核同步仅适用于 dabao 目标。对 \"{0}\" 请使用手动内核模式。"
 }

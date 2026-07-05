@@ -215,6 +215,24 @@ suite('Kernel files service', () => {
 		});
 	});
 
+	test('resolveKernelFiles (ci-sync) refuses a non-dabao target instead of serving dabao kernels', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		await setCfg('buildTarget', 'baosec');
+		const download = sandbox.stub(httpService, 'downloadFile');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.equal(files, null);
+		assert.ok(download.notCalled, 'no dabao kernels downloaded for another board');
+		assert.ok(
+			errors
+				.getCalls()
+				.some((c) => String(c.args[0]).includes('only available for the dabao target')),
+			'clear dabao-only error shown',
+		);
+	});
+
 	/* ------------------------------ resolveKernelFiles (ci-sync) ------------------------------ */
 
 	function stubEtags(loader: string | null, xous: string | null) {

@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { runBaoCmd } from '@services/baoRunnerService';
 import {
+	getBuildTarget,
 	getKernelFilesPath,
 	getKernelMode,
 	type KernelMode,
@@ -127,7 +128,20 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 		return { loader, xous };
 	}
 
-	// ci-sync: use cached files, downloading if not yet present
+	// ci-sync: use cached files, downloading if not yet present.
+	// CI_BASE is dabao-only. A baosec CI path exists upstream, but which UF2 artifacts it
+	// carries is not yet known - so any other target must fail clearly here rather than
+	// silently flash dabao kernels onto a different board.
+	const target = getBuildTarget() || 'dabao';
+	if (target !== 'dabao') {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t(
+				'CI kernel sync is only available for the dabao target. Use manual kernel mode for "{0}".',
+				target,
+			),
+		);
+		return null;
+	}
 	const cacheDir = path.join(getGlobalVenvRoot(), 'kernel');
 	const loader = path.join(cacheDir, 'loader.uf2');
 	const xous = path.join(cacheDir, 'xous.uf2');

@@ -251,5 +251,6 @@
 	"Baochip: Installing RISC-V target...": "Baochip: RISC-V-Ziel wird installiert...",
 	"Could not find {0} in your xous-core checkout. Update xous-core and try again.": "{0} wurde in Ihrem xous-core-Checkout nicht gefunden. Aktualisieren Sie xous-core und versuchen Sie es erneut.",
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "In {0} existiert bereits ein src-Ordner. Verschieben Sie ihn zuerst oder wählen Sie einen leeren Ordner.",
-	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} wurde erstellt. Fügen Sie es den Workspace-Membern manuell hinzu."
+	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} wurde erstellt. Fügen Sie es den Workspace-Membern manuell hinzu.",
+	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "Die CI-Kernel-Synchronisierung ist nur für das dabao-Ziel verfügbar. Verwenden Sie für \"{0}\" den manuellen Kernel-Modus."
 }
