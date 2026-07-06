@@ -79,7 +79,7 @@ suite('App service and scaffolding', () => {
 		const { root } = makeFakeXousCore(tmpDir(), { apps: [] });
 		await setCfg('buildMode', 'xous-core');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
-		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(true);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
 		const warnings = sandbox.stub(
 			vscode.window,
 			'showWarningMessage',
@@ -99,7 +99,7 @@ suite('App service and scaffolding', () => {
 		await setCfg('buildMode', 'xous-core');
 		await setCfg('xousAppName', 'zeta');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
-		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(true);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
 		pick.resolves({ label: 'alpha' });
@@ -114,6 +114,27 @@ suite('App service and scaffolding', () => {
 			['alpha', 'zeta'],
 		);
 		assert.equal(items[1].description, 'current', 'configured app marked current');
+	});
+
+	test('promptAndSaveApp lists apps from the adopted workspace root, not the configured one', async () => {
+		// The user adopts the currently-open folder; app listing must follow the returned root.
+		const { root: configuredRoot } = makeFakeXousCore(tmpDir(), { apps: ['configured_app'] });
+		const { root: adoptedRoot } = makeFakeXousCore(tmpDir(), { apps: ['adopted_app'] });
+		await setCfg('buildMode', 'xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(configuredRoot);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(adoptedRoot);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		await appService.promptAndSaveApp();
+
+		const items = pick.firstCall.args[0] as { label: string }[];
+		assert.deepEqual(
+			items.map((i) => i.label),
+			['adopted_app'],
+			'apps come from the adopted root, not the configured checkout',
+		);
 	});
 
 	/* ------------------------------ createBaoApp (real bundled template) ------------------------------ */

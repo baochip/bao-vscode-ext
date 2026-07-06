@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { getChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
@@ -10,7 +9,7 @@ import * as vscode from 'vscode';
  *  also warns if riscv32imac-unknown-xous-elf is not installed. */
 export async function checkRustToolchain(): Promise<boolean> {
 	// 1) rustc
-	const rustc = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
+	const rustc = await runProcess('rustc', ['--version']);
 	if (rustc.error) {
 		await vscode.window.showErrorMessage(
 			vscode.l10n.t('Rust not found. Please install Rust from https://rustup.rs before building.'),
@@ -19,7 +18,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 	}
 
 	// 2) cargo
-	const cargo = spawnSync('cargo', ['--version'], { encoding: 'utf8' });
+	const cargo = await runProcess('cargo', ['--version']);
 	if (cargo.error) {
 		await vscode.window.showErrorMessage(
 			vscode.l10n.t('Cargo not found. Make sure Rust is installed correctly and in PATH.'),
@@ -28,7 +27,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 	}
 
 	// 3a) check standard riscv32imac-unknown-none-elf target via rustup (non-fatal)
-	const targetCheck = spawnSync('rustup', ['target', 'list', '--installed'], { encoding: 'utf8' });
+	const targetCheck = await runProcess('rustup', ['target', 'list', '--installed']);
 	const targets = (targetCheck.stdout || '').split(/\r?\n/).map((s) => s.trim());
 	if (!targets.includes('riscv32imac-unknown-none-elf')) {
 		const installLabel = vscode.l10n.t('Install');
@@ -71,7 +70,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 
 	// 3b) check riscv32imac-unknown-xous-elf - tier-3 target, installed by extracting
 	//     a custom toolchain zip from betrusted-io/rust GitHub releases (not via rustup target add)
-	if (!isXousToolkitInstalled()) {
+	if (!(await isXousToolkitInstalled())) {
 		const installLabel = vscode.l10n.t('Install');
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(

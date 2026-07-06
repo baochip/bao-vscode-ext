@@ -309,6 +309,44 @@ suite('Kernel files service', () => {
 		);
 	});
 
+	test('resolveKernelFiles (ci-sync) invalidates the stored etags when a re-download fails partway', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		seedKernelCache({ loader: 'old-l', xous: 'old-x' }); // coherent cached pair + etags
+		const cache = kernelCacheDir();
+		// CI has moved on, so the etag check triggers a re-download...
+		stubEtags('new-l', 'new-x');
+		// ...but the second file (xous) fails, leaving loader new and xous old on disk.
+		const download = sandbox.stub(httpService, 'downloadFile');
+		download.onFirstCall().resolves();
+		download.onSecondCall().rejects(new Error('ECONNRESET'));
+		sandbox.stub(vscode.window, 'showErrorMessage');
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.equal(files, null, 'the failed download aborts this flash');
+		assert.equal(
+			fs.existsSync(path.join(cache, 'etags.json')),
+			false,
+			'stale etags invalidated so the incoherent pair is never trusted later',
+		);
+	});
+
+	test('resolveKernelFiles (ci-sync) does not serve an etag-less cache offline; it re-downloads', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		// Cache files present but no etags.json - the state left by a failed partial download.
+		const cache = kernelCacheDir();
+		fs.mkdirSync(cache, { recursive: true });
+		fs.writeFileSync(path.join(cache, 'loader.uf2'), 'maybe-mixed loader', 'utf8');
+		fs.writeFileSync(path.join(cache, 'xous.uf2'), 'maybe-mixed xous', 'utf8');
+		stubEtags(null, null); // offline: etag HEADs fail
+		const download = sandbox.stub(httpService, 'downloadFile').resolves();
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.ok(download.called, 'the untrusted cache is re-downloaded rather than flashed as-is');
+		assert.ok(files, 'a successful re-download resolves the files');
+	});
+
 	/* ------------------------------ fetchLatestXousCoreRev ------------------------------ */
 
 	test('fetchLatestXousCoreRev returns the sha from the GitHub API', async () => {

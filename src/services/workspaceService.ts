@@ -5,12 +5,16 @@ import { isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 /**
- * Ensure a workspace that *covers* `xousRoot` is open.
+ * Ensure a workspace that *covers* `xousRoot` is open, and return the effective xous-core root the
+ * caller should operate on: `xousRoot` when it is already covered, or the adopted folder when the
+ * user picks "Use current workspace instead". Returns undefined when the workspace is not ready -
+ * the window is reopening onto the configured folder, or the user declined - so callers must not
+ * fall back to their original `xousRoot`.
  * If a different folder is open, offer:
  *  - Open the configured xous-core
  *  - Update setting to the currently-open workspace
  */
-export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean> {
+export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<string | undefined> {
 	const folders = vscode.workspace.workspaceFolders || [];
 
 	// Accept if any folder equals or contains xousRoot, or vice-versa.
@@ -19,7 +23,7 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 		if (isSameOrParentPath(cur, xousRoot) || isSameOrParentPath(xousRoot, cur)) {
 			// Make sure the setting is saved for this workspace context
 			await setXousCorePath(xousRoot);
-			return true;
+			return xousRoot;
 		}
 	}
 
@@ -39,17 +43,17 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 
 		if (choice === vscode.l10n.t('Open configured xous-core')) {
 			await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
-			return false;
+			return undefined;
 		}
 
 		if (choice === vscode.l10n.t('Use current workspace instead')) {
-			// Pick the first folder
+			// Adopt the first open folder as the xous-core root going forward.
 			const chosen = folders[0].uri.fsPath;
 			await setXousCorePath(chosen);
-			return true;
+			return chosen;
 		}
 
-		return false;
+		return undefined;
 	}
 
 	const openChoice = await vscode.window.showInformationMessage(
@@ -57,10 +61,10 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<boolean
 		{ modal: true },
 		vscode.l10n.t('Open'),
 	);
-	if (openChoice !== vscode.l10n.t('Open')) return false;
+	if (openChoice !== vscode.l10n.t('Open')) return undefined;
 
 	await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
-	return false; // window reloads
+	return undefined; // window reloads
 }
 
 export async function revealAppFolder(xousRoot: string, appName: string, target: string) {

@@ -26,8 +26,10 @@ export function registerCreateApp() {
 		const root = await resolveXousRootOrNotify();
 		if (!root) return;
 
-		const ok = await ensureXousWorkspaceOpen(root);
-		if (!ok) return;
+		// The user may adopt the currently-open folder here; operate on the returned root, not
+		// the configured one they might have just declined.
+		const effectiveRoot = await ensureXousWorkspaceOpen(root);
+		if (!effectiveRoot) return;
 
 		const target = getBuildTarget() || 'dabao';
 		const appsDir = getAppsDir(target);
@@ -54,7 +56,7 @@ export function registerCreateApp() {
 		};
 		try {
 			const registered = await vscode.window.withProgress(progressOpts, () =>
-				createBaoApp(root, name, target),
+				createBaoApp(effectiveRoot, name, target),
 			);
 
 			await setXousAppName(name);
@@ -67,7 +69,7 @@ export function registerCreateApp() {
 							name,
 						),
 			);
-			await revealAppFolder(root, name, target);
+			await revealAppFolder(effectiveRoot, name, target);
 		} catch (e: unknown) {
 			const message = toMessage(e);
 			vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', message));

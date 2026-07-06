@@ -4,6 +4,7 @@ import { registerCleanCommand } from '@commands/clean';
 import { Commands } from '@commands/commandIds';
 import { registerCreateApp } from '@commands/createApp';
 import { registerFlashCommand } from '@commands/flash';
+import { registerOpenSettings } from '@commands/openSettings';
 import { registerSelectApp } from '@commands/selectApp';
 import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
@@ -35,9 +36,7 @@ export function registerCommands(context: vscode.ExtensionContext, refreshUI: ()
 		registerCleanCommand(),
 		registerFlashCommand(),
 		registerBuildFlashMonitor(),
-		withCommand(Commands.openSettings, async () => {
-			await vscode.commands.executeCommand('workbench.action.openWorkspaceSettings', 'Baochip');
-		}),
+		registerOpenSettings(),
 		withCommand(Commands.openWelcome, () => WelcomePanel.show(context)),
 		withCommand(Commands.resetUvSetup, () => resetUvSetup()),
 		withCommand(Commands.rerunSetup, () => rerunExtensionSetup()),

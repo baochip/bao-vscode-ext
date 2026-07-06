@@ -247,22 +247,32 @@ suite('Project mode and xous-core resolution', () => {
 
 	/* ------------------------------ ensureXousWorkspaceOpen ------------------------------ */
 
-	test('ensureXousWorkspaceOpen accepts a covered root and saves the setting', async () => {
-		const ok = await ensureXousWorkspaceOpen(workspaceRoot());
+	test('ensureXousWorkspaceOpen accepts a covered root, returns it, and saves the setting', async () => {
+		const effectiveRoot = await ensureXousWorkspaceOpen(workspaceRoot());
 
-		assert.equal(ok, true);
+		assert.equal(
+			realPath(String(effectiveRoot)),
+			realPath(workspaceRoot()),
+			'covered root returned',
+		);
 		assert.equal(realPath(cfg().get<string>('xousCorePath') || ''), realPath(workspaceRoot()));
 	});
 
-	test('ensureXousWorkspaceOpen: "Use current workspace instead" adopts the open folder', async () => {
+	test('ensureXousWorkspaceOpen: "Use current workspace instead" returns the adopted folder, not the configured path', async () => {
 		const configured = tmpDir();
 		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
 			'Use current workspace instead',
 		);
 
-		const ok = await ensureXousWorkspaceOpen(configured);
+		const effectiveRoot = await ensureXousWorkspaceOpen(configured);
 
-		assert.equal(ok, true);
+		// The caller must operate on the adopted workspace, not the declined `configured` path.
+		assert.equal(
+			realPath(String(effectiveRoot)),
+			realPath(workspaceRoot()),
+			'adopted workspace root returned',
+		);
+		assert.notEqual(realPath(String(effectiveRoot)), realPath(configured), 'not the declined path');
 		assert.equal(
 			realPath(cfg().get<string>('xousCorePath') || ''),
 			realPath(workspaceRoot()),
@@ -270,27 +280,27 @@ suite('Project mode and xous-core resolution', () => {
 		);
 	});
 
-	test('ensureXousWorkspaceOpen: "Open configured xous-core" reopens and returns false', async () => {
+	test('ensureXousWorkspaceOpen: "Open configured xous-core" reopens and returns undefined', async () => {
 		const configured = tmpDir();
 		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
 			'Open configured xous-core',
 		);
 		const exec = sandbox.stub(vscode.commands, 'executeCommand').resolves();
 
-		const ok = await ensureXousWorkspaceOpen(configured);
+		const effectiveRoot = await ensureXousWorkspaceOpen(configured);
 
-		assert.equal(ok, false);
+		assert.equal(effectiveRoot, undefined);
 		assert.ok(exec.calledWith('vscode.openFolder'), 'openFolder invoked');
 	});
 
-	test('ensureXousWorkspaceOpen: cancelling the mismatch modal returns false', async () => {
+	test('ensureXousWorkspaceOpen: cancelling the mismatch modal returns undefined', async () => {
 		const configured = tmpDir();
 		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
 			'Cancel',
 		);
 
-		const ok = await ensureXousWorkspaceOpen(configured);
+		const effectiveRoot = await ensureXousWorkspaceOpen(configured);
 
-		assert.equal(ok, false);
+		assert.equal(effectiveRoot, undefined);
 	});
 });

@@ -60,6 +60,12 @@ function writeStoredEtags(cacheDir: string, etags: { loader?: string; xous?: str
 	} catch {}
 }
 
+function clearStoredEtags(cacheDir: string): void {
+	try {
+		fs.rmSync(path.join(cacheDir, KERNEL_ETAG_FILE), { force: true });
+	} catch {}
+}
+
 async function fetchKernelEtags(): Promise<{ loader: string | null; xous: string | null }> {
 	const [loader, xous] = await Promise.all([
 		fetchETag(`${CI_BASE}/loader.uf2`),
@@ -78,6 +84,11 @@ async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
 
 async function downloadKernelFiles(cacheDir: string): Promise<void> {
 	fs.mkdirSync(cacheDir, { recursive: true });
+	// Invalidate the stored etags before touching any file: if a download fails partway, the
+	// on-disk pair is left incoherent (one new file, one old). With no etags surviving, that
+	// mixed pair can never be trusted as up to date later - offline, kernelFilesUpToDate would
+	// otherwise return true and flash it. A fresh, complete download rewrites them below.
+	clearStoredEtags(cacheDir);
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,

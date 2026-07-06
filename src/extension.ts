@@ -9,11 +9,13 @@ import {
 	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
+import { log } from '@services/logService';
 import { getProjectMode } from '@services/projectModeService';
 import { setExtensionContext } from '@services/uvService';
 import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
 
@@ -56,10 +58,23 @@ const migrateWelcomeSettingToGlobal = async () => {
 	}
 };
 
+/**
+ * Run a best-effort activation step in isolation. A failure (e.g. cfg.update rejecting on a
+ * dirty or invalid settings.json) is logged and swallowed so it cannot abort activation and
+ * leave the extension with no commands, trees, or status bar.
+ */
+export async function runStartupStep(label: string, step: () => Promise<void>): Promise<void> {
+	try {
+		await step();
+	} catch (e: unknown) {
+		log(`startup step "${label}" failed (continuing): ${toMessage(e)}`);
+	}
+}
+
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
-	await migrateWelcomeSettingToGlobal();
-	await autoDetectXousCore();
+	await runStartupStep('migrate welcome setting', migrateWelcomeSettingToGlobal);
+	await runStartupStep('auto-detect xous-core', autoDetectXousCore);
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();

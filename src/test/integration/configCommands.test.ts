@@ -1,5 +1,6 @@
 import * as assert from 'node:assert';
 import { Commands } from '@commands/commandIds';
+import { openBaochipSettings } from '@commands/openSettings';
 import * as buildService from '@services/buildService';
 import {
 	getDefaultBaud,
@@ -166,6 +167,42 @@ suite('Config and selection commands', () => {
 		);
 		assert.equal(items[0].description, 'current', 'configured target marked current');
 		assert.equal(items[1].description, undefined);
+	});
+
+	/* ------------------------------ openSettings ------------------------------ */
+
+	test('openSettings opens the workspace Settings editor when a workspace is open', async () => {
+		// The fixture test host always runs with a workspace folder open.
+		const exec = sandbox.stub(vscode.commands, 'executeCommand').resolves();
+
+		await openBaochipSettings();
+
+		assert.ok(
+			exec.calledOnceWith('workbench.action.openWorkspaceSettings', 'Baochip'),
+			'workspace Settings editor targeted',
+		);
+	});
+
+	test('openSettings falls back to the global editor in an empty window without a bogus failure', async () => {
+		sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => undefined);
+		// Mirror VS Code: openWorkspaceSettings rejects when there is no workspace to target.
+		const exec = sandbox
+			.stub(vscode.commands, 'executeCommand')
+			.callsFake(async (command: string) => {
+				if (command === 'workbench.action.openWorkspaceSettings') {
+					throw new Error('no workspace open');
+				}
+				return undefined;
+			});
+
+		await assert.doesNotReject(
+			openBaochipSettings(),
+			'empty window must not throw (no failure toast)',
+		);
+		assert.ok(
+			exec.calledOnceWith('workbench.action.openSettings', 'Baochip'),
+			'global Settings editor used instead',
+		);
 	});
 
 	/* ------------------------------ configService hardening getters ------------------------------ */

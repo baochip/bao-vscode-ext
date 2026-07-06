@@ -52,7 +52,15 @@ function requestWithRedirects(
 					const location = res.headers.location;
 					if (!location) return reject(new Error(`Redirect with no Location from ${u}`));
 					if (hops >= MAX_REDIRECTS) return reject(new Error(`Too many redirects for ${url}`));
-					go(new URL(location, u).toString(), hops + 1); // Location may be relative
+					let next: string;
+					try {
+						next = new URL(location, u).toString(); // Location may be relative
+					} catch (e) {
+						// a malformed Location would otherwise throw inside this response callback,
+						// escaping the promise so it never settles (the caller hangs forever)
+						return reject(e instanceof Error ? e : new Error(String(e)));
+					}
+					go(next, hops + 1);
 					return;
 				}
 				resolve(res);

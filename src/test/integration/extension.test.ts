@@ -1,5 +1,6 @@
 import * as assert from 'node:assert';
 import * as vscode from 'vscode';
+import { runStartupStep } from '../../extension';
 import { activateExtension } from './helpers';
 
 suite('Extension smoke', () => {
@@ -42,5 +43,24 @@ suite('Extension smoke', () => {
 		for (const key of keys) {
 			assert.ok(config.has(key), `setting not registered: ${key}`);
 		}
+	});
+
+	test('runStartupStep swallows a failing step so activation is not aborted', async () => {
+		let attempted = false;
+		await assert.doesNotReject(
+			runStartupStep('boom', async () => {
+				attempted = true;
+				throw new Error('settings.json is dirty'); // e.g. cfg.update rejecting
+			}),
+		);
+		assert.ok(attempted, 'the step was attempted before the failure was swallowed');
+	});
+
+	test('runStartupStep runs a passing step to completion', async () => {
+		let value = 0;
+		await runStartupStep('ok', async () => {
+			value = 42;
+		});
+		assert.equal(value, 42);
 	});
 });

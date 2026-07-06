@@ -7,6 +7,7 @@ import * as appService from '@services/appService';
 import * as buildService from '@services/buildService';
 import * as flashService from '@services/flashService';
 import * as logService from '@services/logService';
+import * as procService from '@services/procService';
 import * as projectModeService from '@services/projectModeService';
 import * as xousCoreService from '@services/xousCoreService';
 import { realPath } from '@util/fsUtil';
@@ -160,6 +161,47 @@ suite('Flash service', () => {
 		const result = await flashService.ensureFlashLocation();
 
 		assert.equal(result, undefined);
+	});
+
+	test('ensureFlashLocation: win32 auto-detects a BAOCHIP drive without prompting', async () => {
+		sandbox.stub(process, 'platform').value('win32');
+		const run = sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 0, stdout: 'E\r\n', stderr: '', cancelled: false });
+		const info = sandbox.stub(
+			vscode.window,
+			'showInformationMessage',
+		) as unknown as sinon.SinonStub;
+
+		const result = await flashService.ensureFlashLocation();
+
+		assert.equal(result, 'E:\\', 'detected drive letter mapped to a path');
+		assert.equal(cfg().get<string>('flashLocation'), 'E:\\', 'detected location persisted');
+		assert.ok(run.calledOnce, 'the Get-Volume probe ran once');
+		assert.ok(info.notCalled, 'no mount prompt when a drive is detected');
+	});
+
+	test('ensureFlashLocation: win32 falls through to the mount prompt when detection fails', async () => {
+		sandbox.stub(process, 'platform').value('win32');
+		const run = sandbox.stub(procService, 'runProcess').resolves({
+			code: null,
+			stdout: '',
+			stderr: '',
+			error: new Error('spawn ENOENT'),
+			cancelled: false,
+		});
+		const info = (
+			sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub
+		).resolves(undefined); // dismiss the mount confirmation
+
+		const result = await flashService.ensureFlashLocation();
+
+		assert.equal(result, undefined);
+		assert.ok(run.calledOnce, 'detection was attempted');
+		assert.ok(
+			info.getCalls().some((c) => String(c.args[0]).includes('baochip is mounted')),
+			'mount confirmation prompt shown after detection failed',
+		);
 	});
 
 	/* ------------------------------ gatherArtifacts ------------------------------ */

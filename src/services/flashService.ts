@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -6,13 +5,14 @@ import * as path from 'node:path';
 import { scanArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
 import { getChannel } from '@services/logService';
+import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { classifyWriteVerification } from '@util/flashVerify';
 import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
-function findBaochipDrives(): string[] {
+async function findBaochipDrives(): Promise<string[]> {
 	const platform = process.platform;
 
 	if (platform === 'darwin') {
@@ -47,26 +47,19 @@ function findBaochipDrives(): string[] {
 	}
 
 	if (platform === 'win32') {
-		try {
-			const r = spawnSync(
-				'powershell',
-				[
-					'-NoProfile',
-					'-Command',
-					'Get-Volume -FileSystemLabel BAOCHIP -ErrorAction SilentlyContinue | Select-Object -ExpandProperty DriveLetter',
-				],
-				{ encoding: 'utf8' },
-			);
-			if (r.status === 0 && r.stdout) {
-				return r.stdout
-					.split(/\r?\n/)
-					.map((l) => l.trim())
-					.filter(Boolean)
-					.map((letter) => `${letter}:\\`);
-			}
-		} catch {
-			return [];
+		const r = await runProcess('powershell', [
+			'-NoProfile',
+			'-Command',
+			'Get-Volume -FileSystemLabel BAOCHIP -ErrorAction SilentlyContinue | Select-Object -ExpandProperty DriveLetter',
+		]);
+		if (!r.error && r.code === 0 && r.stdout) {
+			return r.stdout
+				.split(/\r?\n/)
+				.map((l) => l.trim())
+				.filter(Boolean)
+				.map((letter) => `${letter}:\\`);
 		}
+		return [];
 	}
 
 	return [];
@@ -74,7 +67,7 @@ function findBaochipDrives(): string[] {
 
 /** If drives are found, auto-select (1 drive) or show a picker (multiple). Returns path or undefined. */
 async function pickFromDetectedDrives(): Promise<string | undefined> {
-	const found = findBaochipDrives();
+	const found = await findBaochipDrives();
 	if (found.length === 0) return undefined;
 	if (found.length === 1) return found[0];
 

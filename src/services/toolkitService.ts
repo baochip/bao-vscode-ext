@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -12,8 +11,8 @@ import * as vscode from 'vscode';
 export const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
 
 /** Check if the Xous target is already installed in the current rustc sysroot. */
-export function isXousToolkitInstalled(): boolean {
-	const r = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
+export async function isXousToolkitInstalled(): Promise<boolean> {
+	const r = await runProcess('rustc', ['--print', 'sysroot']);
 	if (!r.stdout) return false;
 	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
 	return fs.existsSync(xousDir);
@@ -49,12 +48,10 @@ async function extractZip(zipPath: string, dest: string): Promise<void> {
 }
 
 /** Verify the platform's archive-extraction tool is available, else throw an actionable error. */
-function ensureExtractToolAvailable(): void {
+async function ensureExtractToolAvailable(): Promise<void> {
 	const isWin = process.platform === 'win32';
 	const tool = isWin ? 'powershell' : 'unzip';
-	const probe = spawnSync(tool, isWin ? ['-NoProfile', '-Command', 'exit 0'] : ['-v'], {
-		stdio: 'ignore',
-	});
+	const probe = await runProcess(tool, isWin ? ['-NoProfile', '-Command', 'exit 0'] : ['-v']);
 	if (probe.error) {
 		throw new Error(
 			vscode.l10n.t(
@@ -72,16 +69,16 @@ function ensureExtractToolAvailable(): void {
  */
 export async function installXousToolkit(): Promise<void> {
 	// Get current rustc version and sysroot
-	const rustcVer = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
+	const rustcVer = await runProcess('rustc', ['--version']);
 	const rustVersion = parseRustcVersion(rustcVer.stdout ?? ''); // e.g. "1.87.0"
 	if (!rustVersion) throw new Error('Could not determine rustc version');
 
-	const sysrootResult = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
+	const sysrootResult = await runProcess('rustc', ['--print', 'sysroot']);
 	const sysroot = sysrootResult.stdout?.trim() ?? '';
 	if (!sysroot) throw new Error('Could not determine rustc sysroot');
 
 	// Fail fast (before the large download) if we can't extract the archive.
-	ensureExtractToolAvailable();
+	await ensureExtractToolAvailable();
 
 	await vscode.window.withProgress(
 		{

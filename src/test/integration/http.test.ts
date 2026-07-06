@@ -63,6 +63,20 @@ suite('httpService against a local server', () => {
 		}
 	});
 
+	test('a redirect with an unparseable Location rejects instead of hanging', async () => {
+		// 'http://' has a special scheme but no host, so new URL() throws while resolving it;
+		// unguarded, that throw escapes the response callback and the promise never settles.
+		const srv = await serve((_req, res) => {
+			res.writeHead(302, { Location: 'http://' });
+			res.end();
+		});
+		try {
+			await assert.rejects(fetchJson(`${srv.base}/bad-redirect`));
+		} finally {
+			await srv.close();
+		}
+	});
+
 	test('downloadFile writes the body and leaves no temp file', async () => {
 		const srv = await serve((_req, res) => {
 			res.writeHead(200, { 'Content-Length': '9' });

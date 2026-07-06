@@ -36,15 +36,19 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 	const root = await resolveXousRootOrNotify();
 	if (!root) return undefined;
 
-	// Enforce opening xous-core as the workspace
-	const ok = await ensureXousWorkspaceOpen(root);
-	if (!ok) return undefined;
+	// Enforce opening xous-core as the workspace. The user may adopt the currently-open folder,
+	// so list apps from the returned root, not the configured one they might have declined.
+	const effectiveRoot = await ensureXousWorkspaceOpen(root);
+	if (!effectiveRoot) return undefined;
 
 	const target = getBuildTarget() || 'dabao';
-	const apps = await listBaoApps(root, target);
+	const apps = await listBaoApps(effectiveRoot, target);
 	if (apps.length === 0) {
 		vscode.window.showWarningMessage(
-			vscode.l10n.t('No apps found under {0}. Create one first.', `${root}/${getAppsDir(target)}`),
+			vscode.l10n.t(
+				'No apps found under {0}. Create one first.',
+				`${effectiveRoot}/${getAppsDir(target)}`,
+			),
 		);
 		return undefined;
 	}
