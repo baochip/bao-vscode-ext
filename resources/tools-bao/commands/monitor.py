@@ -66,13 +66,14 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: thread
             while not stop_event.is_set():
                 b = sys.stdin.buffer.read(1)
                 if not b:
-                    break
+                    return  # stdin EOF: stop TX only, leave the RX loop capturing output
                 try:
                     ser.write(b)
                     ser.flush()
                 except SerialException:
                     write_error.set()
-                    break
+                    stop_event.set()
+                    return
                 # Local echo only if explicitly requested
                 if args.echo:
                     try:
@@ -86,7 +87,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: thread
             while not stop_event.is_set():
                 line = sys.stdin.buffer.readline()
                 if not line:
-                    break  # EOF
+                    return  # stdin EOF: stop TX only, leave the RX loop capturing output
                 # Strip any trailing \r or \n to avoid doubling endings
                 line = line.rstrip(b"\r\n")
                 payload = line + tx_eol
@@ -95,7 +96,8 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: thread
                     ser.flush()
                 except SerialException:
                     write_error.set()
-                    break
+                    stop_event.set()
+                    return
                 if args.echo:
                     try:
                         sys.stdout.write(line.decode(errors="replace") + ("\r\n" if tx_eol == b"\r\n" else "\n"))
@@ -104,8 +106,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: thread
                         pass
     except Exception as e:
         logging.debug(f"stdin writer thread ended: {e}")
-    finally:
-        stop_event.set()
+        stop_event.set()  # an unexpected writer error stops the monitor
 
 def cmd_monitor(args: argparse.Namespace) -> int:
     ser = open_serial(

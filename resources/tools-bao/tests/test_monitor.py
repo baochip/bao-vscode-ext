@@ -3,6 +3,7 @@ dispatcher (sys.exit(code or 0)) reports them - a failed monitor must not exit 0
 
 import argparse
 import logging
+import threading
 
 import pytest
 from serial.serialutil import SerialException
@@ -26,9 +27,8 @@ class FakeSerial:
 
 @pytest.fixture
 def quiet_writer(monkeypatch):
-    """Replace the stdin->serial writer thread body: under pytest stdin is at EOF, so the
-    real writer would set stop_event immediately and end the monitor before the code under
-    test ever runs."""
+    """No-op the stdin->serial writer so its background stdin reads don't interfere with the
+    RX-loop tests (the real thread would read pytest's captured stdin)."""
     monkeypatch.setattr(
         monitor, "_stdin_to_serial", lambda ser, args, stop_event, write_error: None
     )
@@ -75,6 +75,34 @@ def test_keyboard_interrupt_is_a_clean_exit(monkeypatch, quiet_writer):
 
     assert code == 0
     assert ser.closed
+
+
+def _run_writer_at_stdin_eof(monkeypatch, raw):
+    class _EofStdin:
+        class buffer:
+            @staticmethod
+            def read(_n):
+                return b""
+
+            @staticmethod
+            def readline():
+                return b""
+
+    monkeypatch.setattr(monitor.sys, "stdin", _EofStdin)
+    stop_event = threading.Event()
+    write_error = threading.Event()
+    ser = FakeSerial(lambda: b"")
+    monitor._stdin_to_serial(ser, make_args(raw=raw), stop_event, write_error)
+    return stop_event, write_error
+
+
+@pytest.mark.parametrize("raw", [True, False])
+def test_stdin_eof_stops_tx_not_the_rx_loop(monkeypatch, raw):
+    # On stdin EOF the writer ends without stopping the monitor, so a non-interactive --save run
+    # keeps capturing RX output.
+    stop_event, write_error = _run_writer_at_stdin_eof(monkeypatch, raw)
+    assert not stop_event.is_set(), "stdin EOF must not stop the RX loop"
+    assert not write_error.is_set()
 
 
 def test_writer_serial_failure_exits_1_with_a_message(monkeypatch, caplog):
