@@ -12,7 +12,11 @@
 
 	['configure', 'xousSite', 'createApp', 'extRepo'].forEach((id) => {
 		const el = byId(`btn-${id}`);
-		if (el) el.addEventListener('click', actions[id]);
+		if (el)
+			el.addEventListener('click', (e) => {
+				e.preventDefault(); // the links use href="#"; don't navigate
+				actions[id]();
+			});
 	});
 
 	const chk = byId('chk-startup');

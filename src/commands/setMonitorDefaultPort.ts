@@ -3,7 +3,7 @@ import { withCommand } from '@commands/withCommand';
 import { getMonitorDefaultPort, setMonitorDefaultPort } from '@services/configService';
 import * as vscode from 'vscode';
 
-export function registerSetMonitorDefaultPort(refreshUI: () => void) {
+export function registerSetMonitorDefaultPort() {
 	return withCommand(Commands.setMonitorDefaultPort, async () => {
 		const current = getMonitorDefaultPort();
 		const runLabel = vscode.l10n.t('Run (normal firmware logs)');
@@ -30,6 +30,5 @@ export function registerSetMonitorDefaultPort(refreshUI: () => void) {
 				picked.value === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader'),
 			),
 		);
-		refreshUI();
 	});
 }

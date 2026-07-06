@@ -4,7 +4,7 @@ import { type BuildMode, getBuildMode, setBuildMode } from '@services/configServ
 import { getProjectMode } from '@services/projectModeService';
 import * as vscode from 'vscode';
 
-export function registerSetBuildMode(refreshUI: () => void) {
+export function registerSetBuildMode() {
 	return withCommand(Commands.setBuildMode, async () => {
 		const currentSetting = getBuildMode();
 		const resolvedMode = getProjectMode();
@@ -35,6 +35,5 @@ export function registerSetBuildMode(refreshUI: () => void) {
 		if (!picked) return;
 
 		await setBuildMode(picked.setting);
-		refreshUI();
 	});
 }

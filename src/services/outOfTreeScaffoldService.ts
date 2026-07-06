@@ -142,12 +142,18 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		return;
 	}
 
-	const existingFolders = vscode.workspace.workspaceFolders ?? [];
-	vscode.workspace.updateWorkspaceFolders(existingFolders.length, 0, {
-		uri: vscode.Uri.file(projectDir),
-		name,
-	});
+	// Announce success before touching workspace folders: adding the first folder to an empty
+	// window reloads the extension host, which would discard a toast shown afterward.
 	vscode.window.showInformationMessage(
 		vscode.l10n.t('Created out-of-tree app "{0}" at {1}.', name, projectDir),
 	);
+
+	const existingFolders = vscode.workspace.workspaceFolders ?? [];
+	const alreadyOpen = existingFolders.some((f) => f.uri.fsPath === projectDir);
+	if (!alreadyOpen) {
+		vscode.workspace.updateWorkspaceFolders(existingFolders.length, 0, {
+			uri: vscode.Uri.file(projectDir),
+			name,
+		});
+	}
 }

@@ -10,6 +10,8 @@ import {
 	getXousCorePath,
 	setShowWelcome,
 } from '@services/configService';
+import { log } from '@services/logService';
+import { toMessage } from '@util/error';
 import { escapeHtml } from '@util/html';
 import * as vscode from 'vscode';
 
@@ -54,32 +56,22 @@ export class WelcomePanel {
 
 		this.panel.webview.onDidReceiveMessage(
 			async (msg) => {
-				if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
-					await setShowWelcome(msg.value);
-					return;
-				}
-
-				if (msg?.type === 'xousSite') {
-					vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
-					return;
-				}
-				if (msg?.type === 'extRepo') {
-					vscode.env.openExternal(
-						vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'),
-					);
-					return;
-				}
-
-				if (msg?.type === 'run') {
-					switch (msg.cmd) {
-						case 'configure':
-							vscode.commands.executeCommand(Commands.openSettings);
-							break;
-						case 'createApp':
-							vscode.commands.executeCommand(Commands.createApp);
-							break;
+				try {
+					if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
+						await setShowWelcome(msg.value);
+					} else if (msg?.type === 'xousSite') {
+						await vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
+					} else if (msg?.type === 'extRepo') {
+						await vscode.env.openExternal(
+							vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'),
+						);
+					} else if (msg?.type === 'run' && msg.cmd === 'configure') {
+						await vscode.commands.executeCommand(Commands.openSettings);
+					} else if (msg?.type === 'run' && msg.cmd === 'createApp') {
+						await vscode.commands.executeCommand(Commands.createApp);
 					}
-					return;
+				} catch (e) {
+					log(`Welcome action failed: ${toMessage(e)}`);
 				}
 			},
 			null,
@@ -186,7 +178,7 @@ export class WelcomePanel {
                 <div class="spacer"></div>
 
                 <div class="links">
-                  <a class="link" href="javascript:void(0)" id="btn-xousSite" title="${xousLinkTitle}">
+                  <a class="link" href="#" id="btn-xousSite" title="${xousLinkTitle}">
                     <span class="icon codicon codicon-github-inverted"></span>
                     ${xousLinkText}
                   </a>
@@ -213,7 +205,7 @@ export class WelcomePanel {
             <p>
               ${footerLead}
               <br>
-              <a class="link" href="javascript:void(0)" id="btn-extRepo">
+              <a class="link" href="#" id="btn-extRepo">
                 <span class="icon codicon codicon-feedback"></span> ${footerLink}
               </a>
             </p>

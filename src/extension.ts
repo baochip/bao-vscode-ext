@@ -225,7 +225,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Re-evaluate mode when workspace folders change (e.g. user opens a different project)
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => refreshUI()));
 
-	registerCommands(context, refreshUI);
+	registerCommands(context);
 
 	if (getShowWelcome()) {
 		vscode.commands.executeCommand(Commands.openWelcome);

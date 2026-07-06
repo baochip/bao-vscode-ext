@@ -2,9 +2,8 @@ import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { promptAndSaveSerialPort } from '@services/portsService';
 
-export function registerSetBootloaderSerialPort(refreshUI: () => void) {
+export function registerSetBootloaderSerialPort() {
 	return withCommand(Commands.setBootloaderSerialPort, async () => {
-		const port = await promptAndSaveSerialPort('bootloader');
-		if (port) refreshUI();
+		await promptAndSaveSerialPort('bootloader');
 	});
 }

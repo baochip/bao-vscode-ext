@@ -19,17 +19,17 @@ import { rerunExtensionSetup, resetUvSetup } from '@services/uvService';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
 
-export function registerCommands(context: vscode.ExtensionContext, refreshUI: () => void) {
+export function registerCommands(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
-		registerSetBuildMode(refreshUI),
-		registerSetBootloaderSerialPort(refreshUI),
-		registerSetRunSerialPort(refreshUI),
+		registerSetBuildMode(),
+		registerSetBootloaderSerialPort(),
+		registerSetRunSerialPort(),
 		registerSetMonitorBaud(),
-		registerSetMonitorDefaultPort(refreshUI),
+		registerSetMonitorDefaultPort(),
 		withCommand(Commands.openMonitor, () => openMonitorTTY()),
 		withCommand(Commands.stopMonitor, () => stopMonitorTTY()),
-		registerSetFlashLocation(refreshUI),
-		registerSelectBuildTarget(refreshUI),
+		registerSetFlashLocation(),
+		registerSelectBuildTarget(),
 		registerBuildCommand(),
 		registerSelectApp(),
 		registerCreateApp(),
