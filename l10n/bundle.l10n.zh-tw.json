@@ -118,7 +118,7 @@
 	"Click to select xous-core app": "選擇 xous-core 應用",
 	"Build (cargo xtask)": "建置（cargo xtask）",
 	"Build (cargo build)": "建置（cargo build）",
-	"Build mode: {0} (click to change in settings)": "建置模式：{0}（點擊在設定中變更）",
+	"Build mode: {0} (click to change)": "建置模式：{0}（點擊變更）",
 	"Flash to device": "燒錄至裝置",
 	"Baochip Location: (not set)": "Baochip 位置：（未設定）",
 	"Click to set baochip location": "設定 baochip 位置",

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { chan } from '@services/logService';
+import { getBuildChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
@@ -19,6 +19,7 @@ export async function checkXousAppUf2(): Promise<boolean> {
 	);
 	if (choice !== installLabel) return false;
 
+	const chan = getBuildChannel();
 	chan.clear();
 	chan.show(true);
 

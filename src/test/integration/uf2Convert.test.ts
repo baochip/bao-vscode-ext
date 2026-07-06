@@ -7,7 +7,7 @@ import * as procService from '@services/procService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { activateExtension, cleanupTmpDirs, tmpDir, useSandbox } from './helpers';
+import { activateExtension, cleanupTmpDirs, fakeChannel, tmpDir, useSandbox } from './helpers';
 
 /** A fake out-of-tree project: a Cargo.toml package name plus a built ELF for that package. */
 function fakeOotProject(pkgName: string): string {
@@ -39,7 +39,8 @@ suite('UF2 conversion', () => {
 			error: new Error('spawn xous-app-uf2 ENOENT'),
 			cancelled: false,
 		});
-		const appendLine = sandbox.spy(logService.chan, 'appendLine');
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getBuildChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
 		const ok = await convertElfToUf2(root);
@@ -50,8 +51,8 @@ suite('UF2 conversion', () => {
 			'failure toast shown',
 		);
 		assert.ok(
-			appendLine.getCalls().some((c) => String(c.args[0]).includes('spawn xous-app-uf2 ENOENT')),
-			'the spawn error reason is written to the channel the toast points at',
+			lines.some((l) => l.includes('spawn xous-app-uf2 ENOENT')),
+			'the spawn error reason is written to the Bao Build channel the toast points at',
 		);
 	});
 

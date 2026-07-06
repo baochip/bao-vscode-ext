@@ -207,7 +207,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Status bar: Project mode indicator
 		modeItem.text = `$(circuit-board) ${mode}`;
-		modeItem.tooltip = vscode.l10n.t('Build mode: {0} (click to change in settings)', mode);
+		modeItem.tooltip = vscode.l10n.t('Build mode: {0} (click to change)', mode);
 		modeItem.show();
 
 		// One full-tree refresh repaints every node (incl. the monitor); the docs tree is static.

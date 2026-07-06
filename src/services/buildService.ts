@@ -8,7 +8,7 @@ import {
 	getXousAppName,
 	setBuildTarget,
 } from '@services/configService';
-import { getChannel } from '@services/logService';
+import { getBuildChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -187,10 +187,6 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	term.show(true);
 }
 
-function getBuildChannel(): vscode.OutputChannel {
-	return getChannel(vscode.l10n.t('Bao Build'));
-}
-
 /**
  * Run `cargo <args>` in root, streaming output to the build channel with a cancellable
  * progress notification. Optionally prints announceLine before the command line.
@@ -245,7 +241,6 @@ async function runCargoAndWait(
 /** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code, or null when cancelled. */
 export async function runOutOfTreeBuildAndWait(root: string): Promise<number | null> {
 	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip: Building...'));
 	return runCargoAndWait(root, args);
 }
 

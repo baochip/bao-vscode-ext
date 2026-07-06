@@ -118,7 +118,7 @@
 	"Click to select xous-core app": "xous-core-App auswählen",
 	"Build (cargo xtask)": "Build (cargo xtask)",
 	"Build (cargo build)": "Build (cargo build)",
-	"Build mode: {0} (click to change in settings)": "Build-Modus: {0} (in Einstellungen ändern)",
+	"Build mode: {0} (click to change)": "Build-Modus: {0} (zum Ändern klicken)",
 	"Flash to device": "Auf Gerät flashen",
 	"Baochip Location: (not set)": "Baochip-Speicherort: (nicht gesetzt)",
 	"Click to set baochip location": "Baochip-Speicherort festlegen",

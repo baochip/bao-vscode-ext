@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
-import { chan } from '@services/logService';
+import { getBuildChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { parseCargoPackageName } from '@util/cargo';
 import * as vscode from 'vscode';
@@ -30,6 +30,7 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 		return false;
 	}
 
+	const chan = getBuildChannel();
 	chan.appendLine(`[bao] ${vscode.l10n.t('Baochip: Converting ELF to UF2...')}`);
 	chan.show(true);
 

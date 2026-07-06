@@ -30,3 +30,8 @@ export function getChannel(name: string): vscode.OutputChannel {
 	}
 	return c;
 }
+
+/** The shared Bao Build output channel (build, UF2 convert, and toolchain steps stream here). */
+export function getBuildChannel(): vscode.OutputChannel {
+	return getChannel(vscode.l10n.t('Bao Build'));
+}
