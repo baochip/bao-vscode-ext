@@ -4,7 +4,8 @@ import * as path from 'node:path';
 import * as baoRunnerService from '@services/baoRunnerService';
 import * as httpService from '@services/httpService';
 import * as kernelService from '@services/kernelService';
-import { getGlobalVenvRoot } from '@services/uvService';
+import * as procService from '@services/procService';
+import * as uvService from '@services/uvService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import {
@@ -23,7 +24,7 @@ const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
 /** The ci-sync download cache inside the test host's global storage; wiped around each test. */
 function kernelCacheDir(): string {
-	return path.join(getGlobalVenvRoot(), 'kernel');
+	return path.join(uvService.getGlobalVenvRoot(), 'kernel');
 }
 
 function wipeKernelCache(): void {
@@ -426,6 +427,32 @@ suite('Kernel files service', () => {
 		assert.ok(
 			errors.getCalls().some((c) => String(c.args[0]).includes('Failed to update xous-core rev')),
 			'update-failure error shown',
+		);
+	});
+
+	test('ensureOutOfTreeBuildSetup (ci-sync) shows a single toast when update-rev fails', async () => {
+		// Drive the real runBaoCmd (only the process is stubbed) so its quiet flag is exercised:
+		// runBaoCmd must stay silent so the caller's specific toast is the only one.
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
+		sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 2, stdout: '', stderr: 'no dependency found', cancelled: false });
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+
+		assert.equal(ok, false);
+		assert.equal(
+			errors.callCount,
+			1,
+			'exactly one error toast, not one from runBaoCmd plus one here',
+		);
+		assert.ok(
+			String(errors.firstCall.args[0]).includes('Failed to update xous-core rev'),
+			'the single toast is the caller-specific message',
 		);
 	});
 });

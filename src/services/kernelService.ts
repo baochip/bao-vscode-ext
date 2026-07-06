@@ -253,7 +253,13 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 			return false;
 		}
 		try {
-			await runBaoCmd(['app', 'update-rev', '--file', path.join(root, 'Cargo.toml'), '--rev', rev]);
+			// quiet: this caller shows its own specific error toast below; without it runBaoCmd
+			// would also toast on failure, giving two toasts for one failed update-rev.
+			await runBaoCmd(
+				['app', 'update-rev', '--file', path.join(root, 'Cargo.toml'), '--rev', rev],
+				undefined,
+				{ quiet: true },
+			);
 		} catch (e: unknown) {
 			const message = toMessage(e);
 			vscode.window.showErrorMessage(
