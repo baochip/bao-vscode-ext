@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { test } from 'node:test';
 import { describeRunFailure, runProcess } from '../../services/procService';
 
@@ -89,4 +92,57 @@ test('runProcess: cancelling the token kills the process and marks the result ca
 
 	assert.equal(r.cancelled, true, 'result flagged cancelled');
 	assert.ok(Date.now() - started < 10000, 'settled promptly, not after the 30s runtime');
+});
+
+const isAlive = (pid: number): boolean => {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+test('runProcess: cancelling kills the whole process tree, including a grandchild', async () => {
+	const pidFile = path.join(os.tmpdir(), `bao-gc-${process.pid}-${Date.now()}.pid`);
+	// The child spawns a long-lived grandchild and records its pid; killTree must reap the
+	// grandchild too, not just the direct child, or it is left orphaned.
+	const script = [
+		'const {spawn}=require("node:child_process");',
+		'const fs=require("node:fs");',
+		'const gc=spawn(process.execPath,["-e","setTimeout(()=>{},30000)"],{stdio:"ignore"});',
+		`fs.writeFileSync(${JSON.stringify(pidFile)},String(gc.pid));`,
+		'setTimeout(()=>{},30000);',
+	].join('');
+
+	const t = fakeToken();
+	const p = runProcess(process.execPath, ['-e', script], { token: t.token });
+
+	let gcPid = 0;
+	for (let i = 0; i < 100 && !gcPid; i++) {
+		try {
+			gcPid = Number(fs.readFileSync(pidFile, 'utf8'));
+		} catch {}
+		if (!gcPid) await sleep(20);
+	}
+	assert.ok(gcPid > 0, 'grandchild spawned and reported its pid');
+	assert.ok(isAlive(gcPid), 'grandchild is running before cancel');
+
+	t.cancel();
+	await p;
+
+	let dead = false;
+	for (let i = 0; i < 200 && !dead; i++) {
+		if (!isAlive(gcPid)) {
+			dead = true;
+			break;
+		}
+		await sleep(20);
+	}
+	try {
+		fs.rmSync(pidFile, { force: true });
+	} catch {}
+	assert.ok(dead, 'grandchild was killed with the tree, not left orphaned');
 });

@@ -213,6 +213,31 @@ suite('Ports, monitor, and boot', () => {
 		assert.ok(errors.notCalled, 'a cancel is not surfaced as a ports-listing error');
 	});
 
+	test('waitForPort threads the cancellation token through to the ports probe', async () => {
+		const token = {
+			isCancellationRequested: false,
+			onCancellationRequested: () => ({ dispose() {} }),
+		} as unknown as vscode.CancellationToken;
+		let received: vscode.CancellationToken | undefined;
+		const runBao = async (
+			_args: string[],
+			_cwd?: string,
+			opts?: { token?: vscode.CancellationToken },
+		) => {
+			received = opts?.token;
+			return 'COM7\tBaochip';
+		};
+
+		const result = await portsService.waitForPort(runBao, 'COM7', {
+			timeoutMs: 100,
+			intervalMs: 1,
+			token,
+		});
+
+		assert.equal(result, 'found');
+		assert.equal(received, token, 'the same token reaches the underlying ports probe');
+	});
+
 	test('runBaoCmd treats a cancelled run as a cancel, not a bao.py failure toast', async () => {
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
@@ -341,6 +366,28 @@ suite('Ports, monitor, and boot', () => {
 		assert.ok(terminals[0].sendText.calledOnceWith('\x03'), 'Ctrl+C sent to the old monitor');
 		assert.ok(terminals[0].dispose.calledOnce, 'old terminal disposed');
 		assert.ok(terminals[1].sendText.notCalled, 'new terminal receives no typed command');
+	});
+
+	test('the monitor close-terminal listener is disposed on reopen and on stop (no leak)', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		stubMonitorTerminal();
+		const listenerDisposes: sinon.SinonSpy[] = [];
+		(sandbox.stub(vscode.window, 'onDidCloseTerminal') as unknown as sinon.SinonStub).callsFake(
+			() => {
+				const dispose = sandbox.spy();
+				listenerDisposes.push(dispose);
+				return { dispose } as vscode.Disposable;
+			},
+		);
+
+		await monitorService.openMonitorTTY('run');
+		await monitorService.openMonitorTTY('run');
+		assert.equal(listenerDisposes.length, 2, 'a listener registered per open');
+		assert.ok(listenerDisposes[0].calledOnce, 'previous listener disposed on reopen');
+		assert.ok(listenerDisposes[1].notCalled, 'current listener still active after reopen');
+
+		monitorService.stopMonitorTTY();
+		assert.ok(listenerDisposes[1].calledOnce, 'current listener disposed on stop');
 	});
 
 	test('openMonitorTTY without a mode uses the default monitor port preference', async () => {
