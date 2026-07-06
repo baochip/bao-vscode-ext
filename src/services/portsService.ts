@@ -152,7 +152,7 @@ export async function pickSerialPort(
 	try {
 		lines = await runBao(['ports'], cwd, { capture: true, quiet: true });
 	} catch (err: unknown) {
-		errorToast(vscode.l10n.t('Could not list ports: {0}', (err as Error)?.message || String(err)));
+		errorToast(vscode.l10n.t('Could not list ports: {0}', toMessage(err)));
 		return undefined;
 	}
 

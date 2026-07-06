@@ -36,16 +36,19 @@ export async function ensureXousCorePath(): Promise<string> {
 		return detected;
 	}
 
+	const selectFolderLabel = vscode.l10n.t('Select Folder');
+	const cloneLabel = vscode.l10n.t('Clone from GitHub');
+	const openRepoLabel = vscode.l10n.t('Open Repo Page');
 	const choice = await vscode.window.showInformationMessage(
 		vscode.l10n.t('Baochip needs your local xous-core folder.'),
 		{ modal: true },
-		vscode.l10n.t('Select Folder'),
-		vscode.l10n.t('Clone from GitHub'),
-		vscode.l10n.t('Open Repo Page'),
+		selectFolderLabel,
+		cloneLabel,
+		openRepoLabel,
 	);
 	if (!choice) throw new Error(vscode.l10n.t('xous-core path not set'));
 
-	if (choice === vscode.l10n.t('Clone from GitHub')) {
+	if (choice === cloneLabel) {
 		const cloned = await cloneXousCore();
 		if (!cloned) throw new Error(vscode.l10n.t('Clone did not complete.'));
 		await setXousCorePath(cloned);
@@ -53,7 +56,7 @@ export async function ensureXousCorePath(): Promise<string> {
 		return cloned;
 	}
 
-	if (choice === vscode.l10n.t('Open Repo Page')) {
+	if (choice === openRepoLabel) {
 		await vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
 		throw new Error(vscode.l10n.t('Open the repo, clone locally, then try again.'));
 	}

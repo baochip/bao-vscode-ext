@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import { XOUS_CORE_REPO } from '../constants';
+import { XOUS_CORE_REPO } from '@constants';
 
 /** Extract the package name (first top-level `name = "..."`) from Cargo.toml contents, or null if absent. */
 export function parseCargoPackageName(toml: string): string | null {

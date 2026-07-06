@@ -6,18 +6,18 @@ import { registerCreateApp } from '@commands/createApp';
 import { registerFlashCommand } from '@commands/flash';
 import { registerOpenSettings } from '@commands/openSettings';
 import { registerSelectApp } from '@commands/selectApp';
+import { registerSelectBuildTarget } from '@commands/selectBuildTarget';
+import { registerSetBootloaderSerialPort } from '@commands/setBootloaderSerialPort';
+import { registerSetBuildMode } from '@commands/setBuildMode';
+import { registerSetFlashLocation } from '@commands/setFlashLocation';
 import { registerSetMonitorBaud } from '@commands/setMonitorBaud';
 import { registerSetMonitorDefaultPort } from '@commands/setMonitorDefaultPort';
+import { registerSetRunSerialPort } from '@commands/setRunSerialPort';
 import { withCommand } from '@commands/withCommand';
 import { openMonitorTTY, stopMonitorTTY } from '@services/monitorService';
 import { rerunExtensionSetup, resetUvSetup } from '@services/uvService';
 import { WelcomePanel } from '@webviews/welcome/welcomePanel';
 import * as vscode from 'vscode';
-import { registerSelectBuildTarget } from './commands/selectBuildTarget';
-import { registerSetBootloaderSerialPort } from './commands/setBootloaderSerialPort';
-import { registerSetBuildMode } from './commands/setBuildMode';
-import { registerSetFlashLocation } from './commands/setFlashLocation';
-import { registerSetRunSerialPort } from './commands/setRunSerialPort';
 
 export function registerCommands(context: vscode.ExtensionContext, refreshUI: () => void) {
 	context.subscriptions.push(

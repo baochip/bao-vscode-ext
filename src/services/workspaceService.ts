@@ -30,6 +30,8 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<string 
 	// At least one folder is open but it's not the configured one.
 	if (folders.length > 0) {
 		const openPaths = folders.map((f) => f.uri.fsPath).join('\n  - ');
+		const openConfiguredLabel = vscode.l10n.t('Open configured xous-core');
+		const useCurrentLabel = vscode.l10n.t('Use current workspace instead');
 		const choice = await vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  - {1}\n\nChoose what to do:',
@@ -37,16 +39,16 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<string 
 				openPaths,
 			),
 			{ modal: true },
-			vscode.l10n.t('Open configured xous-core'),
-			vscode.l10n.t('Use current workspace instead'),
+			openConfiguredLabel,
+			useCurrentLabel,
 		); // modal dialogs get a built-in Cancel
 
-		if (choice === vscode.l10n.t('Open configured xous-core')) {
+		if (choice === openConfiguredLabel) {
 			await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
 			return undefined;
 		}
 
-		if (choice === vscode.l10n.t('Use current workspace instead')) {
+		if (choice === useCurrentLabel) {
 			// Adopt the first open folder as the xous-core root going forward.
 			const chosen = folders[0].uri.fsPath;
 			await setXousCorePath(chosen);
@@ -56,12 +58,13 @@ export async function ensureXousWorkspaceOpen(xousRoot: string): Promise<string 
 		return undefined;
 	}
 
+	const openLabel = vscode.l10n.t('Open');
 	const openChoice = await vscode.window.showInformationMessage(
 		vscode.l10n.t('xous-core is not open in this workspace. Open "{0}" to continue?', xousRoot),
 		{ modal: true },
-		vscode.l10n.t('Open'),
+		openLabel,
 	);
-	if (openChoice !== vscode.l10n.t('Open')) return undefined;
+	if (openChoice !== openLabel) return undefined;
 
 	await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(xousRoot), false);
 	return undefined; // window reloads
