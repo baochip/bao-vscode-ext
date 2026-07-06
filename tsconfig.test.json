@@ -3,6 +3,6 @@
 	"compilerOptions": {
 		"types": ["node", "mocha"]
 	},
-	"include": ["src/test/integration/**/*.ts"],
+	"include": ["src/test/integration/**/*.ts", "src/test/unit/**/*.ts"],
 	"exclude": ["node_modules"]
 }

@@ -31,6 +31,10 @@ suite('Real-world drift (opt-in: BAO_TEST_REAL=1)', function () {
 			encoding: 'utf8',
 		});
 		assert.equal(clone.status, 0, `git clone failed: ${clone.stderr}`);
+
+		// Scaffold once so each test sees the same generated app regardless of run order.
+		const created = await appService.createBaoApp(root, 'probe_app', 'dabao');
+		assert.ok(created, 'createBaoApp succeeded on the real tree');
 	});
 
 	suiteTeardown(() => cleanupTmpDirs());
@@ -41,9 +45,7 @@ suite('Real-world drift (opt-in: BAO_TEST_REAL=1)', function () {
 		assert.ok(apps.length > 0, 'apps-dabao contains at least one app');
 	});
 
-	test('createBaoApp finds every template dep in the real tree and emits valid path deps', async () => {
-		await appService.createBaoApp(root, 'probe_app', 'dabao');
-
+	test('createBaoApp finds every template dep in the real tree and emits valid path deps', () => {
 		const cargo = fs.readFileSync(path.join(root, 'apps-dabao', 'probe_app', 'Cargo.toml'), 'utf8');
 		assert.ok(!cargo.includes(`git = "${XOUS_CORE_REPO}"`), 'no xous-core git deps left');
 		let pathDeps = 0;

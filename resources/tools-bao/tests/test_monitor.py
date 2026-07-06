@@ -115,6 +115,40 @@ def test_stdin_eof_stops_tx_not_the_rx_loop(monkeypatch, raw):
     assert not write_error.is_set()
 
 
+def test_line_mode_normalizes_to_crlf_and_echoes(monkeypatch, capsys):
+    """Line mode strips the incoming EOL and TXes a single CRLF: a bare LF becomes CRLF and an
+    existing CRLF is not doubled. With echo on, the typed line is mirrored locally with CRLF."""
+
+    class _LinesStdin:
+        class buffer:
+            _queue = [b"hello\r\n", b"world\n", b""]
+
+            @staticmethod
+            def readline():
+                return _LinesStdin.buffer._queue.pop(0)
+
+    written = []
+
+    class WriteSerial:
+        def write(self, b):
+            written.append(b)
+
+        def flush(self):
+            pass
+
+    monkeypatch.setattr(monitor.sys, "stdin", _LinesStdin)
+    stop_event = threading.Event()
+    write_error = threading.Event()
+
+    monitor._stdin_to_serial(
+        WriteSerial(), make_args(raw=False, crlf=True, echo=True), stop_event, write_error
+    )
+
+    assert b"".join(written) == b"hello\r\nworld\r\n", "each line TXed with a single CRLF"
+    assert not write_error.is_set()
+    assert capsys.readouterr().out == "hello\r\nworld\r\n", "echo mirrors the lines with CRLF"
+
+
 def test_writer_serial_failure_exits_1_with_a_message(monkeypatch, caplog):
     """A disconnect on the write side (typing) must exit nonzero with a message, like the read
     side - not the silent exit 0 of a normal stdin EOF."""
