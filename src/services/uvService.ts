@@ -7,6 +7,7 @@ import { downloadFile } from '@services/httpService';
 import { chan, errorToast, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
+import { InFlightMemo } from '@util/inFlightMemo';
 import { isFullPathCommand } from '@util/shell';
 import {
 	classifyPipFailure,
@@ -515,15 +516,11 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
  * Cleared by resetUvSetup/rerunExtensionSetup. The probe itself stays synchronous by design: it
  * runs once per session, and making it async would ripple into the deferred shell:true probes.
  */
-let uvBinaryMemo: Promise<string> | undefined;
-let depsMemo: Promise<void> | undefined;
+const uvBinaryMemo = new InFlightMemo<string>();
+const depsMemo = new InFlightMemo<void>();
 
 async function resolveUvBinary(): Promise<string> {
-	uvBinaryMemo ??= resolveUvBinaryUncached().catch((e) => {
-		uvBinaryMemo = undefined; // don't cache a failed bootstrap
-		throw e;
-	});
-	return uvBinaryMemo;
+	return uvBinaryMemo.run(resolveUvBinaryUncached);
 }
 
 async function resolveUvBinaryUncached(): Promise<string> {
@@ -593,11 +590,7 @@ export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
 export async function ensureBaoPythonDeps(opts: { quiet?: boolean } = {}): Promise<void> {
 	// Memoized so a resolved run is the "already done" fast path and concurrent first-run
 	// commands share one install; cleared on failure so the next command retries.
-	depsMemo ??= ensureBaoPythonDepsUncached(opts).catch((e) => {
-		depsMemo = undefined;
-		throw e;
-	});
-	return depsMemo;
+	return depsMemo.run(() => ensureBaoPythonDepsUncached(opts));
 }
 
 async function ensureBaoPythonDepsUncached({
@@ -764,8 +757,8 @@ export async function rerunExtensionSetup(): Promise<void> {
 
 /** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
 async function clearUvState(): Promise<void> {
-	uvBinaryMemo = undefined;
-	depsMemo = undefined;
+	uvBinaryMemo.clear();
+	depsMemo.clear();
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
