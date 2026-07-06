@@ -85,6 +85,16 @@ test('parseWorkspaceMembers: empty when there is no members array', () => {
 	assert.deepEqual(parseWorkspaceMembers('[package]\nname = "x"\n'), []);
 });
 
+test('parseWorkspaceMembers: ignores a commented-out member', () => {
+	const toml = '[workspace]\nmembers = [\n  "apps-dabao/hello",\n  # "apps-dabao/old_app",\n]\n';
+	assert.deepEqual(parseWorkspaceMembers(toml), ['apps-dabao/hello']);
+});
+
+test('parseWorkspaceMembers: a "]" inside a comment does not truncate the array', () => {
+	const toml = '[workspace]\nmembers = [\n  "a",  # see [docs]\n  "b",\n]\n';
+	assert.deepEqual(parseWorkspaceMembers(toml), ['a', 'b']);
+});
+
 test('addWorkspaceMemberToToml: appends the member before the closing bracket', () => {
 	const updated = addWorkspaceMemberToToml(WORKSPACE_TOML, 'apps-dabao/new_app');
 	assert.ok(updated, 'members array found');
@@ -105,6 +115,31 @@ test('addWorkspaceMemberToToml: inserts a comma when the last member has none', 
 	const updated = addWorkspaceMemberToToml(toml, 'apps-dabao/new_app');
 	assert.ok(updated, 'members array found');
 	assert.ok(updated.includes('"libs/util",'), 'missing comma added so the TOML stays valid');
+	assert.deepEqual(parseWorkspaceMembers(updated), [
+		'apps-dabao/hello',
+		'libs/util',
+		'apps-dabao/new_app',
+	]);
+});
+
+test('addWorkspaceMemberToToml: inserts a comma when the last member has a trailing comment', () => {
+	// The comment must not mask that "libs/util" lacks a comma before the appended entry.
+	const toml = '[workspace]\nmembers = [\n  "apps-dabao/hello",\n  "libs/util"  # keep last\n]\n';
+	const updated = addWorkspaceMemberToToml(toml, 'apps-dabao/new_app');
+	assert.ok(updated, 'members array found');
+	assert.ok(updated.includes('"libs/util",'), 'comma added despite the trailing comment');
+	assert.deepEqual(parseWorkspaceMembers(updated), [
+		'apps-dabao/hello',
+		'libs/util',
+		'apps-dabao/new_app',
+	]);
+});
+
+test('addWorkspaceMemberToToml: no double comma when the last member ends with a comma before a comment', () => {
+	const toml = '[workspace]\nmembers = [\n  "apps-dabao/hello",\n  "libs/util",  # trailing\n]\n';
+	const updated = addWorkspaceMemberToToml(toml, 'apps-dabao/new_app');
+	assert.ok(updated, 'members array found');
+	assert.ok(!updated.includes('"libs/util",,'), 'no doubled comma');
 	assert.deepEqual(parseWorkspaceMembers(updated), [
 		'apps-dabao/hello',
 		'libs/util',

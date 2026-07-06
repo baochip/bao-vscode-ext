@@ -207,7 +207,7 @@ suite('Config and selection commands', () => {
 
 	/* ------------------------------ configService hardening getters ------------------------------ */
 
-	test('getDefaultBaud falls back to 1000000 for zero, negative, and unset values', async () => {
+	test('getDefaultBaud falls back to 1000000 for zero, negative, non-integer, and unset values', async () => {
 		assert.equal(getDefaultBaud(), 1000000, 'default when unset');
 
 		await setCfg('monitor.defaultBaud', 0);
@@ -215,6 +215,9 @@ suite('Config and selection commands', () => {
 
 		await setCfg('monitor.defaultBaud', -9600);
 		assert.equal(getDefaultBaud(), 1000000, 'negative rejected');
+
+		await setCfg('monitor.defaultBaud', 9600.5);
+		assert.equal(getDefaultBaud(), 1000000, 'non-integer rejected (argparse type=int would crash)');
 
 		await setCfg('monitor.defaultBaud', 115200);
 		assert.equal(getDefaultBaud(), 115200, 'valid value passes through');

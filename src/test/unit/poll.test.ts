@@ -75,3 +75,17 @@ test('pollUntil: "cancelled" when cancellation is requested', async () => {
 	const r = await pollUntil(async () => false, { ...base(), isCancelled: () => true });
 	assert.equal(r, 'cancelled');
 });
+
+test('pollUntil: a cancel on the final allowed error returns "cancelled", not "error"', async () => {
+	// The maxErrors-th probe throws because it was cancelled; that must read as a cancel.
+	let calls = 0;
+	const r = await pollUntil(
+		async () => {
+			calls++;
+			throw new Error('killed');
+		},
+		{ ...base(), isCancelled: () => calls >= 3 },
+	);
+	assert.equal(r, 'cancelled');
+	assert.equal(calls, 3);
+});

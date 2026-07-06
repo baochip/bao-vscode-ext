@@ -13,8 +13,10 @@ async function updateSetting<T>(key: string, value: T) {
 }
 
 export const getDefaultBaud = () => {
+	// Integer-only: bao.py's argparse uses type=int, so a hand-edited float would crash the
+	// monitor/boot command. Fall back to the default rather than pass a value it will reject.
 	const b = cfg().get<number>('monitor.defaultBaud');
-	return typeof b === 'number' && b > 0 ? b : 1000000;
+	return typeof b === 'number' && Number.isInteger(b) && b > 0 ? b : 1000000;
 };
 export const setDefaultBaud = (baud: number) => updateSetting('monitor.defaultBaud', baud);
 

@@ -17,6 +17,11 @@ function cleanup(dir: string): void {
 	} catch {}
 }
 
+/** Names of any leftover `.partial` temp files in `dir` (the temp name now carries a unique suffix). */
+function partialFiles(dir: string): string[] {
+	return fs.readdirSync(dir).filter((f) => f.includes('.partial'));
+}
+
 test('writeStreamToFile: writes the full content and leaves no temp file', async () => {
 	const { dir, dest } = makeDest();
 	try {
@@ -27,7 +32,7 @@ test('writeStreamToFile: writes the full content and leaves no temp file', async
 		await done;
 
 		assert.equal(fs.readFileSync(dest, 'utf8'), 'hello bytes');
-		assert.equal(fs.existsSync(`${dest}.partial`), false, 'temp file renamed away');
+		assert.deepEqual(partialFiles(dir), [], 'temp file renamed away');
 	} finally {
 		cleanup(dir);
 	}
@@ -59,7 +64,7 @@ test('writeStreamToFile: a source error rejects, cleans the temp file, and prese
 
 		await assert.rejects(done, /connection reset/);
 		assert.equal(fs.readFileSync(dest, 'utf8'), 'previous good download', 'old file untouched');
-		assert.equal(fs.existsSync(`${dest}.partial`), false, 'no partial file left behind');
+		assert.deepEqual(partialFiles(dir), [], 'no partial file left behind');
 	} finally {
 		cleanup(dir);
 	}
@@ -75,7 +80,30 @@ test('writeStreamToFile: a premature close (no error object) still rejects and l
 
 		await assert.rejects(done);
 		assert.equal(fs.existsSync(dest), false, 'no destination file');
-		assert.equal(fs.existsSync(`${dest}.partial`), false, 'no partial file');
+		assert.deepEqual(partialFiles(dir), [], 'no partial file');
+	} finally {
+		cleanup(dir);
+	}
+});
+
+test('writeStreamToFile: concurrent writes to the same dest do not collide', async () => {
+	const { dir, dest } = makeDest();
+	try {
+		const a = new PassThrough();
+		const b = new PassThrough();
+		const doneA = writeStreamToFile(a, dest);
+		const doneB = writeStreamToFile(b, dest);
+		a.end('a'.repeat(2000));
+		b.end('b'.repeat(2000));
+		await Promise.all([doneA, doneB]);
+
+		// Each write used its own temp file, so dest is exactly one clean copy - not interleaved.
+		const content = fs.readFileSync(dest, 'utf8');
+		assert.ok(
+			content === 'a'.repeat(2000) || content === 'b'.repeat(2000),
+			'dest is one intact copy, not a corrupted mix',
+		);
+		assert.deepEqual(partialFiles(dir), [], 'both temp files cleaned up');
 	} finally {
 		cleanup(dir);
 	}

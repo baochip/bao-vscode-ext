@@ -34,6 +34,26 @@ suite('httpService against a local server', () => {
 		}
 	});
 
+	test('fetchJson decodes a multibyte body split across chunks', async () => {
+		const value = 'あ'.repeat(20000); // 3-byte chars so a byte split lands mid-character
+		const body = Buffer.from(JSON.stringify({ msg: value }), 'utf8');
+		const mid = Math.floor(body.length / 2);
+		const srv = await serve((_req, res) => {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.write(body.subarray(0, mid));
+			// Second write on a later tick so the client sees two chunks split mid-character.
+			setTimeout(() => {
+				res.write(body.subarray(mid));
+				res.end();
+			}, 5);
+		});
+		try {
+			assert.deepEqual(await fetchJson(`${srv.base}/x.json`), { msg: value });
+		} finally {
+			await srv.close();
+		}
+	});
+
 	test('fetchJson follows a 307 with a relative Location', async () => {
 		const srv = await serve((req, res) => {
 			if (req.url === '/start') {
@@ -86,7 +106,11 @@ suite('httpService against a local server', () => {
 		try {
 			await downloadFile(`${srv.base}/kernel.uf2`, dest);
 			assert.equal(fs.readFileSync(dest, 'utf8'), 'uf2 bytes');
-			assert.equal(fs.existsSync(`${dest}.partial`), false);
+			assert.deepEqual(
+				fs.readdirSync(path.dirname(dest)).filter((f) => f.includes('.partial')),
+				[],
+				'no temp file left behind',
+			);
 		} finally {
 			await srv.close();
 		}
@@ -103,7 +127,11 @@ suite('httpService against a local server', () => {
 		try {
 			await assert.rejects(downloadFile(`${srv.base}/kernel.uf2`, dest));
 			assert.equal(fs.readFileSync(dest, 'utf8'), 'previous good kernel', 'old file survives');
-			assert.equal(fs.existsSync(`${dest}.partial`), false, 'no partial left');
+			assert.deepEqual(
+				fs.readdirSync(path.dirname(dest)).filter((f) => f.includes('.partial')),
+				[],
+				'no partial left',
+			);
 		} finally {
 			await srv.close();
 		}

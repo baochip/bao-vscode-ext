@@ -102,6 +102,10 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		return;
 	}
 
+	// Whether .cargo already existed decides whether the rollback below may remove it.
+	const dotCargoDir = path.join(projectDir, '.cargo');
+	const dotCargoPreexisted = fs.existsSync(dotCargoDir);
+
 	try {
 		const target = getBuildTarget() || 'dabao';
 		const templateDir = getTemplateDir(target);
@@ -117,15 +121,22 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 			.replace(/\{\{NAME\}\}/g, name)
 			.replace(/\{\{REV\}\}/g, rev);
 
-		fs.mkdirSync(path.join(projectDir, '.cargo'), { recursive: true });
+		fs.mkdirSync(dotCargoDir, { recursive: true });
 
 		fs.writeFileSync(path.join(projectDir, 'Cargo.toml'), cargoContent, 'utf8');
 		fs.cpSync(path.join(templateDir, 'src'), path.join(projectDir, 'src'), { recursive: true });
 		fs.copyFileSync(
 			path.join(templateDir, '.cargo', 'config.toml'),
-			path.join(projectDir, '.cargo', 'config.toml'),
+			path.join(dotCargoDir, 'config.toml'),
 		);
 	} catch (e: unknown) {
+		// Roll back what this run wrote so a half-created project does not block a retry (Cargo.toml
+		// and src are the folder guards above, verified absent). Only remove paths this run created.
+		try {
+			fs.rmSync(path.join(projectDir, 'Cargo.toml'), { force: true });
+			fs.rmSync(path.join(projectDir, 'src'), { recursive: true, force: true });
+			if (!dotCargoPreexisted) fs.rmSync(dotCargoDir, { recursive: true, force: true });
+		} catch {}
 		const message = toMessage(e);
 		errorToast(vscode.l10n.t('Failed to create project: {0}', message));
 		return;

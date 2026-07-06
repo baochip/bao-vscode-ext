@@ -64,3 +64,40 @@ test('InFlightMemo: clear() forces the next run to re-invoke the factory', async
 	memo.clear();
 	assert.equal(await memo.run(factory), 2, 'a cleared memo re-runs the factory');
 });
+
+test('InFlightMemo: settle() waits for an in-flight run to finish before resolving', async () => {
+	const memo = new InFlightMemo<number>();
+	const d = deferred<number>();
+	memo.run(() => d.promise);
+
+	let settled = false;
+	const settling = memo.settle().then(() => {
+		settled = true;
+	});
+	await Promise.resolve(); // flush microtasks
+	assert.equal(settled, false, 'settle stays pending while the run is in flight');
+
+	d.resolve(1);
+	await settling;
+	assert.equal(settled, true, 'settle resolves once the in-flight run finished');
+});
+
+test('InFlightMemo: settle() clears the cached result so the next run re-invokes the factory', async () => {
+	const memo = new InFlightMemo<number>();
+	let calls = 0;
+	await memo.run(async () => ++calls);
+	await memo.settle();
+	assert.equal(await memo.run(async () => ++calls), 2, 'factory ran again after settle');
+});
+
+test('InFlightMemo: settle() does not reject when the in-flight run fails', async () => {
+	const memo = new InFlightMemo<number>();
+	memo.run(() => Promise.reject(new Error('boom'))).catch(() => {}); // handle the run rejection
+	await assert.doesNotReject(memo.settle());
+});
+
+test('InFlightMemo: settle() with no in-flight run resolves immediately and stays usable', async () => {
+	const memo = new InFlightMemo<number>();
+	await assert.doesNotReject(memo.settle());
+	assert.equal(await memo.run(async () => 7), 7);
+});

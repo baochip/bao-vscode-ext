@@ -9,7 +9,10 @@ export function parseCargoPackageName(toml: string): string | null {
 
 /** Extract the workspace member paths from a Cargo.toml's `members = [...]` array. */
 export function parseWorkspaceMembers(toml: string): string[] {
-	const m = toml.match(/^members\s*=\s*\[([\s\S]*?)\]/m);
+	// Drop line comments first so a commented-out "member" (or a `]` inside a comment) neither
+	// leaks into the result nor truncates the array at the wrong bracket.
+	const withoutComments = toml.replace(/#[^\n]*/g, '');
+	const m = withoutComments.match(/^members\s*=\s*\[([\s\S]*?)\]/m);
 	if (!m) return [];
 	return [...m[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
 }
@@ -22,9 +25,23 @@ export function addWorkspaceMemberToToml(toml: string, member: string): string |
 	const updated = toml.replace(
 		/(^members\s*=\s*\[[\s\S]*?)(\n\])/m,
 		(_m, body: string, close: string) => {
-			// a last member without a trailing comma would make the appended entry invalid TOML
-			const needsComma = /"\s*$/.test(body);
-			return `${body}${needsComma ? ',' : ''}\n  "${member}",${close}`;
+			// A last member without a trailing comma would make the appended entry invalid TOML.
+			// Insert the comma right after the last member's value - before any trailing comment,
+			// where a comma would otherwise be commented out and still leave the array invalid.
+			const lines = body.split('\n');
+			for (let i = lines.length - 1; i >= 0; i--) {
+				const commentAt = lines[i].indexOf('#');
+				const code = (commentAt === -1 ? lines[i] : lines[i].slice(0, commentAt)).replace(
+					/\s+$/,
+					'',
+				);
+				if (!code) continue; // blank or comment-only line: keep scanning upward
+				if (code.includes('"') && !code.endsWith(',')) {
+					lines[i] = `${code},${lines[i].slice(code.length)}`;
+				}
+				break; // the last member-bearing line decides
+			}
+			return `${lines.join('\n')}\n  "${member}",${close}`;
 		},
 	);
 	return updated === toml ? null : updated;

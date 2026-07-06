@@ -57,6 +57,11 @@ export async function runBaoCmd(
 	// runProcess captures both streams; we only surface stdout to the caller when capture is requested
 	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: uvEnv(), token: opts.token });
 	log(`bao.py EXIT ${r.code}`);
+	if (r.cancelled) {
+		// Cancelled via the caller's token - not a failure: no toast and no bogus "exited null".
+		log('bao.py run cancelled');
+		throw new Error('bao.py run cancelled');
+	}
 	if (!r.error && r.code === 0) return opts.capture ? r.stdout.trim() : '';
 	const msg = describeRunFailure(r);
 	if (!opts.quiet) errorToast(vscode.l10n.t('Baochip: bao.py failed.\n{0}', msg));

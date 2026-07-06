@@ -86,8 +86,10 @@ async function getText(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<str
 	}
 	return await new Promise((resolve, reject) => {
 		let data = '';
-		res.on('data', (chunk: Buffer) => {
-			data += chunk.toString();
+		// UTF-8 via a StringDecoder so a multibyte character split across chunks is not corrupted.
+		res.setEncoding('utf8');
+		res.on('data', (chunk: string) => {
+			data += chunk;
 		});
 		res.on('end', () => resolve(data));
 		res.on('error', reject); // a mid-body connection drop must settle, not hang
@@ -107,13 +109,14 @@ export async function fetchJson(url: string, timeoutMs?: number): Promise<unknow
 /**
  * Download a URL to `dest`, following redirects. Bytes land in a temp file that is renamed onto
  * `dest` only when the transfer completes, so a dropped connection never leaves a truncated
- * file at `dest` (a previous good copy survives) and the promise always settles.
+ * file at `dest` (a previous good copy survives) and the promise always settles. Returns the
+ * response's ETag (or null) so callers can record the freshness of the exact bytes written.
  */
 export async function downloadFile(
 	url: string,
 	dest: string,
 	timeoutMs = DEFAULT_TIMEOUT_MS,
-): Promise<void> {
+): Promise<string | null> {
 	const res = await requestWithRedirects(url, { timeoutMs });
 	const status = res.statusCode ?? 0;
 	if (status !== 200) {
@@ -121,6 +124,7 @@ export async function downloadFile(
 		throw new Error(`HTTP ${status} for ${url}`);
 	}
 	await writeStreamToFile(res, dest);
+	return (res.headers.etag as string) ?? null;
 }
 
 /**

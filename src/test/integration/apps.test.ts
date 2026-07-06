@@ -256,6 +256,61 @@ suite('App service and scaffolding', () => {
 		);
 	});
 
+	test('createBaoApp keeps the app and returns false when the root Cargo.toml write fails', async () => {
+		const root = makeXousCoreWithLibs(TEMPLATE_XOUS_CRATES);
+		const rootCargo = path.join(root, 'Cargo.toml');
+		// Make the root manifest read-only so the members-array write fails after the app is created.
+		fs.chmodSync(rootCargo, 0o444);
+		// Skip on a host where the read-only bit does not block writes (e.g. running as root in CI).
+		let readOnlyBlocksWrites = true;
+		try {
+			fs.writeFileSync(rootCargo, fs.readFileSync(rootCargo, 'utf8'));
+			readOnlyBlocksWrites = false;
+		} catch {}
+		if (!readOnlyBlocksWrites) {
+			fs.chmodSync(rootCargo, 0o644);
+			return;
+		}
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const registered = await appService.createBaoApp(root, 'my_app', 'dabao');
+		fs.chmodSync(rootCargo, 0o644); // restore before assertions so teardown can clean up
+
+		assert.equal(
+			registered,
+			false,
+			'a failed registration is non-fatal, reported as not-registered',
+		);
+		assert.ok(
+			fs.existsSync(path.join(root, 'apps-dabao', 'my_app')),
+			'the created app is kept (usable, just not auto-registered), not orphaned + rolled back',
+		);
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('Add it manually')),
+			'manual-add warning shown instead of a hard "Create app failed"',
+		);
+	});
+
+	test('createBaoApp does not duplicate the members entry when recreating a deleted app', async () => {
+		const root = makeXousCoreWithLibs(TEMPLATE_XOUS_CRATES);
+
+		assert.equal(await appService.createBaoApp(root, 'dup_app', 'dabao'), true, 'first create');
+		// The user deletes just the app folder, leaving its members entry behind.
+		fs.rmSync(path.join(root, 'apps-dabao', 'dup_app'), { recursive: true, force: true });
+
+		assert.equal(await appService.createBaoApp(root, 'dup_app', 'dabao'), true, 'recreated');
+
+		const members = parseWorkspaceMembers(fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8'));
+		assert.equal(
+			members.filter((m) => m === 'apps-dabao/dup_app').length,
+			1,
+			'the members array lists the app exactly once, not duplicated',
+		);
+	});
+
 	test('createBaoApp rejects a stale checkout missing template crates, creating nothing', async () => {
 		const root = makeXousCoreWithLibs(['bao1x-api']); // most template crates absent
 
@@ -371,5 +426,28 @@ suite('App service and scaffolding', () => {
 		);
 		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'nothing written');
 		assert.ok(updateFolders.notCalled, 'workspace untouched');
+	});
+
+	test('scaffoldOutOfTreeApp rolls back Cargo.toml and src when a copy step fails', async () => {
+		const projectDir = tmpDir();
+		// Make the final config copy fail (destination is a directory), so the failure lands after
+		// Cargo.toml and src are already written. A pre-existing .cargo also lets us prove rollback
+		// never deletes folder content it did not create.
+		fs.mkdirSync(path.join(projectDir, '.cargo', 'config.toml'), { recursive: true });
+		stubScaffoldPrompts(projectDir, 'my_oot_app');
+		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Failed to create project')),
+			'create-failure error shown',
+		);
+		// The retry-blocking guards must be cleared so scaffolding can be retried.
+		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'Cargo.toml rolled back');
+		assert.ok(!fs.existsSync(path.join(projectDir, 'src')), 'src rolled back');
+		// The .cargo folder existed before this run, so rollback must leave it in place.
+		assert.ok(fs.existsSync(path.join(projectDir, '.cargo')), 'pre-existing .cargo preserved');
 	});
 });

@@ -18,7 +18,6 @@ import * as vscode from 'vscode';
 const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/commits/dev';
 // Exported for the real-world drift tests, which probe the endpoint for liveness.
 export const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
-const KERNEL_FILES = ['loader.uf2', 'xous.uf2'] as const;
 
 /**
  * Fetches the latest xous-core commit hash from the GitHub API.
@@ -76,11 +75,20 @@ async function fetchKernelEtags(): Promise<{ loader: string | null; xous: string
 }
 
 async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
+	// No etags file at all means the last download did not complete (it is invalidated up front and
+	// only rewritten on success), so the on-disk pair may be incoherent - do not trust it.
+	if (!fs.existsSync(path.join(cacheDir, KERNEL_ETAG_FILE))) return false;
+
+	const { loader: curLoader, xous: curXous } = await fetchKernelEtags();
+	// Current etags are unavailable (CI serves none, or we are offline): a completed cache cannot be
+	// validated, so trust it rather than re-downloading every online flash or hard-failing offline.
+	if (!curLoader || !curXous) return true;
+
 	const stored = readStoredEtags(cacheDir);
+	// Completed download, but nothing stored to compare (CI omitted etags then, serves them now):
+	// refresh so the cache gets an etag-stamped pair.
 	if (!stored.loader || !stored.xous) return false;
-	const { loader: loaderEtag, xous: xousEtag } = await fetchKernelEtags();
-	if (!loaderEtag || !xousEtag) return true; // network unavailable - use cache
-	return loaderEtag === stored.loader && xousEtag === stored.xous;
+	return curLoader === stored.loader && curXous === stored.xous;
 }
 
 async function downloadKernelFiles(cacheDir: string): Promise<void> {
@@ -97,10 +105,11 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 			cancellable: false,
 		},
 		async () => {
-			for (const file of KERNEL_FILES) {
-				await downloadFile(`${CI_BASE}/${file}`, path.join(cacheDir, file));
-			}
-			const { loader, xous } = await fetchKernelEtags();
+			// Store the ETag returned by each GET (the etag of the exact bytes just written), not a
+			// separate HEAD afterwards - a HEAD could observe a newer CI publish and stamp the
+			// downloaded pair with etags that do not match its bytes, freezing a stale cache.
+			const loader = await downloadFile(`${CI_BASE}/loader.uf2`, path.join(cacheDir, 'loader.uf2'));
+			const xous = await downloadFile(`${CI_BASE}/xous.uf2`, path.join(cacheDir, 'xous.uf2'));
 			writeStoredEtags(cacheDir, { loader: loader ?? undefined, xous: xous ?? undefined });
 		},
 	);

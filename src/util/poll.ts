@@ -27,6 +27,9 @@ export async function pollUntil(
 			if (await probe()) return 'found';
 			consecutiveErrors = 0;
 		} catch {
+			// A probe that threw because it was cancelled is a cancel, not a failure - check before
+			// counting it, so a cancel on the final allowed error is not reported as 'error'.
+			if (opts.isCancelled?.()) return 'cancelled';
 			if (++consecutiveErrors >= opts.maxErrors) return 'error';
 		}
 		await opts.sleep(opts.intervalMs);

@@ -149,31 +149,31 @@ suite('Ports, monitor, and boot', () => {
 
 	/* ------------------------------ waitForPort ------------------------------ */
 
-	test('waitForPort resolves true once the port shows up', async () => {
+	test("waitForPort returns 'found' once the port shows up", async () => {
 		let calls = 0;
 		const runBao = async () => (++calls >= 3 ? 'COM7\tBaochip' : 'COM3\tOther');
 
-		const seen = await portsService.waitForPort(runBao, 'COM7', {
+		const result = await portsService.waitForPort(runBao, 'COM7', {
 			timeoutMs: 2000,
 			intervalMs: 1,
 		});
 
-		assert.equal(seen, true);
+		assert.equal(result, 'found');
 		assert.equal(calls, 3);
 	});
 
-	test('waitForPort resolves false when the port never appears', async () => {
+	test("waitForPort returns 'timeout' when the port never appears", async () => {
 		const runBao = async () => 'COM3\tOther';
 
-		const seen = await portsService.waitForPort(runBao, 'COM7', {
+		const result = await portsService.waitForPort(runBao, 'COM7', {
 			timeoutMs: 30,
 			intervalMs: 5,
 		});
 
-		assert.equal(seen, false);
+		assert.equal(result, 'timeout');
 	});
 
-	test('waitForPort bails with one error toast after persistent listing failures', async () => {
+	test("waitForPort returns 'error' with one error toast after persistent listing failures", async () => {
 		let calls = 0;
 		const runBao = async (): Promise<string> => {
 			calls++;
@@ -181,15 +181,52 @@ suite('Ports, monitor, and boot', () => {
 		};
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const seen = await portsService.waitForPort(runBao, 'COM7', {
+		const result = await portsService.waitForPort(runBao, 'COM7', {
 			timeoutMs: 5000,
 			intervalMs: 1,
 		});
 
-		assert.equal(seen, false);
+		assert.equal(result, 'error');
 		assert.equal(calls, 3, 'bails after three consecutive failures, not the full timeout');
 		assert.equal(errors.callCount, 1, 'exactly one error toast');
 		assert.ok(String(errors.firstCall.args[0]).includes('Could not list ports'));
+	});
+
+	test("waitForPort returns 'cancelled' with no error toast when the token is cancelled", async () => {
+		const token = {
+			isCancellationRequested: false,
+			onCancellationRequested: () => ({ dispose() {} }),
+		};
+		const runBao = async (): Promise<string> => {
+			token.isCancellationRequested = true; // the probe is killed by the cancel and throws
+			throw new Error('killed');
+		};
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const result = await portsService.waitForPort(runBao, 'COM7', {
+			timeoutMs: 5000,
+			intervalMs: 1,
+			token: token as unknown as vscode.CancellationToken,
+		});
+
+		assert.equal(result, 'cancelled');
+		assert.ok(errors.notCalled, 'a cancel is not surfaced as a ports-listing error');
+	});
+
+	test('runBaoCmd treats a cancelled run as a cancel, not a bao.py failure toast', async () => {
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
+		sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: null, stdout: '', stderr: '', cancelled: true });
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		await assert.rejects(
+			baoRunnerService.runBaoCmd(['ports'], undefined, { capture: true }),
+			/cancel/i,
+			'a cancelled run rejects as a cancel, not "exited null"',
+		);
+		assert.ok(errors.notCalled, 'no bao.py-failed toast on cancel');
 	});
 
 	/* ------------------------------ openMonitorTTY ------------------------------ */

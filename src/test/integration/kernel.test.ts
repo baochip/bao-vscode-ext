@@ -243,10 +243,18 @@ suite('Kernel files service', () => {
 			.callsFake((url: string) => Promise.resolve(url.includes('loader') ? loader : xous));
 	}
 
-	test('resolveKernelFiles (ci-sync) downloads both files into the cache and stores etags', async () => {
+	/** Stub downloadFile to write the cache files and return a per-file ETag from the GET response. */
+	function stubDownloadWithEtags(loaderEtag: string | null, xousEtag: string | null) {
+		return sandbox.stub(httpService, 'downloadFile').callsFake((url: string, dest: string) => {
+			fs.mkdirSync(path.dirname(dest), { recursive: true });
+			fs.writeFileSync(dest, 'downloaded', 'utf8');
+			return Promise.resolve(url.includes('loader') ? loaderEtag : xousEtag);
+		});
+	}
+
+	test('resolveKernelFiles (ci-sync) downloads both files and stores the response ETags', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
-		const download = sandbox.stub(httpService, 'downloadFile').resolves();
-		stubEtags('etag-loader', 'etag-xous');
+		const download = stubDownloadWithEtags('etag-loader', 'etag-xous');
 
 		const files = await kernelService.resolveKernelFiles();
 
@@ -262,6 +270,23 @@ suite('Kernel files service', () => {
 		);
 		const etags = JSON.parse(fs.readFileSync(path.join(cache, 'etags.json'), 'utf8'));
 		assert.deepEqual(etags, { loader: 'etag-loader', xous: 'etag-xous' });
+	});
+
+	test('resolveKernelFiles (ci-sync) stores the download-response ETag, not a racing HEAD', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		stubDownloadWithEtags('get-loader', 'get-xous');
+		// A CI publish during the download would make a post-download HEAD report newer etags; those
+		// must not be stored, or the freshly downloaded pair would be mis-stamped and frozen stale.
+		stubEtags('head-loader-newer', 'head-xous-newer');
+
+		await kernelService.resolveKernelFiles();
+
+		const etags = JSON.parse(fs.readFileSync(path.join(kernelCacheDir(), 'etags.json'), 'utf8'));
+		assert.deepEqual(
+			etags,
+			{ loader: 'get-loader', xous: 'get-xous' },
+			'GET etags stored, not HEAD',
+		);
 	});
 
 	function seedKernelCache(etags: { loader: string; xous: string }) {
@@ -347,20 +372,40 @@ suite('Kernel files service', () => {
 		);
 	});
 
-	test('resolveKernelFiles (ci-sync) does not serve an etag-less cache offline; it re-downloads', async () => {
+	test('resolveKernelFiles (ci-sync) re-downloads a cache with no etags file (incomplete download)', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
-		// Cache files present but no etags.json - the state left by a failed partial download.
+		// Cache files present but NO etags.json - the state left by a failed partial download; the
+		// pair may be incoherent, so it must not be trusted even offline.
 		const cache = kernelCacheDir();
 		fs.mkdirSync(cache, { recursive: true });
 		fs.writeFileSync(path.join(cache, 'loader.uf2'), 'maybe-mixed loader', 'utf8');
 		fs.writeFileSync(path.join(cache, 'xous.uf2'), 'maybe-mixed xous', 'utf8');
 		stubEtags(null, null); // offline: etag HEADs fail
-		const download = sandbox.stub(httpService, 'downloadFile').resolves();
+		const download = stubDownloadWithEtags(null, null);
 
 		const files = await kernelService.resolveKernelFiles();
 
 		assert.ok(download.called, 'the untrusted cache is re-downloaded rather than flashed as-is');
 		assert.ok(files, 'a successful re-download resolves the files');
+	});
+
+	test('resolveKernelFiles (ci-sync) uses a completed cache even when CI serves no ETags', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		// A completed prior download for which CI provided no etags: files present + an EMPTY (but
+		// existing) etags.json. This coherent cache must be used, not re-downloaded every flash or
+		// hard-failed offline.
+		const cache = kernelCacheDir();
+		fs.mkdirSync(cache, { recursive: true });
+		fs.writeFileSync(path.join(cache, 'loader.uf2'), 'cached loader', 'utf8');
+		fs.writeFileSync(path.join(cache, 'xous.uf2'), 'cached xous', 'utf8');
+		fs.writeFileSync(path.join(cache, 'etags.json'), '{}', 'utf8'); // completed, no etags
+		stubEtags(null, null); // CI serves no etags (offline behaves identically)
+		const download = sandbox.stub(httpService, 'downloadFile').resolves(null);
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.ok(files, 'the completed cache is used');
+		assert.ok(download.notCalled, 'no re-download or hard-fail when etags cannot be validated');
 	});
 
 	/* ------------------------------ fetchLatestXousCoreRev ------------------------------ */

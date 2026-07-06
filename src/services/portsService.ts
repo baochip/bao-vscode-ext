@@ -8,7 +8,7 @@ import {
 import { errorToast } from '@services/logService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
-import { pollUntil } from '@util/poll';
+import { type PollResult, pollUntil } from '@util/poll';
 import { parsePortsOutput } from '@util/ports';
 import * as vscode from 'vscode';
 
@@ -81,6 +81,11 @@ export async function listPorts(
 	return parsePortsOutput(out);
 }
 
+/**
+ * Poll for `targetPort` to appear. Returns the poll outcome so callers can distinguish a genuine
+ * timeout (bao.py works, port just not ready - retrying may still help) from a probe 'error'
+ * (bao.py itself is broken - already surfaced here, so the caller should not retry blindly).
+ */
 export async function waitForPort(
 	runBao: RunBao,
 	targetPort: string,
@@ -90,7 +95,7 @@ export async function waitForPort(
 		intervalMs?: number;
 		token?: vscode.CancellationToken;
 	},
-): Promise<boolean> {
+): Promise<PollResult> {
 	// A persistent probe failure means bao.py itself is broken (not just "port not ready yet"),
 	// so pollUntil bails after a few consecutive errors instead of spinning the full timeout.
 	let lastError: unknown;
@@ -117,7 +122,7 @@ export async function waitForPort(
 		const msg = toMessage(lastError);
 		errorToast(vscode.l10n.t('Could not list ports: {0}', msg));
 	}
-	return result === 'found';
+	return result;
 }
 
 /**

@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream';
@@ -9,7 +10,10 @@ import { pipeline } from 'node:stream';
  * previous good file survives, and a truncated transfer never lands at `dest`. Always settles.
  */
 export function writeStreamToFile(source: Readable, dest: string): Promise<void> {
-	const tmp = `${dest}.partial`;
+	// Unique temp name (pid + random) so concurrent transfers to the same dest - e.g. two VS Code
+	// windows downloading kernel files into the shared cache - never share one .partial file and
+	// corrupt each other. Kept in dest's directory so the final rename stays atomic (same volume).
+	const tmp = `${dest}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.partial`;
 	return new Promise((resolve, reject) => {
 		const file = fs.createWriteStream(tmp);
 		pipeline(source, file, (err) => {

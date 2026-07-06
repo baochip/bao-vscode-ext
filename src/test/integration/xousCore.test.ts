@@ -303,4 +303,59 @@ suite('Project mode and xous-core resolution', () => {
 
 		assert.equal(effectiveRoot, undefined);
 	});
+
+	/* ------------------------------ cloneXousCore ------------------------------ */
+
+	test('cloneXousCore opens the browser only when git.clone is unavailable', async () => {
+		const dest = tmpDir();
+		(sandbox.stub(vscode.window, 'showOpenDialog') as unknown as sinon.SinonStub).resolves([
+			vscode.Uri.file(dest),
+		]);
+		sandbox.stub(vscode.commands, 'getCommands').resolves(['workbench.action.files.save']);
+		const exec = sandbox.stub(vscode.commands, 'executeCommand');
+		const openExternal = sandbox.stub(vscode.env, 'openExternal').resolves(true);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const result = await cloneXousCoreModule.cloneXousCore();
+
+		assert.equal(result, undefined);
+		assert.ok(exec.notCalled, 'git.clone never attempted when the command is absent');
+		assert.ok(openExternal.calledOnce, 'repo opened in the browser');
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('Opening repo in browser')),
+			'browser-fallback warning shown',
+		);
+	});
+
+	test('cloneXousCore does not open the browser when the clone is cancelled or fails', async () => {
+		const dest = tmpDir();
+		(sandbox.stub(vscode.window, 'showOpenDialog') as unknown as sinon.SinonStub).resolves([
+			vscode.Uri.file(dest),
+		]);
+		sandbox.stub(vscode.commands, 'getCommands').resolves(['git.clone']);
+		sandbox.stub(vscode.commands, 'executeCommand').rejects(new Error('clone cancelled'));
+		const openExternal = sandbox.stub(vscode.env, 'openExternal').resolves(true);
+
+		const result = await cloneXousCoreModule.cloneXousCore();
+
+		assert.equal(result, undefined, 'clone did not complete; caller reports it');
+		assert.ok(openExternal.notCalled, 'no misleading browser open on a cancel/failure');
+	});
+
+	test('cloneXousCore returns the cloned folder when git.clone succeeds', async () => {
+		const dest = tmpDir();
+		fs.mkdirSync(path.join(dest, 'xous-core')); // git creates <dest>/xous-core
+		(sandbox.stub(vscode.window, 'showOpenDialog') as unknown as sinon.SinonStub).resolves([
+			vscode.Uri.file(dest),
+		]);
+		sandbox.stub(vscode.commands, 'getCommands').resolves(['git.clone']);
+		sandbox.stub(vscode.commands, 'executeCommand').resolves();
+
+		const result = await cloneXousCoreModule.cloneXousCore();
+
+		assert.equal(realPath(String(result)), realPath(path.join(dest, 'xous-core')));
+	});
 });

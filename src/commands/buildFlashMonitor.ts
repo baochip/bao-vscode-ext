@@ -78,7 +78,7 @@ export function registerBuildFlashMonitor() {
 				await new Promise((r) => setTimeout(r, 500));
 
 				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port...') });
-				const seen = await waitForPort(runBaoCmd, runPort, {
+				const portResult = await waitForPort(runBaoCmd, runPort, {
 					timeoutMs: 20000,
 					intervalMs: 500,
 					token,
@@ -86,7 +86,11 @@ export function registerBuildFlashMonitor() {
 
 				if (token.isCancellationRequested) return;
 
-				if (!seen) {
+				// A probe error means bao.py is broken (waitForPort already toasted the reason);
+				// opening the monitor would just fail again, so stop here.
+				if (portResult === 'error') return;
+
+				if (portResult === 'timeout') {
 					vscode.window.showWarningMessage(
 						vscode.l10n.t("Run mode port {0} didn't appear in time. Trying anyway...", runPort),
 					);

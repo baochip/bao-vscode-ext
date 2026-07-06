@@ -18,4 +18,19 @@ export class InFlightMemo<T> {
 	clear(): void {
 		this.pending = undefined;
 	}
+
+	/**
+	 * Wait for any in-flight run to finish (ignoring its outcome), then forget the cached result.
+	 * Use before a destructive reset so a concurrent run cannot keep writing while cleanup deletes
+	 * the same files. Only clears if the slot was not replaced by a new run while awaiting.
+	 */
+	async settle(): Promise<void> {
+		const pending = this.pending;
+		try {
+			await pending;
+		} catch {}
+		if (this.pending === pending) {
+			this.pending = undefined;
+		}
+	}
 }

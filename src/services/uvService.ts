@@ -102,9 +102,12 @@ async function run(
 		log(`[ok] ${cmd} exited 0`);
 		return { stdout: r.stdout, stderr: r.stderr, code: 0 };
 	}
-	const msg = `${vscode.l10n.t('{0} failed (exit {1})', cmd, String(r.code))}\n${
-		r.stderr || r.stdout || ''
-	}`.trim();
+	// A signal-killed uv has a null exit code; name the signal instead of "(exit null)".
+	const reason =
+		r.code === null && r.signal
+			? vscode.l10n.t('{0} terminated by signal {1}', cmd, r.signal)
+			: vscode.l10n.t('{0} failed (exit {1})', cmd, String(r.code));
+	const msg = `${reason}\n${r.stderr || r.stdout || ''}`.trim();
 	log(`ERROR: ${msg}`);
 	chan.show(true);
 	throw new Error(msg);
@@ -757,8 +760,11 @@ export async function rerunExtensionSetup(): Promise<void> {
 
 /** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
 async function clearUvState(): Promise<void> {
-	uvBinaryMemo.clear();
-	depsMemo.clear();
+	// Wait for any in-flight bootstrap to finish before forgetting it, so a concurrent first-run
+	// install cannot keep writing into files a following cleanContainedInstall/venv-delete removes
+	// (which would leave a half-populated venv the finishing install then hash-stamps as good).
+	await depsMemo.settle();
+	await uvBinaryMemo.settle();
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);

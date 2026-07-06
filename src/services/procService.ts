@@ -12,16 +12,22 @@ export interface RunOptions {
 
 export interface RunResult {
 	code: number | null;
+	/** The signal that terminated the child, if it was killed by one (code is then null). */
+	signal?: NodeJS.Signals | null;
 	stdout: string;
 	stderr: string;
 	error?: Error;
 	cancelled: boolean;
 }
 
-/** One-line human summary of a failed run: the spawn error, else stderr/stdout, else the exit code. */
+/** One-line human summary of a failed run: the spawn error, else stderr/stdout, else the signal or exit code. */
 export function describeRunFailure(r: RunResult): string {
 	if (r.error) return r.error.message;
-	return (r.stderr || r.stdout || `exited ${r.code}`).trim();
+	const out = (r.stderr || r.stdout).trim();
+	if (out) return out;
+	// A signal-killed child has a null exit code; report the signal rather than a bare "exited null".
+	if (r.signal) return `terminated by signal ${r.signal}`;
+	return `exited ${r.code}`;
 }
 
 /**
@@ -32,22 +38,28 @@ export function describeRunFailure(r: RunResult): string {
  */
 function killTree(child: ChildProcess): void {
 	if (child.pid === undefined) return;
+	const fallbackKill = () => {
+		try {
+			child.kill();
+		} catch {}
+	};
 	if (process.platform === 'win32') {
 		try {
-			spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' });
+			const killer = spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
+				stdio: 'ignore',
+			});
+			// A missing taskkill surfaces as an async 'error' event, not a synchronous throw, so the
+			// fallback must be a listener - and leaving 'error' unhandled would crash the ext host.
+			killer.on('error', fallbackKill);
 		} catch {
-			try {
-				child.kill();
-			} catch {}
+			fallbackKill();
 		}
 		return;
 	}
 	try {
 		process.kill(-child.pid, 'SIGTERM'); // negative pid = the whole process group
 	} catch {
-		try {
-			child.kill();
-		} catch {}
+		fallbackKill();
 	}
 }
 
@@ -82,6 +94,11 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
 			resolve(r);
 		};
 
+		// Decode as UTF-8 with a StringDecoder so a multibyte character split across two chunks is
+		// not mangled (a naive per-chunk toString() would corrupt it - matters for e.g. Japanese).
+		child.stdout?.setEncoding('utf8');
+		child.stderr?.setEncoding('utf8');
+
 		child.stdout?.on('data', (d) => {
 			const s = d.toString();
 			stdout += s;
@@ -93,6 +110,6 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
 			opts.onStderr?.(s);
 		});
 		child.on('error', (error) => finish({ code: null, stdout, stderr, error, cancelled }));
-		child.on('close', (code) => finish({ code, stdout, stderr, cancelled }));
+		child.on('close', (code, signal) => finish({ code, signal, stdout, stderr, cancelled }));
 	});
 }

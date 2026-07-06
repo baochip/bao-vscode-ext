@@ -33,7 +33,7 @@ function stubPipeline(sandbox: sinon.SinonSandbox) {
 		flash: sandbox.stub(flashService, 'decideAndFlash').resolves(true),
 		boot: sandbox.stub(bootService, 'sendBoot').resolves(true),
 		ensurePort: sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7'),
-		waitPort: sandbox.stub(portsService, 'waitForPort').resolves(true),
+		waitPort: sandbox.stub(portsService, 'waitForPort').resolves('found'),
 		monitor: sandbox.stub(monitorService, 'openMonitorTTY').resolves(),
 		errors: sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub,
 		warnings: sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub,
@@ -132,14 +132,27 @@ suite('Build-Flash-Monitor pipeline', () => {
 		assert.ok(p.waitPort.notCalled && p.monitor.notCalled, 'no port wait or monitor');
 	});
 
-	test('a port that never appears warns but still opens the monitor', async () => {
+	test('a port that times out warns but still opens the monitor', async () => {
 		const p = stubPipeline(sandbox);
-		p.waitPort.resolves(false);
+		p.waitPort.resolves('timeout');
 
 		await runPipeline();
 
 		assert.ok(toastIncludes(p.warnings, "didn't appear in time"), 'timeout warning shown');
 		assert.ok(p.monitor.calledOnceWith('run'), 'monitor still opened');
+	});
+
+	test('a port-probe error stops before the monitor with no bogus timeout warning', async () => {
+		const p = stubPipeline(sandbox);
+		p.waitPort.resolves('error'); // bao.py broken; waitForPort already toasted the reason
+
+		await runPipeline();
+
+		assert.ok(
+			!toastIncludes(p.warnings, "didn't appear in time"),
+			'no "trying anyway" warning when the probe itself failed',
+		);
+		assert.ok(p.monitor.notCalled, 'no doomed monitor opened after a probe error');
 	});
 
 	test('out-of-tree happy path adds kernel setup, UF2 convert, and kernel files to flash', async () => {

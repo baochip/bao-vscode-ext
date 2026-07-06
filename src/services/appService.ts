@@ -111,19 +111,30 @@ function buildWorkspacePackageMap(xousRoot: string): Map<string, string> {
 /** Returns true when the member was added; false when the members array could not be edited. */
 function addWorkspaceMember(xousRoot: string, member: string): boolean {
 	const cargoPath = path.join(xousRoot, 'Cargo.toml');
-	const content = fs.readFileSync(cargoPath, 'utf8');
-	const updated = addWorkspaceMemberToToml(content, member);
-	if (updated === null) {
-		vscode.window.showWarningMessage(
-			vscode.l10n.t(
-				'Could not automatically add "{0}" to the workspace members in Cargo.toml. Add it manually.',
-				member,
-			),
-		);
-		return false;
+	try {
+		const content = fs.readFileSync(cargoPath, 'utf8');
+		// Already listed (e.g. recreating an app whose folder was deleted but whose entry remained)?
+		// Return without appending so the members array does not accumulate duplicates.
+		if (parseWorkspaceMembers(content).includes(member)) {
+			return true;
+		}
+		const updated = addWorkspaceMemberToToml(content, member);
+		if (updated !== null) {
+			fs.writeFileSync(cargoPath, updated, 'utf8');
+			return true;
+		}
+	} catch {
+		// Reading or writing the root Cargo.toml failed (e.g. it is read-only). Fall through to the
+		// same "add manually" outcome as a missing members array - the app itself was created, so
+		// this must not throw out of createBaoApp and leave the app directory orphaned.
 	}
-	fs.writeFileSync(cargoPath, updated, 'utf8');
-	return true;
+	vscode.window.showWarningMessage(
+		vscode.l10n.t(
+			'Could not automatically add "{0}" to the workspace members in Cargo.toml. Add it manually.',
+			member,
+		),
+	);
+	return false;
 }
 
 /* ------------------------------ app creation ------------------------------ */
