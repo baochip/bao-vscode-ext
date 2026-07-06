@@ -19,44 +19,53 @@ import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
 
-const migrateWelcomeSettingToGlobal = async () => {
+export async function migrateWelcomeSettingToGlobal(): Promise<void> {
 	const cfg = vscode.workspace.getConfiguration();
 	const showInspect = cfg.inspect<boolean>('baochip.showWelcomeOnStartup');
 	if (!showInspect) return;
 
-	const workspaceShowValues = [showInspect.workspaceValue, showInspect.workspaceFolderValue].filter(
+	// A folder-scoped value only surfaces when the setting is inspected with that folder's URI,
+	// so probe each folder individually - the top-level inspect misses them in a multi-root window.
+	const folderValues = (vscode.workspace.workspaceFolders ?? []).map((folder) => ({
+		folder,
+		value: vscode.workspace
+			.getConfiguration(undefined, folder.uri)
+			.inspect<boolean>('baochip.showWelcomeOnStartup')?.workspaceFolderValue,
+	}));
+
+	const legacyValues = [showInspect.workspaceValue, ...folderValues.map((f) => f.value)].filter(
 		(v) => v !== undefined,
 	) as boolean[];
-	const hasWorkspaceShow = workspaceShowValues.length > 0;
-
 	const globalShowSet = showInspect.globalValue !== undefined;
 
 	// Derive global show from workspace/folder show if no global set
-	if (!globalShowSet && hasWorkspaceShow) {
-		const chosen = workspaceShowValues.find((v) => v !== undefined);
-		if (chosen !== undefined) {
-			await cfg.update('baochip.showWelcomeOnStartup', chosen, vscode.ConfigurationTarget.Global);
-		}
+	if (!globalShowSet && legacyValues.length > 0) {
+		await cfg.update(
+			'baochip.showWelcomeOnStartup',
+			legacyValues[0],
+			vscode.ConfigurationTarget.Global,
+		);
 	}
 
 	// Clean workspace/folder show entries
-	if (hasWorkspaceShow) {
+	if (showInspect.workspaceValue !== undefined) {
 		await cfg.update(
 			'baochip.showWelcomeOnStartup',
 			undefined,
 			vscode.ConfigurationTarget.Workspace,
 		);
-
-		for (const folder of vscode.workspace.workspaceFolders ?? []) {
-			const folderCfg = vscode.workspace.getConfiguration(undefined, folder.uri);
-			await folderCfg.update(
+	}
+	for (const { folder, value } of folderValues) {
+		if (value === undefined) continue;
+		await vscode.workspace
+			.getConfiguration(undefined, folder.uri)
+			.update(
 				'baochip.showWelcomeOnStartup',
 				undefined,
 				vscode.ConfigurationTarget.WorkspaceFolder,
 			);
-		}
 	}
-};
+}
 
 /**
  * Run a best-effort activation step in isolation. A failure (e.g. cfg.update rejecting on a

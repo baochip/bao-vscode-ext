@@ -1,7 +1,8 @@
 import * as assert from 'node:assert';
+import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { runStartupStep } from '../../extension';
-import { activateExtension } from './helpers';
+import { migrateWelcomeSettingToGlobal, runStartupStep } from '../../extension';
+import { activateExtension, useSandbox } from './helpers';
 
 suite('Extension smoke', () => {
 	let manifest: {
@@ -62,5 +63,53 @@ suite('Extension smoke', () => {
 			value = 42;
 		});
 		assert.equal(value, 42);
+	});
+});
+
+suite('migrateWelcomeSettingToGlobal', () => {
+	const sandbox = useSandbox();
+	const KEY = 'baochip.showWelcomeOnStartup';
+
+	test('promotes a per-folder legacy value to Global and clears only that folder (multi-root)', async () => {
+		const folderA = { uri: vscode.Uri.parse('file:///a') } as vscode.WorkspaceFolder;
+		const folderB = { uri: vscode.Uri.parse('file:///b') } as vscode.WorkspaceFolder;
+		sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [folderA, folderB]);
+
+		const topUpdate = sandbox.spy();
+		const topCfg = {
+			inspect: () => ({ workspaceValue: undefined, globalValue: undefined }),
+			update: topUpdate,
+		};
+		// Only folderA carries a legacy per-folder value; the top-level inspect never sees it.
+		const folderAUpdate = sandbox.spy();
+		const folderBUpdate = sandbox.spy();
+		const folderCfgA = { inspect: () => ({ workspaceFolderValue: false }), update: folderAUpdate };
+		const folderCfgB = {
+			inspect: () => ({ workspaceFolderValue: undefined }),
+			update: folderBUpdate,
+		};
+
+		(sandbox.stub(vscode.workspace, 'getConfiguration') as unknown as sinon.SinonStub).callsFake(
+			(_section?: string, resource?: vscode.Uri) => {
+				if (!resource) return topCfg;
+				return resource === folderA.uri ? folderCfgA : folderCfgB;
+			},
+		);
+
+		await migrateWelcomeSettingToGlobal();
+
+		assert.ok(
+			topUpdate.calledOnceWithExactly(KEY, false, vscode.ConfigurationTarget.Global),
+			'the folder value is promoted to Global',
+		);
+		assert.ok(
+			folderAUpdate.calledOnceWithExactly(
+				KEY,
+				undefined,
+				vscode.ConfigurationTarget.WorkspaceFolder,
+			),
+			'the folder holding the legacy value is cleared',
+		);
+		assert.ok(folderBUpdate.notCalled, 'a folder without a value is left untouched');
 	});
 });

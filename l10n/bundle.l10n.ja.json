@@ -206,7 +206,7 @@
 	"Open xous-core on GitHub": "GitHub で xous-core を開く",
 	"Show Welcome on extension startup": "拡張機能起動時に「Baochip へようこそ」を表示",
 	"Quick actions to get you started.": "すぐに始められるクイックアクション。",
-	"Welcome - Baochip": "Welcome - Baochip",
+	"Welcome - Baochip": "ようこそ - Baochip",
 	"The currently open workspace does not match your configured xous-core path.\n\nConfigured xous-core: {0}\nOpen workspace(s):\n  - {1}\n\nChoose what to do:": "現在開いているワークスペースは、設定済みの xous-core パスと一致しません。\n\n設定済み xous-core: {0}\n開いているワークスペース:\n  - {1}\n\n操作を選択してください:",
 	"xous-core is not open in this workspace. Open \"{0}\" to continue?": "このワークスペースでは xous-core が開かれていません。続行するには「{0}」を開いてください。",
 	"Baochip needs your local xous-core folder.": "Baochip にはローカルの xous-core フォルダーが必要です。",
