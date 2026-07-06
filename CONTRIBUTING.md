@@ -43,7 +43,7 @@ Thanks for helping improve the Baochip VS Code extension! 💜
 
 - Language: **TypeScript**  
 - Formatting:  
-  - Use VS Code’s default TypeScript formatting.  
+  - Format and lint with Biome (`npm run format`, `npm run lint`).  
   - Keep imports tidy and minimal.  
   - Prefer consistent naming and clear function boundaries.
   - Make helper functions for clarity of code flow.
@@ -58,8 +58,9 @@ Thanks for helping improve the Baochip VS Code extension! 💜
 
     npm test                  # unit tests (Node + tsx)
     npm run test:integration  # runs the extension in a VS Code instance
+    npm run test:python       # Python tooling tests (pytest via uv)
 
-Unit tests live in `src/test/unit/`, integration tests in `src/test/integration/`. Both run in CI on every push/PR to `main`.
+Unit tests live in `src/test/unit/`, integration tests in `src/test/integration/`, and the Python tooling tests in `resources/tools-bao/tests/`. All run in CI on every push/PR to `main`.
 
 **Manual testing** — please also:
 - Manually verify the command(s) you changed.  

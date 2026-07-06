@@ -74,31 +74,31 @@ The extension user interface supports:
 ```sh
 git clone https://github.com/betrusted-io/xous-core
 ```
-Then, make a new app in 
+Then, use **Baochip: New App** to add an app to the tree (see step 4).
 
-**Out-of-tree:** Open any folder in VS Code - no `xous-core` required.  Use 'New app' to start from scratch.
+**Out-of-tree:** Open any folder in VS Code - no `xous-core` required. Use **Baochip: New App** to start from scratch.
 
-## 3. Configuring the extension
+### 3. Configuring the extension
 
 - Prompts for paths, serial ports, and flash locations will appear during normal workflows.
 - You can additionally configure settings ad-hoc from the commands list, toolbar, or from Settings
 
-## 4. Create or Select an App
+### 4. Create or Select an App
 
 Use the Welcome page or the command palette:
 
-    Baochip: Create App
+    Baochip: New App
     Baochip: Select App
 
 Applications live inside:
 
     xous-core/apps-dabao/
 
-## 5. Write code! 
+### 5. Write code!
 
 - Write code for your app inside the the apps location you have selected.
 
-## 6. Build, Flash, Monitor
+### 6. Build, Flash, Monitor
 
 You may use any of the following:
 

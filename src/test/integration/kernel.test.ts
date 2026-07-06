@@ -64,6 +64,15 @@ suite('Kernel files service', () => {
 		await assert.rejects(kernelService.fetchLatestXousCoreRev(), /Unexpected response/);
 	});
 
+	test('fetchLatestXousCoreRev rejects an unexpected API response', async () => {
+		sandbox.stub(httpService, 'fetchJson').resolves({ message: 'rate limited' });
+
+		await assert.rejects(
+			kernelService.fetchLatestXousCoreRev(),
+			/Unexpected response from GitHub API/,
+		);
+	});
+
 	/* ------------------------------ ensureKernelModeConfigured ------------------------------ */
 
 	test('ensureKernelModeConfigured returns a saved mode without prompting', async () => {
@@ -406,23 +415,6 @@ suite('Kernel files service', () => {
 
 		assert.ok(files, 'the completed cache is used');
 		assert.ok(download.notCalled, 'no re-download or hard-fail when etags cannot be validated');
-	});
-
-	/* ------------------------------ fetchLatestXousCoreRev ------------------------------ */
-
-	test('fetchLatestXousCoreRev returns the sha from the GitHub API', async () => {
-		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
-
-		assert.equal(await kernelService.fetchLatestXousCoreRev(), SHA);
-	});
-
-	test('fetchLatestXousCoreRev rejects an unexpected API response', async () => {
-		sandbox.stub(httpService, 'fetchJson').resolves({ message: 'rate limited' });
-
-		await assert.rejects(
-			kernelService.fetchLatestXousCoreRev(),
-			/Unexpected response from GitHub API/,
-		);
 	});
 
 	/* ------------------------------ ensureOutOfTreeBuildSetup ------------------------------ */
