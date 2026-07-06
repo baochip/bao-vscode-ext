@@ -179,6 +179,41 @@ def test_string_form_dependencies_are_skipped_not_crashed(tmp_path):
     assert f'rev = "{REV}"' in updated
 
 
+def test_non_table_dependencies_key_is_skipped_not_crashed(tmp_path):
+    # A malformed manifest where `dependencies` is a string, not a table, must be skipped rather
+    # than crash update-rev with an AttributeError; a valid xous-core dep elsewhere still updates.
+    file_path = write_toml(
+        tmp_path,
+        'dependencies = "oops-not-a-table"\n'
+        '\n'
+        '[dev-dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    updated = file_path.read_text(encoding="utf-8")
+    assert 'dependencies = "oops-not-a-table"' in updated, "malformed key left untouched"
+    assert f'rev = "{REV}"' in updated
+
+
+def test_non_table_workspace_dependencies_key_is_skipped_not_crashed(tmp_path):
+    file_path = write_toml(
+        tmp_path,
+        '[workspace]\n'
+        'dependencies = "oops-not-a-table"\n'
+        '\n'
+        '[dependencies]\n'
+        f'bao1x-api = {{ git = "https://github.com/betrusted-io/xous-core", rev = "{OLD_REV}" }}\n',
+    )
+
+    result = run_update_rev(file_path)
+
+    assert result.returncode == 0
+    assert f'rev = "{REV}"' in file_path.read_text(encoding="utf-8")
+
+
 def test_updates_patch_table_alongside_dependencies(tmp_path):
     # The out-of-tree template pins getrandom under [patch.crates-io]; a rev update must
     # move it together with [dependencies] or the manifest mixes two xous-core commits.

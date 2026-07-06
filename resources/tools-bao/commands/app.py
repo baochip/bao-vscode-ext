@@ -24,13 +24,17 @@ def _dependency_tables(doc):
     tables = []
     for name in DEP_SECTIONS:
         try:
-            tables.append(navigate(doc, [name]))
+            table = navigate(doc, [name])
         except (KeyError, TypeError):
-            pass
+            continue
+        if isinstance(table, dict):
+            tables.append(table)
     try:
-        tables.append(navigate(doc, ["workspace", "dependencies"]))
+        ws_deps = navigate(doc, ["workspace", "dependencies"])
     except (KeyError, TypeError):
-        pass
+        ws_deps = None
+    if isinstance(ws_deps, dict):
+        tables.append(ws_deps)
     try:
         target = navigate(doc, ["target"])
     except (KeyError, TypeError):
