@@ -71,11 +71,11 @@ export async function installXousToolkit(): Promise<void> {
 	// Get current rustc version and sysroot
 	const rustcVer = await runProcess('rustc', ['--version']);
 	const rustVersion = parseRustcVersion(rustcVer.stdout ?? ''); // e.g. "1.87.0"
-	if (!rustVersion) throw new Error('Could not determine rustc version');
+	if (!rustVersion) throw new Error(vscode.l10n.t('Could not determine rustc version'));
 
 	const sysrootResult = await runProcess('rustc', ['--print', 'sysroot']);
 	const sysroot = sysrootResult.stdout?.trim() ?? '';
-	if (!sysroot) throw new Error('Could not determine rustc sysroot');
+	if (!sysroot) throw new Error(vscode.l10n.t('Could not determine rustc sysroot'));
 
 	// Fail fast (before the large download) if we can't extract the archive.
 	await ensureExtractToolAvailable();
@@ -102,8 +102,10 @@ export async function installXousToolkit(): Promise<void> {
 			});
 			if (matching.length === 0) {
 				throw new Error(
-					`No Xous toolchain release found for rustc ${rustVersion}. ` +
-						`You may need to update Rust or run 'cargo xtask install-toolkit' manually.`,
+					vscode.l10n.t(
+						"No Xous toolchain release found for rustc {0}. You may need to update Rust or run 'cargo xtask install-toolkit' manually.",
+						rustVersion,
+					),
 				);
 			}
 
@@ -125,8 +127,11 @@ export async function installXousToolkit(): Promise<void> {
 
 			if (!hostAsset) {
 				throw new Error(
-					`No Xous toolchain asset found for ${host} in release ${release.tag_name}. ` +
-						`Try running 'cargo xtask install-toolkit' manually.`,
+					vscode.l10n.t(
+						"No Xous toolchain asset found for {0} in release {1}. Try running 'cargo xtask install-toolkit' manually.",
+						host,
+						String(release.tag_name),
+					),
 				);
 			}
 

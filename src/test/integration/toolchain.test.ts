@@ -2,9 +2,10 @@ import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import * as httpService from '@services/httpService';
 import * as procService from '@services/procService';
 import { checkRustToolchain } from '@services/rustCheckService';
-import { isXousToolkitInstalled } from '@services/toolkitService';
+import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { activateExtension, cleanupTmpDirs, tmpDir, useSandbox } from './helpers';
@@ -151,5 +152,23 @@ suite('Rust toolchain checks', () => {
 		stubRunProcess(() => ({ code: null, error: new Error('spawn rustc ENOENT') }));
 
 		assert.equal(await isXousToolkitInstalled(), false);
+	});
+
+	/* ------------------------------ installXousToolkit ------------------------------ */
+
+	test('installXousToolkit surfaces the localized guidance when no release matches the rustc version', async () => {
+		stubRunProcess((cmd, args) => {
+			if (cmd === 'rustc' && args.includes('--version'))
+				return { stdout: 'rustc 1.87.0 (abc 2026-01-01)' };
+			if (cmd === 'rustc' && args.includes('--print')) return { stdout: fakeSysroot(false) };
+			return {}; // the extract-tool probe (powershell/unzip) succeeds
+		});
+		// No release tag begins with the running rustc version, so the guidance error is thrown.
+		sandbox.stub(httpService, 'fetchJson').resolves([{ tag_name: '1.50.0-xous', assets: [] }]);
+
+		await assert.rejects(
+			installXousToolkit(),
+			/No Xous toolchain release found for rustc 1\.87\.0/,
+		);
 	});
 });
