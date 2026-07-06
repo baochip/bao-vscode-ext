@@ -1,3 +1,4 @@
+import { warn } from '@services/logService';
 import { isValidFeatureName } from '@util/cargo';
 import * as vscode from 'vscode';
 
@@ -53,8 +54,15 @@ export const getBuildMode = (): BuildMode => cfg().get<BuildMode>('buildMode') ?
 export const setBuildMode = (mode: BuildMode) => updateSetting('buildMode', mode);
 
 // Only pass through values that look like cargo feature names (defense-in-depth for CLI args).
-export const getExtraFeatures = (): string[] =>
-	(cfg().get<string[]>('outOfTree.extraFeatures') ?? []).filter(isValidFeatureName);
+export const getExtraFeatures = (): string[] => {
+	const all = cfg().get<string[]>('outOfTree.extraFeatures') ?? [];
+	const valid = all.filter(isValidFeatureName);
+	if (valid.length < all.length) {
+		const dropped = all.filter((f) => !isValidFeatureName(f));
+		warn(vscode.l10n.t('Ignoring invalid extra cargo features: {0}', dropped.join(', ')));
+	}
+	return valid;
+};
 
 export const getMonitorFlags = () => ({
 	crlf: cfg().get<boolean>('monitor.crlf') ?? true,

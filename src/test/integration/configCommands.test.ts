@@ -9,6 +9,7 @@ import {
 	getMonitorDefaultPort,
 	getMonitorFlags,
 } from '@services/configService';
+import * as logService from '@services/logService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { activateExtension, resetBaochipConfig, useSandbox } from './helpers';
@@ -246,7 +247,8 @@ suite('Config and selection commands', () => {
 		assert.equal(getMonitorDefaultPort(), 'bootloader');
 	});
 
-	test('getExtraFeatures filters out values that are not valid cargo feature names', async () => {
+	test('getExtraFeatures filters invalid cargo feature names and warns naming the dropped ones', async () => {
+		const warn = sandbox.stub(logService, 'warn');
 		await setCfg('outOfTree.extraFeatures', [
 			'ok-feature',
 			'utralib/bao1x',
@@ -256,6 +258,12 @@ suite('Config and selection commands', () => {
 		]);
 
 		assert.deepEqual(getExtraFeatures(), ['ok-feature', 'utralib/bao1x']);
+		assert.ok(warn.calledOnce, 'warns once about the dropped entries');
+		const msg = String(warn.firstCall.args[0]);
+		assert.ok(
+			msg.includes('bad name;rm -rf') && msg.includes('--flag'),
+			`names the dropped entries: ${msg}`,
+		);
 	});
 
 	test('getMonitorFlags defaults to crlf+raw on, echo off, and follows settings', async () => {

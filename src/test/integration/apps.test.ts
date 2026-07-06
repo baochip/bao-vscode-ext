@@ -241,19 +241,11 @@ suite('App service and scaffolding', () => {
 			`[workspace]\nmembers = [${members}]\n`,
 			'utf8',
 		);
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
 
 		const registered = await appService.createBaoApp(root, 'my_app', 'dabao');
 
-		assert.equal(registered, false, 'caller can pick an honest toast');
+		assert.equal(registered, false, 'caller can surface the single manual-add message');
 		assert.ok(fs.existsSync(path.join(root, 'apps-dabao', 'my_app')), 'app itself was created');
-		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('Add it manually')),
-			'manual-add warning shown',
-		);
 	});
 
 	test('createBaoApp keeps the app and returns false when the root Cargo.toml write fails', async () => {
@@ -271,10 +263,6 @@ suite('App service and scaffolding', () => {
 			fs.chmodSync(rootCargo, 0o644);
 			return;
 		}
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
 
 		const registered = await appService.createBaoApp(root, 'my_app', 'dabao');
 		fs.chmodSync(rootCargo, 0o644); // restore before assertions so teardown can clean up
@@ -287,10 +275,6 @@ suite('App service and scaffolding', () => {
 		assert.ok(
 			fs.existsSync(path.join(root, 'apps-dabao', 'my_app')),
 			'the created app is kept (usable, just not auto-registered), not orphaned + rolled back',
-		);
-		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('Add it manually')),
-			'manual-add warning shown instead of a hard "Create app failed"',
 		);
 	});
 

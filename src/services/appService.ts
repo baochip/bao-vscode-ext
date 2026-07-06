@@ -124,16 +124,10 @@ function addWorkspaceMember(xousRoot: string, member: string): boolean {
 			return true;
 		}
 	} catch {
-		// Reading or writing the root Cargo.toml failed (e.g. it is read-only). Fall through to the
-		// same "add manually" outcome as a missing members array - the app itself was created, so
-		// this must not throw out of createBaoApp and leave the app directory orphaned.
+		// Reading or writing the root Cargo.toml failed (e.g. it is read-only): return false so the
+		// caller reports the single "add it manually" message; the app itself was still created.
 	}
-	vscode.window.showWarningMessage(
-		vscode.l10n.t(
-			'Could not automatically add "{0}" to the workspace members in Cargo.toml. Add it manually.',
-			member,
-		),
-	);
+	// Members array missing, unchanged, or unwritable: the caller surfaces the manual-add message.
 	return false;
 }
 
@@ -211,10 +205,5 @@ export async function createBaoApp(
 	}
 
 	// Register in workspace Cargo.toml
-	const registered = addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
-
-	try {
-		await vscode.workspace.saveAll();
-	} catch {}
-	return registered;
+	return addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
 }

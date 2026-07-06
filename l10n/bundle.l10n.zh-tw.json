@@ -3,7 +3,6 @@
 	"The downloaded toolchain archive did not contain the expected {0} target. Aborting install.": "下載的工具鏈封存檔中未包含預期的 {0} 目標。已中止安裝。",
 	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "安裝 Xous 工具鏈需要「{0}」，但在 PATH 中找不到。請安裝後再試一次。",
 	"Baochip: command failed.\n{0}": "Baochip：命令執行失敗。\n{0}",
-	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "無法自動將「{0}」新增到 Cargo.toml 的工作區成員中。請手動新增。",
 	"Created {0}/{1} and added to workspace.": "已建立 {0}/{1} 並新增到工作區。",
 	"baosec app creation is not yet supported.": "baosec 應用程式建立尚未支援。",
 	"Create app failed: {0}": "建立應用程式失敗：{0}",
@@ -257,5 +256,6 @@
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "{0} 中已存在 src 資料夾。請先移走它或選擇一個空資料夾。",
 	"Created {0}/{1}. Add it to the workspace members manually.": "已建立 {0}/{1}。請手動將其加入工作區成員。",
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 核心同步僅適用於 dabao 目標。對 \"{0}\" 請使用手動核心模式。",
-	"App directory already exists: {0}": "應用程式目錄已存在: {0}"
+	"App directory already exists: {0}": "應用程式目錄已存在: {0}",
+	"Ignoring invalid extra cargo features: {0}": "已忽略無效的額外 cargo 特性：{0}"
 }

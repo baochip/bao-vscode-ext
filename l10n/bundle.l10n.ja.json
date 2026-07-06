@@ -3,7 +3,6 @@
 	"The downloaded toolchain archive did not contain the expected {0} target. Aborting install.": "ダウンロードしたツールチェーンアーカイブに、想定される {0} ターゲットが含まれていませんでした。インストールを中止します。",
 	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "Xous ツールチェーンのインストールには「{0}」が必要ですが、PATH に見つかりませんでした。インストールしてから再試行してください。",
 	"Baochip: command failed.\n{0}": "Baochip: コマンドが失敗しました。\n{0}",
-	"Could not automatically add \"{0}\" to the workspace members in Cargo.toml. Add it manually.": "「{0}」を Cargo.toml のワークスペースメンバーに自動的に追加できませんでした。手動で追加してください。",
 	"Created {0}/{1} and added to workspace.": "{0}/{1} を作成し、ワークスペースに追加しました。",
 	"baosec app creation is not yet supported.": "baosec のアプリ作成はまだサポートされていません。",
 	"Create app failed: {0}": "アプリの作成に失敗しました: {0}",
@@ -257,5 +256,6 @@
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "{0} には既に src フォルダーが存在します。先に移動するか、空のフォルダーを選択してください。",
 	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} を作成しました。ワークスペースのメンバーには手動で追加してください。",
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI カーネル同期は dabao ターゲットでのみ利用できます。\"{0}\" には手動カーネルモードを使用してください。",
-	"App directory already exists: {0}": "アプリディレクトリは既に存在します: {0}"
+	"App directory already exists: {0}": "アプリディレクトリは既に存在します: {0}",
+	"Ignoring invalid extra cargo features: {0}": "無効な追加 cargo フィーチャーを無視します: {0}"
 }
