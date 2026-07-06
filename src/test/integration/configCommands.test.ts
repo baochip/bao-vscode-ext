@@ -3,6 +3,7 @@ import { Commands } from '@commands/commandIds';
 import { openBaochipSettings } from '@commands/openSettings';
 import * as buildService from '@services/buildService';
 import {
+	getBuildTargetOrDefault,
 	getDefaultBaud,
 	getExtraFeatures,
 	getKernelMode,
@@ -222,6 +223,13 @@ suite('Config and selection commands', () => {
 
 		await setCfg('monitor.defaultBaud', 115200);
 		assert.equal(getDefaultBaud(), 115200, 'valid value passes through');
+	});
+
+	test('getBuildTargetOrDefault returns the set target and dabao when unset', async () => {
+		assert.equal(getBuildTargetOrDefault(), 'dabao', 'default when unset');
+
+		await setCfg('buildTarget', 'baosec');
+		assert.equal(getBuildTargetOrDefault(), 'baosec', 'set value passes through');
 	});
 
 	test('getKernelMode returns ask for unknown values and passes valid modes', async () => {

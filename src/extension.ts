@@ -1,7 +1,7 @@
 import { Commands } from '@commands/commandIds';
 import {
 	getBootloaderSerialPort,
-	getBuildTarget,
+	getBuildTargetOrDefault,
 	getDefaultBaud,
 	getFlashLocation,
 	getMonitorDefaultPort,
@@ -121,7 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		const runSerPort = getRunSerialPort();
 		const baud = getDefaultBaud();
 		const flLoc = getFlashLocation();
-		const target = getBuildTarget();
+		const target = getBuildTargetOrDefault();
 		const app = getXousAppName();
 		const mode = getProjectMode();
 
@@ -173,7 +173,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashLocationItem.show();
 
 		// Build target - relevant in both modes; defaults to dabao when not explicitly set
-		targetItem.text = `$(target) ${target || 'dabao'}`;
+		targetItem.text = `$(target) ${target}`;
 		targetItem.tooltip = vscode.l10n.t('Click to select build target');
 		targetItem.show();
 

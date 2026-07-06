@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getBuildTarget } from '@services/configService';
+import { getBuildTargetOrDefault } from '@services/configService';
 import { fetchLatestXousCoreRev } from '@services/kernelService';
 import { errorToast } from '@services/logService';
 import { getExtensionRoot } from '@services/uvService';
@@ -107,7 +107,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	const dotCargoPreexisted = fs.existsSync(dotCargoDir);
 
 	try {
-		const target = getBuildTarget() || 'dabao';
+		const target = getBuildTargetOrDefault();
 		const templateDir = getTemplateDir(target);
 		if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
 			vscode.window.showErrorMessage(

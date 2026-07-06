@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getAppsDir } from '@constants';
-import { getBuildTarget, getXousAppName, setXousAppName } from '@services/configService';
+import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
@@ -41,7 +41,7 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 	const effectiveRoot = await ensureXousWorkspaceOpen(root);
 	if (!effectiveRoot) return undefined;
 
-	const target = getBuildTarget() || 'dabao';
+	const target = getBuildTargetOrDefault();
 	const apps = await listBaoApps(effectiveRoot, target);
 	if (apps.length === 0) {
 		vscode.window.showWarningMessage(
