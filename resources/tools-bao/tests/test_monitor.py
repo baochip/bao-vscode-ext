@@ -40,6 +40,16 @@ def make_args(**overrides):
     return argparse.Namespace(**base)
 
 
+def test_unopenable_port_returns_2(monkeypatch):
+    def cannot_open(*a, **k):
+        raise SerialException("cannot open COM9: no such port")
+
+    monkeypatch.setattr(monitor, "open_serial", cannot_open)
+
+    # An unopenable port exits 2 (like cmd_boot), not the generic 1 from bao.py's handler.
+    assert monitor.cmd_monitor(make_args()) == 2
+
+
 def test_unwritable_save_file_returns_2(monkeypatch, tmp_path):
     ser = FakeSerial(lambda: b"")
     monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)

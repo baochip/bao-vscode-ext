@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 from pathlib import Path
 from tomlkit import parse as toml_parse, dumps as toml_dumps
 
@@ -19,7 +20,16 @@ def write_file(path: Path, content: str) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
-        os.replace(tmp, path)
+        # os.replace can transiently fail on Windows (PermissionError) when the destination is
+        # briefly locked by a concurrent replace or a scanner; retry a few times.
+        for attempt in range(20):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.02)
     except BaseException:
         try:
             os.remove(tmp)

@@ -109,11 +109,15 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: thread
         stop_event.set()  # an unexpected writer error stops the monitor
 
 def cmd_monitor(args: argparse.Namespace) -> int:
-    ser = open_serial(
-        args.port,
-        args.baud,
-        timeout=0.1,
-    )
+    try:
+        ser = open_serial(
+            args.port,
+            args.baud,
+            timeout=0.1,
+        )
+    except SerialException as e:
+        logging.error(str(e))  # exit 2 for an unopenable port, matching cmd_boot
+        return 2
     outf = None
     if args.save:
         try:
