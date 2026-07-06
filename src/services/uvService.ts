@@ -71,7 +71,7 @@ async function gSet<T>(key: string, val: T | undefined): Promise<void> {
  * Env that forces a Python child to UTF-8 stdio (and filesystem), so its output matches our UTF-8
  * decode even on non-UTF-8 OS locales (e.g. Japanese Windows cp932). Harmless for non-Python procs.
  */
-export function pythonUtf8Env(): NodeJS.ProcessEnv {
+function pythonUtf8Env(): NodeJS.ProcessEnv {
 	return { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
 }
 

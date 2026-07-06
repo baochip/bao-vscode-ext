@@ -3,7 +3,7 @@ import { getBuildChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
-export function isXousAppUf2Available(): boolean {
+function isXousAppUf2Available(): boolean {
 	const r = spawnSync('xous-app-uf2', ['--version'], { encoding: 'utf8', shell: true });
 	return !r.error && r.status === 0;
 }

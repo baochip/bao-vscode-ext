@@ -68,7 +68,7 @@ export async function promptAndSaveSerialPort(
 	return port;
 }
 
-export async function listPorts(
+async function listPorts(
 	runBao: RunBao,
 	cwd?: string,
 	opts?: { quiet?: boolean; token?: vscode.CancellationToken },
@@ -129,7 +129,7 @@ export async function waitForPort(
  * Show a confirmation modal, enumerate serial ports via bao, and present a quick pick.
  * Returns the chosen port string, or undefined if the user cancelled at any step.
  */
-export async function pickSerialPort(
+async function pickSerialPort(
 	runBao: RunBao,
 	cwd: string,
 	opts: {

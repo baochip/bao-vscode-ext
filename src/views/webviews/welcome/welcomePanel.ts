@@ -1,15 +1,6 @@
 import { Commands } from '@commands/commandIds';
 import { XOUS_CORE_REPO } from '@constants';
-import {
-	getBootloaderSerialPort,
-	getBuildTarget,
-	getDefaultBaud,
-	getFlashLocation,
-	getRunSerialPort,
-	getShowWelcome,
-	getXousCorePath,
-	setShowWelcome,
-} from '@services/configService';
+import { getShowWelcome, setShowWelcome } from '@services/configService';
 import { log } from '@services/logService';
 import { toMessage } from '@util/error';
 import { escapeHtml } from '@util/html';
@@ -82,15 +73,7 @@ export class WelcomePanel {
 	}
 
 	private refreshState() {
-		const state = {
-			xousCorePath: getXousCorePath(),
-			bootloaderSerialPort: getBootloaderSerialPort(),
-			runSerialPort: getRunSerialPort(),
-			baud: getDefaultBaud(),
-			flashLocation: getFlashLocation(),
-			target: getBuildTarget(),
-			showOnStartup: getShowWelcome(),
-		};
+		const state = { showOnStartup: getShowWelcome() };
 		this.panel.webview.postMessage({ type: 'init', state });
 	}
 

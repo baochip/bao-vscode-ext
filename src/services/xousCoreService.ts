@@ -114,6 +114,8 @@ export async function ensureXousFolderOpen(root: string): Promise<'ready' | 'add
 
 	const uri = vscode.Uri.file(root);
 	if (choice === addToWorkspace && folders.length > 0) {
+		// Appending (index != 0) does not restart the extension host - only a change to the first
+		// folder does - so the build safely continues on 'added'.
 		vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: 'xous-core' });
 		log('xous-core added to current workspace.');
 		return 'added';
