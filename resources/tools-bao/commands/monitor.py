@@ -57,7 +57,7 @@ def _stdin_raw_noecho():
             yield
 
 
-def _stdin_to_serial(ser, args, stop_event: threading.Event):
+def _stdin_to_serial(ser, args, stop_event: threading.Event, write_error: threading.Event):
     """Forward user input to the serial port (raw: per-byte, line: per-line)."""
     try:
         if args.raw:
@@ -71,6 +71,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                     ser.write(b)
                     ser.flush()
                 except SerialException:
+                    write_error.set()
                     break
                 # Local echo only if explicitly requested
                 if args.echo:
@@ -93,6 +94,7 @@ def _stdin_to_serial(ser, args, stop_event: threading.Event):
                     ser.write(payload)
                     ser.flush()
                 except SerialException:
+                    write_error.set()
                     break
                 if args.echo:
                     try:
@@ -134,6 +136,7 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     WRITER_JOIN_TIMEOUT_S = 0.5  # how long to wait for the stdin writer thread on exit
     IDLE_SLEEP_S = 0.01   # small yield when idle to avoid a hot loop
     stop_event = threading.Event()
+    write_error = threading.Event()  # set by the writer thread if a serial write fails
     exit_code = 0  # nonzero when the monitor ends because of a failure (disconnect)
 
     # Persistent UTF-8 decoder so a multibyte char split across ser.read() chunks isn't corrupted.
@@ -145,7 +148,9 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     raw_ctx.__enter__()
 
     # Start stdin->serial writer thread
-    writer = threading.Thread(target=_stdin_to_serial, args=(ser, args, stop_event), daemon=True)
+    writer = threading.Thread(
+        target=_stdin_to_serial, args=(ser, args, stop_event, write_error), daemon=True
+    )
     writer.start()
 
     try:
@@ -175,6 +180,10 @@ def cmd_monitor(args: argparse.Namespace) -> int:
             # Small yield to avoid a hot loop when idle
             if not stop_event.is_set():
                 time.sleep(IDLE_SLEEP_S)
+        # Report a writer-side disconnect (serial write failed) as a failure, not a clean exit.
+        if write_error.is_set() and exit_code == 0:
+            logging.error("Serial write failed - port may be disconnected.")
+            exit_code = 1
     except KeyboardInterrupt:
         pass
     finally:

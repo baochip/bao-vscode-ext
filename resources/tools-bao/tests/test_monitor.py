@@ -2,6 +2,7 @@
 dispatcher (sys.exit(code or 0)) reports them - a failed monitor must not exit 0."""
 
 import argparse
+import logging
 
 import pytest
 from serial.serialutil import SerialException
@@ -28,7 +29,9 @@ def quiet_writer(monkeypatch):
     """Replace the stdin->serial writer thread body: under pytest stdin is at EOF, so the
     real writer would set stop_event immediately and end the monitor before the code under
     test ever runs."""
-    monkeypatch.setattr(monitor, "_stdin_to_serial", lambda ser, args, stop_event: None)
+    monkeypatch.setattr(
+        monitor, "_stdin_to_serial", lambda ser, args, stop_event, write_error: None
+    )
 
 
 def make_args(**overrides):
@@ -72,6 +75,26 @@ def test_keyboard_interrupt_is_a_clean_exit(monkeypatch, quiet_writer):
 
     assert code == 0
     assert ser.closed
+
+
+def test_writer_serial_failure_exits_1_with_a_message(monkeypatch, caplog):
+    """A disconnect on the write side (typing) must exit nonzero with a message, like the read
+    side - not the silent exit 0 of a normal stdin EOF."""
+
+    def failing_writer(ser, args, stop_event, write_error):
+        write_error.set()
+        stop_event.set()
+
+    monkeypatch.setattr(monitor, "_stdin_to_serial", failing_writer)
+    ser = FakeSerial(lambda: b"")  # read yields nothing; the loop ends when the writer stops it
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    with caplog.at_level(logging.ERROR):
+        code = monitor.cmd_monitor(make_args())
+
+    assert code == 1
+    assert ser.closed
+    assert any("disconnect" in r.message.lower() for r in caplog.records)
 
 
 def test_second_ctrl_c_during_cleanup_still_restores_terminal(monkeypatch):
