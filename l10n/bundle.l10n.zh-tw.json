@@ -59,6 +59,7 @@
 	"Baochip: Flash cancelled.": "Baochip：已取消燒錄。",
 	"Baochip: flashed {0} file(s) to {1}.": "Baochip：已將 {0} 個檔案燒錄到 {1}。",
 	"Baochip flash failed: {0}": "Baochip 燒錄失敗：{0}",
+	"Flash failed: {0}": "燒錄失敗：{0}",
 	"Baochip location set to: {0}": "已設定 Baochip 位置：{0}",
 	"No UF2s found (loader/xous/apps). Build first, then flash.": "未找到 UF2 檔案（loader/xous/apps）。請先建置後再燒錄。",
 	"Baochip: Flashing...": "Baochip：燒錄中...",

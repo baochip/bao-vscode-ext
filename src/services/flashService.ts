@@ -309,6 +309,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 				return true;
 			} catch (e: unknown) {
 				const msg = toMessage(e);
+				getFlashChannel().appendLine(`[bao] ${vscode.l10n.t('Flash failed: {0}', msg)}`);
 				vscode.window.showErrorMessage(vscode.l10n.t('Baochip flash failed: {0}', msg));
 				return false;
 			}

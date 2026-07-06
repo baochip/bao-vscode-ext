@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import * as baoRunnerService from '@services/baoRunnerService';
 import * as httpService from '@services/httpService';
 import * as kernelService from '@services/kernelService';
+import * as logService from '@services/logService';
 import * as procService from '@services/procService';
 import * as uvService from '@services/uvService';
 import type * as sinon from 'sinon';
@@ -308,6 +309,20 @@ suite('Kernel files service', () => {
 			errors.getCalls().some((c) => String(c.args[0]).includes('Failed to download kernel files')),
 			'download-failure error shown',
 		);
+	});
+
+	test('resolveKernelFiles (ci-sync) routes a download failure through the central errorToast', async () => {
+		// A caught operation failure must leave a central log trace, not just a transient toast.
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'downloadFile').rejects(new Error('HTTP 503'));
+		stubEtags('e1', 'e2');
+		const errorToast = sandbox.stub(logService, 'errorToast');
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.equal(files, null);
+		assert.ok(errorToast.calledOnce, 'failure logged and toasted via errorToast');
+		assert.ok(String(errorToast.firstCall.args[0]).includes('Failed to download kernel files'));
 	});
 
 	test('resolveKernelFiles (ci-sync) invalidates the stored etags when a re-download fails partway', async () => {

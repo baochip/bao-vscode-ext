@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getBuildTarget } from '@services/configService';
 import { fetchLatestXousCoreRev } from '@services/kernelService';
+import { errorToast } from '@services/logService';
 import { getExtensionRoot } from '@services/uvService';
 import { isLikelyValidAppName } from '@util/appName';
 import { toMessage } from '@util/error';
@@ -97,9 +98,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		rev = await fetchLatestXousCoreRev();
 	} catch (e: unknown) {
 		const message = toMessage(e);
-		vscode.window.showErrorMessage(
-			vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
-		);
+		errorToast(vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message));
 		return;
 	}
 
@@ -128,7 +127,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		);
 	} catch (e: unknown) {
 		const message = toMessage(e);
-		vscode.window.showErrorMessage(vscode.l10n.t('Failed to create project: {0}', message));
+		errorToast(vscode.l10n.t('Failed to create project: {0}', message));
 		return;
 	}
 

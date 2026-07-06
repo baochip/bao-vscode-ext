@@ -3,6 +3,7 @@ import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
 import { createBaoApp } from '@services/appService';
 import { getBuildTarget, setXousAppName } from '@services/configService';
+import { errorToast } from '@services/logService';
 import { scaffoldOutOfTreeApp } from '@services/outOfTreeScaffoldService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
@@ -72,7 +73,7 @@ export function registerCreateApp() {
 			await revealAppFolder(effectiveRoot, name, target);
 		} catch (e: unknown) {
 			const message = toMessage(e);
-			vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', message));
+			errorToast(vscode.l10n.t('Create app failed: {0}', message));
 		}
 	});
 }

@@ -59,6 +59,7 @@
 	"Baochip: Flash cancelled.": "Baochip: フラッシュをキャンセルしました。",
 	"Baochip: flashed {0} file(s) to {1}.": "Baochip: {0} 個のファイルを {1} にフラッシュしました。",
 	"Baochip flash failed: {0}": "Baochip のフラッシュに失敗しました: {0}",
+	"Flash failed: {0}": "フラッシュに失敗しました: {0}",
 	"Baochip location set to: {0}": "Baochip の場所を設定しました: {0}",
 	"No UF2s found (loader/xous/apps). Build first, then flash.": "UF2（loader/xous/apps）が見つかりません。ビルド後にフラッシュしてください。",
 	"Baochip: Flashing...": "Baochip: フラッシュ中...",

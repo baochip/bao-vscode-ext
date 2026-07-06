@@ -10,6 +10,7 @@ import {
 	setKernelMode,
 } from '@services/configService';
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
+import { errorToast } from '@services/logService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
@@ -166,9 +167,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 			await downloadKernelFiles(cacheDir);
 		} catch (e: unknown) {
 			const message = toMessage(e);
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Baochip: Failed to download kernel files.\n{0}', message),
-			);
+			errorToast(vscode.l10n.t('Baochip: Failed to download kernel files.\n{0}', message));
 			return null;
 		}
 	}
@@ -247,9 +246,7 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 			rev = await fetchLatestXousCoreRev();
 		} catch (e: unknown) {
 			const message = toMessage(e);
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
-			);
+			errorToast(vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message));
 			return false;
 		}
 		try {
@@ -262,9 +259,7 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 			);
 		} catch (e: unknown) {
 			const message = toMessage(e);
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message),
-			);
+			errorToast(vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message));
 			return false;
 		}
 	}

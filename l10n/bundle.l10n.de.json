@@ -59,6 +59,7 @@
 	"Baochip: Flash cancelled.": "Baochip: Flash-Vorgang abgebrochen.",
 	"Baochip: flashed {0} file(s) to {1}.": "Baochip: {0} Datei(en) nach {1} kopiert.",
 	"Baochip flash failed: {0}": "Baochip-Flash fehlgeschlagen: {0}",
+	"Flash failed: {0}": "Flash fehlgeschlagen: {0}",
 	"Baochip location set to: {0}": "Baochip-Speicherort festgelegt: {0}",
 	"No UF2s found (loader/xous/apps). Build first, then flash.": "Keine UF2-Dateien gefunden (loader/xous/apps). Bitte zuerst bauen und dann flashen.",
 	"Baochip: Flashing...": "Baochip: Flashen...",

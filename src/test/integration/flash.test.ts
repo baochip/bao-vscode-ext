@@ -344,4 +344,24 @@ suite('Flash service', () => {
 			'cancellation warning shown',
 		);
 	});
+
+	test('flashFiles logs the failure to the Bao Flash channel, not just a toast', async () => {
+		const dest = tmpDir();
+		const missingSrc = path.join(tmpDir(), 'nope.uf2'); // unreadable source makes the copy throw
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getChannel').returns(chan);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const ok = await flashService.flashFiles(dest, [missingSrc]);
+
+		assert.equal(ok, false);
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Baochip flash failed')),
+			'failure toast shown',
+		);
+		assert.ok(
+			lines.some((l) => l.includes('Flash failed')),
+			`failure recorded in the Bao Flash channel: ${lines.join(' | ')}`,
+		);
+	});
 });

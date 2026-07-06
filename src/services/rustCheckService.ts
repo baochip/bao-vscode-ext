@@ -1,5 +1,5 @@
 import { XOUS_TARGET_TRIPLE } from '@constants';
-import { getChannel } from '@services/logService';
+import { errorToast, getChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import { toMessage } from '@util/error';
@@ -86,7 +86,7 @@ export async function checkRustToolchain(): Promise<boolean> {
 				vscode.window.showInformationMessage(vscode.l10n.t('Target installed successfully.'));
 			} catch (e: unknown) {
 				const msg = toMessage(e);
-				vscode.window.showErrorMessage(vscode.l10n.t('Failed to install Xous target: {0}', msg));
+				errorToast(vscode.l10n.t('Failed to install Xous target: {0}', msg));
 				return false;
 			}
 		}

@@ -1,7 +1,7 @@
 import { XOUS_CORE_REPO } from '@constants';
 import { cloneXousCore } from '@services/cloneXousCore';
 import { getXousCorePath, setXousCorePath } from '@services/configService';
-import { log } from '@services/logService';
+import { errorToast, log } from '@services/logService';
 import { findXousCoreInWorkspace } from '@services/projectModeService';
 import { toMessage } from '@util/error';
 import { isDirectory, isSameOrParentPath } from '@util/fsUtil';
@@ -78,7 +78,7 @@ export async function resolveXousRootOrNotify(): Promise<string | undefined> {
 		return await ensureXousCorePath();
 	} catch (e: unknown) {
 		const message = toMessage(e);
-		vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
+		errorToast(message || vscode.l10n.t('xous-core path not set'));
 		return undefined;
 	}
 }
