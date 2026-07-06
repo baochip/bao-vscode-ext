@@ -178,23 +178,27 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:
         pass
     finally:
-        try:
-            stop_event.set()
-            writer.join(timeout=WRITER_JOIN_TIMEOUT_S)
-        except Exception:
-            pass
-        # Restore the terminal now that the writer has stopped (main thread -> always runs).
+        stop_event.set()
+        # Cleanup must survive a second Ctrl+C: restore the terminal before the blocking join and
+        # catch BaseException (KeyboardInterrupt) at each step.
         try:
             raw_ctx.__exit__(None, None, None)
-        except Exception:
+        except BaseException:
+            pass
+        try:
+            writer.join(timeout=WRITER_JOIN_TIMEOUT_S)
+        except BaseException:
             pass
         try:
             if outf:
                 outf.flush()
                 outf.close()
-        except Exception:
+        except BaseException:
             pass
-        safe_close(ser)
+        try:
+            safe_close(ser)
+        except BaseException:
+            pass
     return exit_code
 
 

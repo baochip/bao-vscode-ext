@@ -72,3 +72,46 @@ def test_keyboard_interrupt_is_a_clean_exit(monkeypatch, quiet_writer):
 
     assert code == 0
     assert ser.closed
+
+
+def test_second_ctrl_c_during_cleanup_still_restores_terminal(monkeypatch):
+    """A first Ctrl+C ends the read loop; a second Ctrl+C landing during the writer join in
+    cleanup must not skip restoring the terminal (which would leave the shell stuck in raw mode)."""
+
+    class SpyRawCtx:
+        def __init__(self):
+            self.exited = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.exited = True
+            return False
+
+    spy_ctx = SpyRawCtx()
+    monkeypatch.setattr(monitor, "_stdin_raw_noecho", lambda: spy_ctx)
+
+    class InterruptingWriter:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            pass
+
+        def join(self, timeout=None):
+            raise KeyboardInterrupt  # the second Ctrl+C arrives during the join
+
+    monkeypatch.setattr(monitor.threading, "Thread", InterruptingWriter)
+
+    def first_interrupt():
+        raise KeyboardInterrupt
+
+    ser = FakeSerial(first_interrupt)
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    code = monitor.cmd_monitor(make_args(raw=True))
+
+    assert spy_ctx.exited, "terminal restored despite a 2nd Ctrl+C during the writer join"
+    assert ser.closed, "serial port still closed"
+    assert code == 0
