@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 from tomlkit import parse as toml_parse, dumps as toml_dumps
 
@@ -12,12 +13,19 @@ def read_file(path: Path) -> str:
 
 def write_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Atomic: write a sibling temp file, then replace - a crash mid-write can never leave a
-    # truncated Cargo.toml at the destination.
-    tmp = path.with_name(path.name + ".tmp")
-    with tmp.open("w", encoding="utf-8", newline="\n") as f:
-        f.write(content)
-    os.replace(tmp, path)
+    # Atomic write via a UNIQUE temp file (not a fixed <name>.tmp) in the same directory, then
+    # replace - so two concurrent writers never clobber each other's temp or truncate the dest.
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write(content)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def navigate(node, keys: list[str]):
