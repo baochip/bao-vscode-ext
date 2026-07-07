@@ -1,11 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getBuildTargetOrDefault } from '@services/configService';
-import { fetchLatestXousCoreRev } from '@services/kernelService';
+import { fetchLatestXousCoreRev, toastRevFetchFailed } from '@services/kernelService';
 import { errorToast } from '@services/logService';
 import { getExtensionRoot } from '@services/uvService';
 import { isLikelyValidAppName } from '@util/appName';
 import { toMessage } from '@util/error';
+import { hasCargoToml } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 function getTemplateDir(target: string): string {
@@ -76,7 +77,7 @@ export async function scaffoldOutOfTreeApp(): Promise<void> {
 }
 
 async function scaffoldInto(projectDir: string, name: string): Promise<void> {
-	if (fs.existsSync(path.join(projectDir, 'Cargo.toml'))) {
+	if (hasCargoToml(projectDir)) {
 		vscode.window.showErrorMessage(
 			vscode.l10n.t('A Cargo.toml already exists in {0}.', projectDir),
 		);
@@ -97,8 +98,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	try {
 		rev = await fetchLatestXousCoreRev();
 	} catch (e: unknown) {
-		const message = toMessage(e);
-		errorToast(vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message));
+		toastRevFetchFailed(e);
 		return;
 	}
 
@@ -109,7 +109,7 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	try {
 		const target = getBuildTargetOrDefault();
 		const templateDir = getTemplateDir(target);
-		if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
+		if (!hasCargoToml(templateDir)) {
 			vscode.window.showErrorMessage(
 				vscode.l10n.t('No out-of-tree template available for target "{0}".', target),
 			);

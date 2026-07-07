@@ -1,14 +1,10 @@
 import { ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud } from '@services/configService';
-import { errorToast, getChannel } from '@services/logService';
+import { appendSeparator, errorToast, getBaochipChannel } from '@services/logService';
 import { ensureSerialPort } from '@services/portsService';
 import { describeRunFailure, runProcess } from '@services/procService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
 import * as vscode from 'vscode';
-
-function getBootChannel(): vscode.OutputChannel {
-	return getChannel(vscode.l10n.t('Bao Boot'));
-}
 
 export async function sendBoot(): Promise<boolean> {
 	const bao = resolveBaoPy();
@@ -23,7 +19,8 @@ export async function sendBoot(): Promise<boolean> {
 	}
 
 	const baud = getDefaultBaud();
-	const chan = getBootChannel();
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'Boot');
 	chan.show(true);
 	chan.appendLine(`[bao] ${vscode.l10n.t("Sending 'boot' to {0} @ {1}...", port, baud)}`);
 

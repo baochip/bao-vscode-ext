@@ -4,11 +4,12 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { scanArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
-import { getChannel } from '@services/logService';
+import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { classifyWriteVerification } from '@util/flashVerify';
 import { isDirectory } from '@util/fsUtil';
+import { pollUntil } from '@util/poll';
 import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
@@ -127,12 +128,14 @@ export async function confirmBaochipMountedPrompt(): Promise<boolean> {
 
 // Poll the same path briefly to allow a freshly mounted drive to appear.
 async function waitForDrive(absPath: string, timeoutMs = 8000, intervalMs = 500): Promise<boolean> {
-	const start = Date.now();
-	while (Date.now() - start < timeoutMs) {
-		if (await pathExists(absPath)) return true;
-		await new Promise((r) => setTimeout(r, intervalMs));
-	}
-	return false;
+	const result = await pollUntil(() => pathExists(absPath), {
+		timeoutMs,
+		intervalMs,
+		maxErrors: 1, // pathExists swallows errors, so the error path is never reached
+		now: Date.now,
+		sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+	});
+	return result === 'found';
 }
 
 export async function ensureFlashLocation(): Promise<string | undefined> {
@@ -220,10 +223,6 @@ export async function gatherArtifacts(root: string) {
 	return { byRole, all };
 }
 
-function getFlashChannel(): vscode.OutputChannel {
-	return getChannel(vscode.l10n.t('Bao Flash'));
-}
-
 export async function flashFiles(dest: string, files: string[]): Promise<boolean> {
 	return vscode.window.withProgress(
 		{
@@ -234,8 +233,8 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 		async (_progress, token) => {
 			try {
 				let copied = 0;
-				const chan = getFlashChannel();
-				chan.clear();
+				const chan = getBaochipChannel();
+				appendSeparator(chan, 'Flash');
 				chan.show(true);
 
 				for (const srcPath of files) {
@@ -309,7 +308,7 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 				return true;
 			} catch (e: unknown) {
 				const msg = toMessage(e);
-				getFlashChannel().appendLine(`[bao] ${vscode.l10n.t('Flash failed: {0}', msg)}`);
+				getBaochipChannel().appendLine(`[bao] ${vscode.l10n.t('Flash failed: {0}', msg)}`);
 				vscode.window.showErrorMessage(vscode.l10n.t('Baochip flash failed: {0}', msg));
 				return false;
 			}

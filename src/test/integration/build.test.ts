@@ -202,7 +202,7 @@ suite('Build service', () => {
 	test('runBuildAndWait reports a cancelled build as null with a channel line, not a failure', async () => {
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getBuildChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		sandbox.stub(procService, 'runProcess').resolves({ ...okRun, code: null, cancelled: true });
 
 		const code = await buildService.runBuildAndWait('C:\\fake\\root', 'dabao');
@@ -217,7 +217,7 @@ suite('Build service', () => {
 	test('runBuildAndWait surfaces the spawn error message in the channel', async () => {
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getBuildChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		sandbox
 			.stub(procService, 'runProcess')
 			.resolves({ ...okRun, code: null, error: new Error('spawn cargo ENOENT') });

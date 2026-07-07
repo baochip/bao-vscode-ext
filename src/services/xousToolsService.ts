@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { getBuildChannel } from '@services/logService';
+import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
@@ -19,8 +19,8 @@ export async function checkXousAppUf2(): Promise<boolean> {
 	);
 	if (choice !== installLabel) return false;
 
-	const chan = getBuildChannel();
-	chan.clear();
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'Install xous-tools');
 	chan.show(true);
 
 	return vscode.window.withProgress(

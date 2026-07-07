@@ -436,7 +436,7 @@ suite('Ports, monitor, and boot', () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves(undefined);
 		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const warnings = sandbox.stub(
 			vscode.window,
 			'showWarningMessage',
@@ -461,7 +461,7 @@ suite('Ports, monitor, and boot', () => {
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 
 		const ok = await bootService.sendBoot();
 
@@ -478,7 +478,7 @@ suite('Ports, monitor, and boot', () => {
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 
 		const ok = await bootService.sendBoot();
 
@@ -495,7 +495,7 @@ suite('Ports, monitor, and boot', () => {
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 
 		const ok = await bootService.sendBoot();
 
@@ -511,7 +511,7 @@ suite('Ports, monitor, and boot', () => {
 			.stub(procService, 'runProcess')
 			.resolves({ code: 2, stdout: '', stderr: 'cannot open COM7', cancelled: false });
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
 		const ok = await bootService.sendBoot();

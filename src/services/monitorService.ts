@@ -43,7 +43,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	} catch {}
 	monitorTermListener?.dispose();
 	const label = resolvedMode === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
-	const termName = vscode.l10n.t('Bao Monitor ({0}: {1})', label, port);
+	const termName = vscode.l10n.t('Baochip Monitor ({0}: {1})', label, port);
 	monitorTerm = vscode.window.createTerminal({
 		name: termName,
 		cwd: getGlobalVenvRoot(),

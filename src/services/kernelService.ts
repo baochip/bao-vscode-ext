@@ -43,6 +43,11 @@ export async function fetchLatestXousCoreRev(): Promise<string> {
 	);
 }
 
+/** Surface a failed xous-core rev fetch as an error toast (shared by the scaffold and ci-sync setup). */
+export function toastRevFetchFailed(e: unknown): void {
+	errorToast(vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', toMessage(e)));
+}
+
 const KERNEL_ETAG_FILE = 'etags.json';
 
 function readStoredEtags(cacheDir: string): { loader?: string; xous?: string } {
@@ -254,8 +259,7 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 		try {
 			rev = await fetchLatestXousCoreRev();
 		} catch (e: unknown) {
-			const message = toMessage(e);
-			errorToast(vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message));
+			toastRevFetchFailed(e);
 			return false;
 		}
 		try {

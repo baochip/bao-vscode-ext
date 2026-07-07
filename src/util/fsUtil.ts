@@ -19,6 +19,11 @@ export function isFile(p: string): boolean {
 	}
 }
 
+/** True if `dir` contains a Cargo.toml. */
+export function hasCargoToml(dir: string): boolean {
+	return fs.existsSync(path.join(dir, 'Cargo.toml'));
+}
+
 /**
  * Resolve to a canonical absolute path (realpath when the path exists), lower-cased on Windows so
  * comparisons are case-insensitive there. Falls back to path.resolve when the path does not exist.

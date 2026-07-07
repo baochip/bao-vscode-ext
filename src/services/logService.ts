@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export const chan = vscode.window.createOutputChannel('Baochip');
+const chan = vscode.window.createOutputChannel('Baochip');
 
 export function log(msg: string) {
 	const stamp = new Date().toISOString();
@@ -20,18 +20,13 @@ export function errorToast(msg: string) {
 	vscode.window.showErrorMessage(msg);
 }
 
-const _channels = new Map<string, vscode.OutputChannel>();
-/** Lazily create (and cache) a named output channel. */
-export function getChannel(name: string): vscode.OutputChannel {
-	let c = _channels.get(name);
-	if (!c) {
-		c = vscode.window.createOutputChannel(name);
-		_channels.set(name, c);
-	}
-	return c;
+/** The single Baochip output channel - build, flash, boot, and all diagnostics stream here. */
+export function getBaochipChannel(): vscode.OutputChannel {
+	return chan;
 }
 
-/** The shared Bao Build output channel (build, UF2 convert, and toolchain steps stream here). */
-export function getBuildChannel(): vscode.OutputChannel {
-	return getChannel(vscode.l10n.t('Bao Build'));
+/** Labeled divider so consecutive operations are delimited in the shared channel. */
+export function appendSeparator(channel: vscode.OutputChannel, label: string): void {
+	channel.appendLine('');
+	channel.appendLine(`===== ${label} =====`);
 }

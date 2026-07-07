@@ -1,3 +1,4 @@
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
 
@@ -5,6 +6,15 @@ import { XOUS_CORE_REPO } from '@constants';
 export function parseCargoPackageName(toml: string): string | null {
 	const m = toml.match(/^name\s*=\s*"([^"]+)"/m);
 	return m ? m[1] : null;
+}
+
+/** Read `root/Cargo.toml` and return its package name, or null if the file is unreadable or has none. */
+export function readCargoPackageName(root: string): string | null {
+	try {
+		return parseCargoPackageName(fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8'));
+	} catch {
+		return null;
+	}
 }
 
 /** Extract the workspace member paths from a Cargo.toml's `members = [...]` array. */

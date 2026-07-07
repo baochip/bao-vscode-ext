@@ -9,10 +9,11 @@ import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import {
 	addWorkspaceMemberToToml,
 	parseWorkspaceMembers,
+	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
 } from '@util/cargo';
-import { isDirectory } from '@util/fsUtil';
+import { hasCargoToml, isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
@@ -22,7 +23,7 @@ export async function listBaoApps(xousRoot: string, target: string): Promise<str
 	return entries
 		.filter((e) => e.isDirectory())
 		.map((e) => e.name)
-		.filter((name) => fs.existsSync(path.join(appsDir, name, 'Cargo.toml')))
+		.filter((name) => hasCargoToml(path.join(appsDir, name)))
 		.sort((a, b) => a.localeCompare(b));
 }
 
@@ -64,7 +65,7 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 	if (!pick) return undefined;
 
 	await setXousAppName(pick.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Bao app set to {0}', pick.label));
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to {0}', pick.label));
 	return pick.label;
 }
 
@@ -76,7 +77,7 @@ export function missingApps(xousRoot: string, appNames: string, target: string):
 		.filter(Boolean)
 		.filter((n) => {
 			const dir = path.join(appsDir, n);
-			return !(isDirectory(dir) && fs.existsSync(path.join(dir, 'Cargo.toml')));
+			return !(isDirectory(dir) && hasCargoToml(dir));
 		});
 }
 
@@ -99,11 +100,8 @@ function readWorkspaceMembers(xousRoot: string): string[] {
 function buildWorkspacePackageMap(xousRoot: string): Map<string, string> {
 	const map = new Map<string, string>();
 	for (const member of readWorkspaceMembers(xousRoot)) {
-		try {
-			const content = fs.readFileSync(path.join(xousRoot, member, 'Cargo.toml'), 'utf8');
-			const m = content.match(/^name\s*=\s*"([^"]+)"/m);
-			if (m) map.set(m[1], member);
-		} catch {}
+		const name = readCargoPackageName(path.join(xousRoot, member));
+		if (name) map.set(name, member);
 	}
 	return map;
 }
@@ -157,7 +155,7 @@ export async function createBaoApp(
 		'out-of-tree',
 		target,
 	);
-	if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
+	if (!hasCargoToml(templateDir)) {
 		throw new Error(vscode.l10n.t('No out-of-tree template available for target "{0}".', target));
 	}
 

@@ -1,5 +1,3 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import {
@@ -8,7 +6,7 @@ import {
 	getXousAppName,
 	setBuildTarget,
 } from '@services/configService';
-import { getBuildChannel } from '@services/logService';
+import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
@@ -16,7 +14,7 @@ import { ensureNamedTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { isLikelyValidAppName } from '@util/appName';
-import { buildOutOfTreeFeatures, isValidCrateName, parseCargoPackageName } from '@util/cargo';
+import { buildOutOfTreeFeatures, isValidCrateName, readCargoPackageName } from '@util/cargo';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
@@ -119,41 +117,49 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 		return;
 	}
 
-	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
+	const term = ensureNamedTerminal(vscode.l10n.t('Baochip Build'), root);
 
 	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs()
 		.map((a) => quoteArg(a))
 		.join(' ')}`;
 
 	// Read package name to construct ELF path for xous-app-uf2
-	try {
-		const cargo = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
-		const pkgName = parseCargoPackageName(cargo);
-		// Only chain the UF2 step for a well-formed crate name: the value comes straight from
-		// the workspace's Cargo.toml, so anything else must not reach the command line.
-		if (pkgName && isValidCrateName(pkgName)) {
-			const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
-			const uf2Cmd = `xous-app-uf2 --elf ${quoteArg(elfPath)}`;
-			// PowerShell 5.x (shipped with Windows) does not support &&
-			const chainedCmd =
-				process.platform === 'win32'
-					? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
-					: `${buildCmd} && ${uf2Cmd}`;
-			term.sendText(chainedCmd);
-		} else {
-			term.sendText(buildCmd);
-		}
-	} catch {
+	const pkgName = readCargoPackageName(root);
+	// Only chain the UF2 step for a well-formed crate name: the value comes straight from
+	// the workspace's Cargo.toml, so anything else must not reach the command line.
+	if (pkgName && isValidCrateName(pkgName)) {
+		const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
+		const uf2Cmd = `xous-app-uf2 --elf ${quoteArg(elfPath)}`;
+		// PowerShell 5.x (shipped with Windows) does not support &&
+		const chainedCmd =
+			process.platform === 'win32'
+				? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
+				: `${buildCmd} && ${uf2Cmd}`;
+		term.sendText(chainedCmd);
+	} else {
 		term.sendText(buildCmd);
 	}
 
 	term.show(true);
 }
 
+/** Split a whitespace-separated app string into individual app names (empty when none given). */
+function splitAppArgs(app?: string): string[] {
+	return app ? app.trim().split(/\s+/).filter(Boolean) : [];
+}
+
+/** Toast which target is being built, and whether any apps are included. */
+function announceBuilding(target: string, appArgs: string[]) {
+	vscode.window.showInformationMessage(
+		appArgs.length === 0
+			? vscode.l10n.t('Building "{0}" without an app.', target)
+			: vscode.l10n.t('Building "{0}" for app "{1}"...', target, appArgs.join(' ')),
+	);
+}
+
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export function runBuildInTerminal(root: string, target: string, app?: string) {
-	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
-	const appList = appArgs.join(' ');
+	const appArgs = splitAppArgs(app);
 
 	// Target and app names are workspace-controlled settings interpolated into a shell command
 	// line; allow only known/identifier-like values so shell metacharacters never reach the
@@ -168,16 +174,12 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 		return;
 	}
 
-	const term = ensureNamedTerminal(vscode.l10n.t('Bao Build'), root);
+	const term = ensureNamedTerminal(vscode.l10n.t('Baochip Build'), root);
 
+	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
-		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
 		term.sendText(
 			`echo [bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`,
-		);
-	} else {
-		vscode.window.showInformationMessage(
-			vscode.l10n.t('Building "{0}" for app "{1}"...', target, appList),
 		);
 	}
 
@@ -197,8 +199,8 @@ async function runCargoAndWait(
 	args: string[],
 	announceLine?: string,
 ): Promise<number | null> {
-	const chan = getBuildChannel();
-	chan.clear();
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'Build');
 	chan.show(true);
 
 	if (announceLine) {
@@ -250,20 +252,16 @@ export async function runBuildAndWait(
 	target: string,
 	app?: string,
 ): Promise<number | null> {
-	const appArgs = app ? app.trim().split(/\s+/).filter(Boolean) : [];
+	const appArgs = splitAppArgs(app);
 	const args = ['xtask', target, ...appArgs];
 
+	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
-		vscode.window.showInformationMessage(vscode.l10n.t('Building "{0}" without an app.', target));
 		return runCargoAndWait(
 			root,
 			args,
 			vscode.l10n.t('No apps specified - building target "{0}" only.', target),
 		);
 	}
-
-	vscode.window.showInformationMessage(
-		vscode.l10n.t('Building "{0}" for app "{1}"...', target, appArgs.join(' ')),
-	);
 	return runCargoAndWait(root, args);
 }

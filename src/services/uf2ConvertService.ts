@@ -1,22 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
-import { getBuildChannel } from '@services/logService';
+import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
-import { parseCargoPackageName } from '@util/cargo';
+import { readCargoPackageName } from '@util/cargo';
 import * as vscode from 'vscode';
 
-function readPackageName(root: string): string | null {
-	try {
-		const content = fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8');
-		return parseCargoPackageName(content);
-	} catch {
-		return null;
-	}
-}
-
 export async function convertElfToUf2(root: string): Promise<boolean> {
-	const pkgName = readPackageName(root);
+	const pkgName = readCargoPackageName(root);
 	if (!pkgName) {
 		vscode.window.showErrorMessage(vscode.l10n.t('Could not read package name from Cargo.toml.'));
 		return false;
@@ -30,7 +21,8 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 		return false;
 	}
 
-	const chan = getBuildChannel();
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'UF2 Convert');
 	chan.appendLine(`[bao] ${vscode.l10n.t('Baochip: Converting ELF to UF2...')}`);
 	chan.show(true);
 

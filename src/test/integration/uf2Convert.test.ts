@@ -40,7 +40,7 @@ suite('UF2 conversion', () => {
 			cancelled: false,
 		});
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getBuildChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
 		const ok = await convertElfToUf2(root);
@@ -52,7 +52,7 @@ suite('UF2 conversion', () => {
 		);
 		assert.ok(
 			lines.some((l) => l.includes('spawn xous-app-uf2 ENOENT')),
-			'the spawn error reason is written to the Bao Build channel the toast points at',
+			'the spawn error reason is written to the Baochip channel the toast points at',
 		);
 	});
 

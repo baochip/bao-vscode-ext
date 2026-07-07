@@ -1,5 +1,5 @@
 import { XOUS_TARGET_TRIPLE } from '@constants';
-import { errorToast, getBuildChannel } from '@services/logService';
+import { appendSeparator, errorToast, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import { toMessage } from '@util/error';
@@ -42,7 +42,8 @@ export async function checkRustToolchain(): Promise<boolean> {
 		if (choice === installLabel) {
 			// Async with output streamed to the channel: the download takes tens of seconds and a
 			// synchronous spawn would freeze the extension host (with the output invisible).
-			const chan = getBuildChannel();
+			const chan = getBaochipChannel();
+			appendSeparator(chan, 'Install RISC-V Target');
 			chan.show(true);
 			const install = await vscode.window.withProgress(
 				{

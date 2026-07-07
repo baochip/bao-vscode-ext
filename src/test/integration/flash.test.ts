@@ -227,7 +227,7 @@ suite('Flash service', () => {
 		const dest = tmpDir();
 		await setCfg('flashLocation', dest);
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
 		const ok = await flashService.decideAndFlash(root);
@@ -280,7 +280,7 @@ suite('Flash service', () => {
 		const dest = tmpDir();
 		await setCfg('flashLocation', dest);
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
 		const ok = await flashService.decideAndFlash(root, kernelFiles);
@@ -329,7 +329,7 @@ suite('Flash service', () => {
 				task({ report: () => {} }, cancelledToken),
 			) as unknown as sinon.SinonStub;
 		const { chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const warnings = sandbox.stub(
 			vscode.window,
 			'showWarningMessage',
@@ -345,11 +345,11 @@ suite('Flash service', () => {
 		);
 	});
 
-	test('flashFiles logs the failure to the Bao Flash channel, not just a toast', async () => {
+	test('flashFiles logs the failure to the Baochip channel, not just a toast', async () => {
 		const dest = tmpDir();
 		const missingSrc = path.join(tmpDir(), 'nope.uf2'); // unreadable source makes the copy throw
 		const { lines, chan } = fakeChannel();
-		sandbox.stub(logService, 'getChannel').returns(chan);
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
 		const ok = await flashService.flashFiles(dest, [missingSrc]);
@@ -361,7 +361,7 @@ suite('Flash service', () => {
 		);
 		assert.ok(
 			lines.some((l) => l.includes('Flash failed')),
-			`failure recorded in the Bao Flash channel: ${lines.join(' | ')}`,
+			`failure recorded in the Baochip channel: ${lines.join(' | ')}`,
 		);
 	});
 });

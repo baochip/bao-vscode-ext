@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { downloadFile } from '@services/httpService';
-import { chan, errorToast, info, log } from '@services/logService';
+import { errorToast, getBaochipChannel, info, log } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { InFlightMemo } from '@util/inFlightMemo';
@@ -95,7 +95,7 @@ async function run(
 	if (r.error) {
 		const msg = vscode.l10n.t('{0} failed to start: {1}', cmd, r.error.message);
 		log(`ERROR: ${msg}`);
-		chan.show(true);
+		getBaochipChannel().show(true);
 		throw new Error(msg);
 	}
 	if (r.code === 0) {
@@ -109,7 +109,7 @@ async function run(
 			: vscode.l10n.t('{0} failed (exit {1})', cmd, String(r.code));
 	const msg = `${reason}\n${r.stderr || r.stdout || ''}`.trim();
 	log(`ERROR: ${msg}`);
-	chan.show(true);
+	getBaochipChannel().show(true);
 	throw new Error(msg);
 }
 
@@ -227,6 +227,26 @@ function uvUsable(uvCmd: string): boolean {
 function whichUvFromPath(): string | null {
 	const name = process.platform === 'win32' ? 'uv.exe' : 'uv';
 	return uvUsable(name) ? name : null;
+}
+
+/**
+ * Return the first candidate that exists and is a usable uv, else uv resolved from PATH, else null.
+ * `context` tags the log lines with which install path is probing.
+ */
+function findUsableUv(candidates: string[], context: string): string | null {
+	for (const c of candidates) {
+		if (c && fs.existsSync(c) && uvUsable(c)) {
+			log(`uv found (${context}) at: ${c}`);
+			return c;
+		}
+		if (c) log(`uv not at: ${c}`);
+	}
+	const onPath = whichUvFromPath();
+	if (onPath) {
+		log(`uv found (${context}) on PATH: ${onPath}`);
+		return onPath;
+	}
+	return null;
 }
 
 function expectedUvPathsFromPython(pythonCmd: string): string[] {
@@ -437,17 +457,8 @@ async function installUvViaStandalone(): Promise<string | null> {
 		return null;
 	}
 
-	for (const cand of ownUvCandidates()) {
-		if (fs.existsSync(cand) && uvUsable(cand)) {
-			log(`uv installed (standalone) at: ${cand}`);
-			return cand;
-		}
-	}
-	const onPath = whichUvFromPath();
-	if (onPath) {
-		log(`uv installed (standalone), found on PATH: ${onPath}`);
-		return onPath;
-	}
+	const found = findUsableUv(ownUvCandidates(), 'standalone install');
+	if (found) return found;
 	log('uv standalone installer completed but uv was not found in the expected locations');
 	return null;
 }
@@ -466,19 +477,8 @@ async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
 	}
 
 	const cands = expectedUvPathsFromPython(pythonCmd);
-	for (const c of cands) {
-		if (c && fs.existsSync(c) && uvUsable(c)) {
-			log(`uv found at: ${c}`);
-			return c;
-		}
-		log(`uv not at: ${c}`);
-	}
-
-	const onPath = whichUvFromPath();
-	if (onPath) {
-		log(`uv found on PATH: ${onPath}`);
-		return onPath;
-	}
+	const found = findUsableUv(cands, 'pip install');
+	if (found) return found;
 
 	log(`uv not found after install. PATH:\n${process.env.PATH || ''}`);
 

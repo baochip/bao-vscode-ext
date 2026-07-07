@@ -19,7 +19,7 @@ export function registerCleanCommand() {
 			root = resolved;
 		}
 
-		const term = ensureNamedTerminal(vscode.l10n.t('Bao Clean'), root);
+		const term = ensureNamedTerminal(vscode.l10n.t('Baochip Clean'), root);
 		term.sendText('cargo clean');
 		term.show(true);
 	});

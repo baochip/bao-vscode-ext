@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { test } from 'node:test';
 import {
 	addWorkspaceMemberToToml,
@@ -7,6 +10,7 @@ import {
 	isValidFeatureName,
 	parseCargoPackageName,
 	parseWorkspaceMembers,
+	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
 } from '../../util/cargo';
@@ -27,6 +31,25 @@ test('parseCargoPackageName: only matches a name at the start of a line', () => 
 	// indented keys (e.g. a dependency table) are skipped; the top-level name wins
 	const toml = '[dependencies]\n  name = "not-this"\n[package]\nname = "real_app"\n';
 	assert.equal(parseCargoPackageName(toml), 'real_app');
+});
+
+test('readCargoPackageName: reads the name from a Cargo.toml on disk', () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bao-cargo-'));
+	try {
+		fs.writeFileSync(path.join(dir, 'Cargo.toml'), '[package]\nname = "disk_app"\n');
+		assert.equal(readCargoPackageName(dir), 'disk_app');
+	} finally {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('readCargoPackageName: returns null when Cargo.toml is missing', () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bao-cargo-'));
+	try {
+		assert.equal(readCargoPackageName(dir), null);
+	} finally {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
 });
 
 const FIXED = ['--features', 'bao1x', '--features', 'utralib/bao1x'];

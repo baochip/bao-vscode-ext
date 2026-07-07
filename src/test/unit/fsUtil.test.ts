@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, test } from 'node:test';
-import { isDirectory, isFile, isSameOrParentPath } from '../../util/fsUtil';
+import { hasCargoToml, isDirectory, isFile, isSameOrParentPath } from '../../util/fsUtil';
 
 let tmpDir: string;
 let filePath: string;
@@ -43,6 +43,17 @@ test('isFile: false for a directory', () => {
 
 test('isFile: false for a path that does not exist', () => {
 	assert.equal(isFile(path.join(tmpDir, 'nope')), false);
+});
+
+test('hasCargoToml: true when the directory contains a Cargo.toml', () => {
+	const dir = path.join(tmpDir, 'with-cargo');
+	fs.mkdirSync(dir);
+	fs.writeFileSync(path.join(dir, 'Cargo.toml'), '[package]\nname = "x"\n');
+	assert.equal(hasCargoToml(dir), true);
+});
+
+test('hasCargoToml: false for a directory without a Cargo.toml', () => {
+	assert.equal(hasCargoToml(subDir), false);
 });
 
 // Non-existent paths so both sides use the path.resolve fallback (deterministic across platforms).
