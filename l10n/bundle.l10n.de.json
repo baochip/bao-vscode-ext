@@ -122,8 +122,6 @@
 	"Click to set baochip location": "Baochip-Speicherort festlegen",
 	"Current baochip location: {0}": "Aktueller Baochip-Speicherort: {0}",
 	"Open monitor on {0} port {1} @ {2}": "Monitor auf {0} Port {1} @ {2} öffnen",
-	"Open monitor (bootloader mode serial port not set)": "Monitor öffnen (Bootloader-Seriellport nicht gesetzt)",
-	"Open monitor (run mode serial port not set)": "Monitor öffnen (Run-Modus-Seriellport nicht gesetzt)",
 	"Run Mode Serial Port: (not set)": "Run-Modus-Seriellport: (nicht gesetzt)",
 	"Current run mode serial port @ {0}": "Aktueller Run-Modus-Seriellport @ {0}",
 	"Click to set run mode serial port": "Run-Modus-Seriellport festlegen",

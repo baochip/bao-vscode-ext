@@ -122,8 +122,6 @@
 	"Click to set baochip location": "设置 baochip 位置",
 	"Current baochip location: {0}": "当前 Baochip 位置：{0}",
 	"Open monitor on {0} port {1} @ {2}": "在 {0} 端口 {1}（{2}）上打开监视器",
-	"Open monitor (bootloader mode serial port not set)": "打开监视器（未设置引导模式串口）",
-	"Open monitor (run mode serial port not set)": "打开监视器（未设置运行模式串口）",
 	"Run Mode Serial Port: (not set)": "运行模式串口：（未设置）",
 	"Current run mode serial port @ {0}": "当前运行模式串口 @ {0}",
 	"Click to set run mode serial port": "设置运行模式串口",

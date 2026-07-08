@@ -122,8 +122,6 @@
 	"Click to set baochip location": "baochip の場所を設定します",
 	"Current baochip location: {0}": "現在の Baochip の場所: {0}",
 	"Open monitor on {0} port {1} @ {2}": "{0} ポート {1}（{2}）でモニターを開く",
-	"Open monitor (bootloader mode serial port not set)": "モニターを開く（ブートローダーモードのシリアルポートが未設定）",
-	"Open monitor (run mode serial port not set)": "モニターを開く（実行モードのシリアルポートが未設定）",
 	"Run Mode Serial Port: (not set)": "実行モードのシリアルポート: （未設定）",
 	"Current run mode serial port @ {0}": "現在の実行モードのシリアルポート @ {0}",
 	"Click to set run mode serial port": "実行モードのシリアルポートを設定します",

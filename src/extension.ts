@@ -16,6 +16,7 @@ import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
 import { toMessage } from '@util/error';
+import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
 
@@ -124,21 +125,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		bootloaderSerialPortItem.show();
 
 		// Monitor button
-		if (chosenPort) {
-			monitorBtn.text = `$(vm) ${defLabel}: ${chosenPort}`;
-			monitorBtn.tooltip = vscode.l10n.t(
-				'Open monitor on {0} port {1} @ {2}',
-				defLabel,
-				chosenPort,
-				String(baud),
-			);
-		} else {
-			monitorBtn.text = `$(vm) ${vscode.l10n.t('Monitor')}`;
-			monitorBtn.tooltip =
-				def === 'run'
-					? vscode.l10n.t('Open monitor (run mode serial port not set)')
-					: vscode.l10n.t('Open monitor (bootloader mode serial port not set)');
-		}
+		monitorBtn.text = chosenPort
+			? `$(vm) ${defLabel}: ${chosenPort}`
+			: `$(vm) ${vscode.l10n.t('Monitor')}`;
+		monitorBtn.tooltip = monitorTooltip();
 		monitorBtn.show();
 
 		// Run serial port item
@@ -180,10 +170,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Status bar: Build
 		buildItem.text = '$(tools)';
-		buildItem.tooltip =
-			mode === 'xous-core'
-				? vscode.l10n.t('Build (cargo xtask)')
-				: vscode.l10n.t('Build (cargo build)');
+		buildItem.tooltip = buildCommandLabel(mode);
 		buildItem.show();
 
 		// Status bar: Flash
