@@ -8,6 +8,20 @@ let monitorTerm: vscode.Terminal | undefined;
 let monitorTermListener: vscode.Disposable | undefined;
 
 /**
+ * Interrupt (Ctrl+C, no trailing newline so bao.py closes the serial port cleanly) and tear down
+ * the monitor terminal and its close listener. Safe to call when nothing is open.
+ */
+function closeMonitorTerminal(): void {
+	try {
+		monitorTerm?.sendText('\x03', false);
+		monitorTerm?.dispose();
+	} catch {}
+	monitorTerm = undefined;
+	monitorTermListener?.dispose(); // otherwise the onDidCloseTerminal handler leaks
+	monitorTermListener = undefined;
+}
+
+/**
  * Open the serial monitor terminal.
  * If `mode` is omitted, the default port preference from settings is used.
  */
@@ -37,11 +51,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	// 3) Launch terminal - it runs uv directly (shellPath/shellArgs), so no shell ever parses the
 	// command line: spaces in the uv path are safe regardless of the user's default shell
 	// (a PowerShell line starting with a quoted path is an expression, not an invocation).
-	try {
-		monitorTerm?.sendText('\x03', false); // Ctrl+C (no newline) - let bao.py close the port cleanly
-		monitorTerm?.dispose();
-	} catch {}
-	monitorTermListener?.dispose();
+	closeMonitorTerminal();
 	const label = resolvedMode === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 	const termName = vscode.l10n.t('Baochip Monitor ({0}: {1})', label, port);
 	monitorTerm = vscode.window.createTerminal({
@@ -62,11 +72,5 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 }
 
 export function stopMonitorTTY() {
-	try {
-		monitorTerm?.sendText('\x03', false); // Ctrl+C (no newline) - let bao.py close the port cleanly
-		monitorTerm?.dispose();
-	} catch {}
-	monitorTerm = undefined;
-	monitorTermListener?.dispose(); // otherwise the onDidCloseTerminal handler leaks
-	monitorTermListener = undefined;
+	closeMonitorTerminal();
 }
