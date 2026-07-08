@@ -7,6 +7,16 @@ import { toMessage } from '@util/error';
 import { isDirectory, isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
+/** Scan the open workspace for xous-core; if found, persist it, log, and return the path. */
+async function autoDetectAndSave(): Promise<string | undefined> {
+	const found = findXousCoreInWorkspace();
+	if (found) {
+		await setXousCorePath(found);
+		log(`xous-core auto-detected: ${found}`);
+	}
+	return found;
+}
+
 /**
  * If xousCorePath is not yet configured, scan the open workspace for xous-core
  * and save it automatically. Safe to call on activation.
@@ -14,11 +24,7 @@ import * as vscode from 'vscode';
 export async function autoDetectXousCore(): Promise<void> {
 	const existing = getXousCorePath();
 	if (existing && isDirectory(existing)) return; // already configured (a stray FILE does not count)
-	const found = findXousCoreInWorkspace();
-	if (found) {
-		await setXousCorePath(found);
-		log(`xous-core auto-detected: ${found}`);
-	}
+	await autoDetectAndSave();
 }
 
 export async function ensureXousCorePath(): Promise<string> {
@@ -29,12 +35,8 @@ export async function ensureXousCorePath(): Promise<string> {
 	}
 
 	// Try workspace auto-detection before prompting
-	const detected = findXousCoreInWorkspace();
-	if (detected) {
-		await setXousCorePath(detected);
-		log(`xous-core auto-detected: ${detected}`);
-		return detected;
-	}
+	const detected = await autoDetectAndSave();
+	if (detected) return detected;
 
 	const selectFolderLabel = vscode.l10n.t('Select Folder');
 	const cloneLabel = vscode.l10n.t('Clone from GitHub');
