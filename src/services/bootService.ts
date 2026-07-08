@@ -11,12 +11,9 @@ export async function sendBoot(): Promise<boolean> {
 	const root = getGlobalVenvRoot();
 	// Ensure bootloader port is set; if not, prompt and re-check.
 	const port = await ensureSerialPort('bootloader');
-	if (!port) {
-		vscode.window.showWarningMessage(
-			vscode.l10n.t('Bootloader mode serial port is still not set. Aborting boot.'),
-		);
-		return false;
-	}
+	// Silent abort (like the monitor): ensureSerialPort already surfaces a listing failure, and a
+	// cancelled pick needs no extra nag - this also avoids an error+warning double-notification.
+	if (!port) return false;
 
 	const baud = getDefaultBaud();
 	const chan = getBaochipChannel();

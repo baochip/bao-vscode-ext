@@ -1,5 +1,4 @@
 {
-	"Bootloader mode serial port is still not set. Aborting boot.": "開機模式串列埠仍未設定，將中止開機。",
 	"The downloaded toolchain archive did not contain the expected {0} target. Aborting install.": "下載的工具鏈封存檔中未包含預期的 {0} 目標。已中止安裝。",
 	"\"{0}\" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.": "安裝 Xous 工具鏈需要「{0}」，但在 PATH 中找不到。請安裝後再試一次。",
 	"Baochip: command failed.\n{0}": "Baochip：命令執行失敗。\n{0}",

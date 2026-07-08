@@ -435,7 +435,7 @@ suite('Ports, monitor, and boot', () => {
 
 	/* ------------------------------ sendBoot ------------------------------ */
 
-	test('sendBoot aborts with a warning when the bootloader port stays unset', async () => {
+	test('sendBoot aborts silently when the bootloader port stays unset', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves(undefined);
 		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const { chan } = fakeChannel();
@@ -448,10 +448,9 @@ suite('Ports, monitor, and boot', () => {
 		const ok = await bootService.sendBoot();
 
 		assert.equal(ok, false);
-		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('Aborting boot')),
-			'abort warning shown',
-		);
+		// Aligns with the monitor: no extra warning (ensureSerialPort already surfaces failures), so a
+		// listing failure during the pick does not stack an error + a warning for one root cause.
+		assert.ok(warnings.notCalled, 'aborts silently, no double notification');
 		assert.ok(deps.notCalled, 'no dependency work when the port prompt is cancelled');
 	});
 
