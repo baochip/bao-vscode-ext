@@ -43,7 +43,7 @@
 
 	"cfg.title.intree": "Baochip - In-tree Builds (xous-core)",
 	"cfg.intree.xousCorePath": "Path to your local xous-core checkout (folder). Only required for in-tree builds (when building apps inside the xous-core repository).",
-	"cfg.intree.appName": "Name of the Bao app under xous-core/apps-dabao/. Multiple apps can be separated by spaces (e.g., 'helloworld demo_app'). Leave blank to build the target only. Only used for in-tree builds.",
+	"cfg.intree.appName": "Name of the Baochip app under xous-core/apps-dabao/. Multiple apps can be separated by spaces (e.g., 'helloworld demo_app'). Leave blank to build the target only. Only used for in-tree builds.",
 
 	"cfg.title.flashing": "Baochip - Flashing",
 	"cfg.title.outOfTree": "Baochip - Out-of-Tree Builds",

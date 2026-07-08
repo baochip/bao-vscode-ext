@@ -1,6 +1,25 @@
+import os
+import stat
+import sys
 import threading
 
+import pytest
+
 from utils.toml_utils import write_file
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
+def test_write_file_preserves_existing_permissions(tmp_path):
+    # mkstemp creates the temp 0600; the atomic replace must not silently strip the existing file's
+    # group/other read bits (a shared/CI checkout would otherwise become owner-only).
+    dest = tmp_path / "Cargo.toml"
+    dest.write_text("old = 1\n", encoding="utf-8")
+    os.chmod(dest, 0o644)
+
+    write_file(dest, "new = 2\n")
+
+    assert dest.read_text(encoding="utf-8") == "new = 2\n"
+    assert stat.S_IMODE(dest.stat().st_mode) == 0o644, "permissions preserved, not reset to 0600"
 
 
 def test_write_file_writes_content_and_leaves_no_temp(tmp_path):

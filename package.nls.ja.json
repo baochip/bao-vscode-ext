@@ -43,7 +43,7 @@
 
 	"cfg.title.intree": "Baochip - インツリービルド（xous-core）",
 	"cfg.intree.xousCorePath": "ローカルの xous-core チェックアウト先（フォルダー）へのパス。インツリービルド（xous-core リポジトリ内でアプリをビルドする場合）にのみ必要です。",
-	"cfg.intree.appName": "xous-core/apps-dabao/ 配下の Bao アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app'）。空の場合はターゲットのみをビルド。インツリービルドにのみ使用されます。",
+	"cfg.intree.appName": "xous-core/apps-dabao/ 配下の Baochip アプリ名。スペース区切りで複数指定可能（例：'helloworld demo_app'）。空の場合はターゲットのみをビルド。インツリービルドにのみ使用されます。",
 
 	"cfg.title.flashing": "Baochip - フラッシュ",
 	"cfg.title.outOfTree": "Baochip - アウトオブツリービルド",

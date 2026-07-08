@@ -363,7 +363,10 @@ suite('Ports, monitor, and boot', () => {
 		await monitorService.openMonitorTTY('run');
 
 		assert.equal(create.callCount, 2, 'a fresh terminal per open');
-		assert.ok(terminals[0].sendText.calledOnceWith('\x03'), 'Ctrl+C sent to the old monitor');
+		assert.ok(
+			terminals[0].sendText.calledOnceWith('\x03', false),
+			'Ctrl+C (no trailing newline) sent to the old monitor',
+		);
 		assert.ok(terminals[0].dispose.calledOnce, 'old terminal disposed');
 		assert.ok(terminals[1].sendText.notCalled, 'new terminal receives no typed command');
 	});

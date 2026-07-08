@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getAppsDir } from '@constants';
+import { BUILD_TARGETS, getAppsDir } from '@constants';
 import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
@@ -141,6 +141,11 @@ export async function createBaoApp(
 	appName: string,
 	target: string,
 ): Promise<boolean> {
+	// target is a workspace-controlled setting interpolated into the template path below; reject
+	// anything not whitelisted so it can never become a traversal path segment.
+	if (!BUILD_TARGETS.includes(target)) {
+		throw new Error(vscode.l10n.t('Invalid build target: {0}', target));
+	}
 	const appsDir = path.join(xousRoot, getAppsDir(target));
 	const newDir = path.join(appsDir, appName);
 

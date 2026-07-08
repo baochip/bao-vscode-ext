@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -20,6 +21,10 @@ def write_file(path: Path, content: str) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
+        # mkstemp creates the temp 0600; copy the destination's mode so an existing file keeps its
+        # group/other bits instead of silently becoming owner-only after the replace.
+        if path.exists():
+            shutil.copymode(path, tmp)
         # os.replace can transiently fail on Windows (PermissionError) when the destination is
         # briefly locked by a concurrent replace or a scanner; retry a few times.
         for attempt in range(20):

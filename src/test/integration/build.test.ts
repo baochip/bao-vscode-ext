@@ -121,6 +121,22 @@ suite('Build service', () => {
 		assert.deepEqual(pre, { mode: 'xous-core', root, target: 'dabao', app: undefined });
 	});
 
+	test('ensureBuildPrereqs: rejects a buildTarget not in BUILD_TARGETS', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: ['hello'] });
+		stubXousCorePrereqs(root);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', '--config=evil');
+
+		const pre = await buildService.ensureBuildPrereqs();
+
+		assert.equal(pre, undefined, 'prereqs aborted on an unrecognized target');
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid build target')),
+			'invalid-target error shown',
+		);
+	});
+
 	test('ensureBuildPrereqs: one missing app fails with the singular error', async () => {
 		const { root } = makeFakeXousCore(tmpDir(), { apps: ['hello'] });
 		stubXousCorePrereqs(root);

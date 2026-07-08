@@ -36,7 +36,7 @@ export function registerCreateApp() {
 		const appsDir = getAppsDir(target);
 
 		const nameInput = await vscode.window.showInputBox({
-			title: vscode.l10n.t('New Bao App Name'),
+			title: vscode.l10n.t('New Baochip App Name'),
 			prompt: vscode.l10n.t('Will be created under xous-core/{0}/<name>/', appsDir),
 			placeHolder: vscode.l10n.t('test_app'),
 			validateInput: (val) => {

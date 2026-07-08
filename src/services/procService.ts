@@ -30,14 +30,21 @@ export function describeRunFailure(r: RunResult): string {
 	return `exited ${r.code}`;
 }
 
+// How long to wait after SIGTERM before escalating to SIGKILL when cancelling a POSIX child.
+const SIGKILL_GRACE_MS = 3000;
+
 /**
  * Kill a child and its descendants. child.kill() only signals the direct child, so a build's
  * rustc workers or a uv-run-python grandchild (holding the serial port) would survive a cancel.
- * Windows: taskkill /T walks the process tree. POSIX: the child is spawned detached as its own
- * process-group leader, so a negative-PID signal reaches the whole group.
+ * Windows: taskkill /T /F walks and force-kills the process tree. POSIX: the child is spawned
+ * detached as its own process-group leader, so a negative-PID signal reaches the whole group -
+ * SIGTERM first, then SIGKILL after a grace period so a SIGTERM-ignoring child cannot hang the run
+ * forever (close would never fire). Returns a cleanup that cancels the pending POSIX escalation
+ * (runProcess calls it once the child closes); a no-op on Windows / when there is nothing to escalate.
  */
-function killTree(child: ChildProcess): void {
-	if (child.pid === undefined) return;
+function killTree(child: ChildProcess): () => void {
+	if (child.pid === undefined) return () => {};
+	const pid = child.pid;
 	const fallbackKill = () => {
 		try {
 			child.kill();
@@ -45,22 +52,30 @@ function killTree(child: ChildProcess): void {
 	};
 	if (process.platform === 'win32') {
 		try {
-			const killer = spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
-				stdio: 'ignore',
-			});
+			const killer = spawn('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore' });
 			// A missing taskkill surfaces as an async 'error' event, not a synchronous throw, so the
 			// fallback must be a listener - and leaving 'error' unhandled would crash the ext host.
 			killer.on('error', fallbackKill);
 		} catch {
 			fallbackKill();
 		}
-		return;
+		return () => {}; // taskkill /f already force-kills the tree; no escalation needed
 	}
 	try {
-		process.kill(-child.pid, 'SIGTERM'); // negative pid = the whole process group
+		process.kill(-pid, 'SIGTERM'); // negative pid = the whole process group
 	} catch {
 		fallbackKill();
+		return () => {};
 	}
+	// SIGKILL is uncatchable, so it stops even a SIGTERM-ignoring child; unref so the pending timer
+	// never keeps the extension host's event loop alive on its own.
+	const escalation = setTimeout(() => {
+		try {
+			process.kill(-pid, 'SIGKILL');
+		} catch {}
+	}, SIGKILL_GRACE_MS);
+	escalation.unref?.();
+	return () => clearTimeout(escalation);
 }
 
 /**
@@ -82,14 +97,16 @@ export function runProcess(cmd: string, args: string[], opts: RunOptions = {}): 
 		let cancelled = false;
 		let settled = false;
 
+		let cancelEscalation: (() => void) | undefined;
 		const sub = opts.token?.onCancellationRequested(() => {
 			cancelled = true;
-			killTree(child);
+			cancelEscalation = killTree(child);
 		});
 
 		const finish = (r: RunResult) => {
 			if (settled) return;
 			settled = true;
+			cancelEscalation?.(); // clear the pending SIGKILL once the child has actually closed
 			sub?.dispose();
 			resolve(r);
 		};

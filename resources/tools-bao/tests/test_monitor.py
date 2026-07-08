@@ -210,3 +210,43 @@ def test_second_ctrl_c_during_cleanup_still_restores_terminal(monkeypatch):
     assert spy_ctx.exited, "terminal restored despite a 2nd Ctrl+C during the writer join"
     assert ser.closed, "serial port still closed"
     assert code == 0
+
+
+def test_writer_start_failure_still_restores_terminal_and_port(monkeypatch):
+    """If the writer thread fails to start (e.g. OS thread exhaustion) after raw-mode is entered,
+    cleanup must still restore the terminal and release the port instead of leaking them."""
+
+    class SpyRawCtx:
+        def __init__(self):
+            self.exited = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.exited = True
+            return False
+
+    spy_ctx = SpyRawCtx()
+    monkeypatch.setattr(monitor, "_stdin_raw_noecho", lambda: spy_ctx)
+
+    class FailingWriter:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            raise RuntimeError("can't start new thread")
+
+        def join(self, timeout=None):
+            pass
+
+    monkeypatch.setattr(monitor.threading, "Thread", FailingWriter)
+
+    ser = FakeSerial(lambda: b"")
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    with pytest.raises(RuntimeError):
+        monitor.cmd_monitor(make_args(raw=True))
+
+    assert spy_ctx.exited, "terminal restored despite the writer failing to start"
+    assert ser.closed, "serial port released despite the writer failing to start"

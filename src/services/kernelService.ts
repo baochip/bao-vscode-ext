@@ -66,9 +66,11 @@ function writeStoredEtags(cacheDir: string, etags: { loader?: string; xous?: str
 }
 
 function clearStoredEtags(cacheDir: string): void {
-	try {
-		fs.rmSync(path.join(cacheDir, KERNEL_ETAG_FILE), { force: true });
-	} catch {}
+	// force:true ignores a missing file, but a real removal failure (e.g. the file locked by
+	// another window) is NOT swallowed: it propagates so downloadKernelFiles aborts before writing
+	// anything, keeping the on-disk pair coherent rather than leaving new files + stale etags that
+	// an offline flash would later trust.
+	fs.rmSync(path.join(cacheDir, KERNEL_ETAG_FILE), { force: true });
 }
 
 async function fetchKernelEtags(): Promise<{ loader: string | null; xous: string | null }> {
@@ -206,7 +208,7 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 		{
 			modal: true,
 			detail: vscode.l10n.t(
-				'- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are guaranteed to be from the same commit.\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
+				'- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
 			),
 		},
 		syncLabel,

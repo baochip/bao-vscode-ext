@@ -43,7 +43,7 @@
 
 	"cfg.title.intree": "Baochip - In-tree 构建（xous-core）",
 	"cfg.intree.xousCorePath": "本地 xous-core 检出文件夹路径。仅 in-tree 构建（在 xous-core 仓库内构建应用）时需要。",
-	"cfg.intree.appName": "xous-core/apps-dabao/ 下的 Bao 应用名称。可用空格分隔多个（例如 'helloworld demo_app'），留空则仅构建目标。仅用于 in-tree 构建。",
+	"cfg.intree.appName": "xous-core/apps-dabao/ 下的 Baochip 应用名称。可用空格分隔多个（例如 'helloworld demo_app'），留空则仅构建目标。仅用于 in-tree 构建。",
 
 	"cfg.title.flashing": "Baochip - 烧录",
 	"cfg.title.outOfTree": "Baochip - Out-of-Tree 构建",

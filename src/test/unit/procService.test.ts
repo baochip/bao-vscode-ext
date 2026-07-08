@@ -146,3 +146,25 @@ test('runProcess: cancelling kills the whole process tree, including a grandchil
 	} catch {}
 	assert.ok(dead, 'grandchild was killed with the tree, not left orphaned');
 });
+
+test('runProcess: escalates to SIGKILL when the child ignores SIGTERM (POSIX)', {
+	skip: process.platform === 'win32' ? 'POSIX-only SIGKILL escalation' : false,
+}, async () => {
+	const t = fakeToken();
+	const started = Date.now();
+	// The child traps SIGTERM and keeps running for 30s; only the SIGKILL escalation can stop it.
+	const p = runProcess(
+		process.execPath,
+		['-e', 'process.on("SIGTERM", () => {}); setTimeout(() => {}, 30000);'],
+		{ token: t.token },
+	);
+	setTimeout(() => t.cancel(), 50);
+
+	const r = await p;
+
+	assert.equal(r.cancelled, true, 'result flagged cancelled');
+	assert.ok(
+		Date.now() - started < 10000,
+		'settled via SIGKILL escalation (~3s grace), not after the 30s runtime',
+	);
+});

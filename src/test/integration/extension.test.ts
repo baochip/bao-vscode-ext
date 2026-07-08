@@ -70,7 +70,7 @@ suite('migrateWelcomeSettingToGlobal', () => {
 	const sandbox = useSandbox();
 	const KEY = 'baochip.showWelcomeOnStartup';
 
-	test('promotes a per-folder legacy value to Global and clears only that folder (multi-root)', async () => {
+	test('promotes a per-folder legacy value to Global and attempts no workspace-target cleanup (multi-root)', async () => {
 		const folderA = { uri: vscode.Uri.parse('file:///a') } as vscode.WorkspaceFolder;
 		const folderB = { uri: vscode.Uri.parse('file:///b') } as vscode.WorkspaceFolder;
 		sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => [folderA, folderB]);
@@ -100,16 +100,27 @@ suite('migrateWelcomeSettingToGlobal', () => {
 
 		assert.ok(
 			topUpdate.calledOnceWithExactly(KEY, false, vscode.ConfigurationTarget.Global),
-			'the folder value is promoted to Global',
+			'the folder value is promoted to Global (and no other update is attempted)',
 		);
-		assert.ok(
-			folderAUpdate.calledOnceWithExactly(
-				KEY,
-				undefined,
-				vscode.ConfigurationTarget.WorkspaceFolder,
-			),
-			'the folder holding the legacy value is cleared',
-		);
+		// The setting is application-scoped, so a workspace/folder cleanup write would be rejected;
+		// the migration must not attempt one - it only promotes.
+		assert.ok(folderAUpdate.notCalled, 'no rejected WorkspaceFolder cleanup write is attempted');
 		assert.ok(folderBUpdate.notCalled, 'a folder without a value is left untouched');
+	});
+
+	test('rejects an application-scoped write at the Workspace target (why the migration only promotes)', async () => {
+		// Confirms the premise against the real host: writing the application-scoped setting at a
+		// non-Global target is rejected by VS Code, so the migration cannot clean a stale entry there.
+		const cfg = vscode.workspace.getConfiguration();
+		try {
+			await assert.rejects(async () =>
+				cfg.update(KEY, false, vscode.ConfigurationTarget.Workspace),
+			);
+		} finally {
+			// If VS Code ever allowed the write, undo it so the fixture workspace stays clean.
+			try {
+				await cfg.update(KEY, undefined, vscode.ConfigurationTarget.Workspace);
+			} catch {}
+		}
 	});
 });

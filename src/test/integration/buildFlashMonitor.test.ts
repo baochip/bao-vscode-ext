@@ -44,21 +44,31 @@ function toastIncludes(toastStub: sinon.SinonStub, text: string): boolean {
 	return toastStub.getCalls().some((c) => String(c.args[0]).includes(text));
 }
 
-async function runPipeline(): Promise<void> {
-	await vscode.commands.executeCommand(Commands.buildFlashMonitor);
+// The pipeline's grace/stability delays run under sinon fake timers, so advance the clock through
+// them instead of sleeping ~0.8s of real wall-clock per monitor-reaching test.
+async function runPipeline(clock: sinon.SinonFakeTimers): Promise<void> {
+	const p = vscode.commands.executeCommand(Commands.buildFlashMonitor);
+	await clock.runAllAsync();
+	await p;
 }
 
 suite('Build-Flash-Monitor pipeline', () => {
 	const sandbox = useSandbox();
+	let clock: sinon.SinonFakeTimers;
 
 	suiteSetup(async () => {
 		await activateExtension();
 	});
 
+	setup(() => {
+		// Fake only setTimeout so the pipeline's grace/stability delays cost no real wall-clock.
+		clock = sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	});
+
 	test('xous-core happy path runs build, flash, boot, port wait, monitor in order', async () => {
 		const p = stubPipeline(sandbox);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.build.calledOnceWith(XOUS_ROOT, 'dabao', 'hello'), 'build with root/target/app');
 		assert.ok(p.flash.calledOnce, 'flash called');
@@ -77,7 +87,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.prereqs.resolves(undefined);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.build.notCalled && p.buildOot.notCalled, 'no build');
 		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');
@@ -87,7 +97,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.build.resolves(null); // null = user cancelled
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(!toastIncludes(p.errors, 'Build failed.'), 'no failure toast for a cancel');
 		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');
@@ -97,7 +107,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.build.resolves(1);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(toastIncludes(p.errors, 'Build failed.'), 'build-failed toast shown');
 		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');
@@ -107,7 +117,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.flash.resolves(false);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.boot.notCalled && p.monitor.notCalled, 'no boot or monitor after failed flash');
 	});
@@ -116,7 +126,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.boot.resolves(false);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.ensurePort.notCalled, 'run port never checked');
 		assert.ok(p.waitPort.notCalled && p.monitor.notCalled, 'no port wait or monitor');
@@ -126,7 +136,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.ensurePort.resolves(undefined);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(toastIncludes(p.warnings, 'Aborting monitor.'), 'abort warning shown');
 		assert.ok(p.waitPort.notCalled && p.monitor.notCalled, 'no port wait or monitor');
@@ -136,7 +146,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.waitPort.resolves('timeout');
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(toastIncludes(p.warnings, "didn't appear in time"), 'timeout warning shown');
 		assert.ok(p.monitor.calledOnceWith('run'), 'monitor still opened');
@@ -146,7 +156,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.waitPort.resolves('error'); // bao.py broken; waitForPort already toasted the reason
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(
 			!toastIncludes(p.warnings, "didn't appear in time"),
@@ -159,7 +169,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		const p = stubPipeline(sandbox);
 		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT });
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.kernelSetup.calledOnceWith(OOT_ROOT), 'kernel setup ran');
 		assert.ok(p.buildOot.calledOnceWith(OOT_ROOT), 'out-of-tree build ran');
@@ -174,7 +184,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT });
 		p.convert.resolves(false);
 
-		await runPipeline();
+		await runPipeline(clock);
 
 		assert.ok(p.kernelFiles.notCalled, 'kernel files never resolved');
 		assert.ok(p.flash.notCalled && p.boot.notCalled && p.monitor.notCalled, 'nothing downstream');

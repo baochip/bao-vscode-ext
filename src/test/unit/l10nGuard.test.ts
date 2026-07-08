@@ -120,9 +120,10 @@ test('l10n: no bundle key is orphaned (unused in src)', () => {
 	}
 });
 
-/** The set of {N} placeholder indices in a string (e.g. "{0} of {1}" -> {"0","1"}). */
-function placeholders(s: string): Set<string> {
-	return new Set([...s.matchAll(/\{(\d+)\}/g)].map((m) => m[1]));
+/** The {N} placeholder indices in a string as a sorted MULTISET (duplicates kept), so a dropped,
+ * added, or duplicated placeholder is caught - not just a changed set of distinct indices. */
+function placeholders(s: string): string[] {
+	return [...s.matchAll(/\{(\d+)\}/g)].map((m) => m[1]).sort();
 }
 
 test('l10n: every translation preserves the {N} placeholders of its English key', () => {
@@ -130,8 +131,8 @@ test('l10n: every translation preserves the {N} placeholders of its English key'
 		const bundle = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>;
 		const mismatches: string[] = [];
 		for (const [key, value] of Object.entries(bundle)) {
-			const want = [...placeholders(key)].sort();
-			const got = [...placeholders(value)].sort();
+			const want = placeholders(key);
+			const got = placeholders(value);
 			if (want.join(',') !== got.join(',')) {
 				mismatches.push(`"${key}" expects {${want}} but has {${got}}`);
 			}
@@ -151,4 +152,53 @@ test('l10n: every l10n.t() key in src is a string literal (statically checkable)
 		}
 	}
 	assert.deepEqual(offenders, [], 'l10n.t() called with a non-literal key');
+});
+
+// Values legitimately identical to their English key: code tokens, brand names, and technical/
+// loanword terms kept in the source language (Bootloader/Run/Monitor, the cargo-labelled build/
+// clean actions, terminal-tab names, MD5:). A NEW value===key outside this set is almost always an
+// accidentally-untranslated string (the class the old ja "Welcome - Baochip" bug belonged to).
+// Deliberately keeping one English? Add it here.
+const ALLOWED_UNTRANSLATED = new Set([
+	'test_app',
+	'auto',
+	'OK',
+	'MD5: {0}',
+	'Bootloader',
+	'Run',
+	'Monitor',
+	'Build (cargo xtask)',
+	'Build (cargo build)',
+	'Clean (cargo clean)',
+	'Build - Flash - Monitor',
+	'Baochip Build',
+	'Baochip Clean',
+	'Baochip Monitor ({0}: {1})',
+]);
+
+test('l10n: no bundle value is left untranslated (equal to its English key) outside the allowlist', () => {
+	for (const file of bundleFiles()) {
+		const bundle = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>;
+		const untranslated = Object.keys(bundle)
+			.filter((k) => bundle[k] === k && !ALLOWED_UNTRANSLATED.has(k))
+			.sort();
+		assert.deepEqual(
+			untranslated,
+			[],
+			`untranslated (value === key) strings in ${path.basename(file)}`,
+		);
+	}
+});
+
+test('l10n: l10n.t is only ever called directly, never aliased/destructured', () => {
+	// An aliased call (const t = vscode.l10n.t; t('...')) evades both the key extraction and the
+	// literal-key guard, so a string used that way could silently be missing from every bundle. Every
+	// l10n.t occurrence in src must be a direct call (immediately followed by "(").
+	const offenders: string[] = [];
+	for (const file of listSourceFiles(SRC_DIR)) {
+		if (/\bl10n\.t\b(?!\s*\()/.test(fs.readFileSync(file, 'utf8'))) {
+			offenders.push(path.relative(ROOT, file));
+		}
+	}
+	assert.deepEqual(offenders, [], 'l10n.t must be called directly, not aliased/destructured');
 });

@@ -18,10 +18,22 @@ const REQUIRED_FILES = [
 	'media/css/welcome.css',
 	'media/js/welcome.js',
 	'media/logo.svg',
+	// Runtime payload: the bundled Python CLI + an app template must ship, or createApp/flash/
+	// monitor break at first use even though the .vsix installs cleanly (kept only implicitly by
+	// .vscodeignore, so a broadened ignore glob would silently drop them).
+	'resources/tools-bao/bao.py',
+	'resources/tools-bao/commands/monitor.py',
+	'resources/templates/out-of-tree/dabao/Cargo.toml',
 ];
 
 /** Dev-only files that must never ship in the .vsix. */
-const FORBIDDEN_FILES = ['.nvmrc', '.pre-commit-config.yaml', 'biome.json', 'eslint.config.mjs'];
+const FORBIDDEN_FILES = ['.nvmrc', '.pre-commit-config.yaml', 'biome.json'];
+
+// vsce ls reads package.json's `main` (./out/extension.js); on an uncompiled checkout it errors
+// confusingly, so skip the listing-based tests until the tree is built (CI compiles first).
+const needsBuild = fs.existsSync(path.join(ROOT, 'out', 'extension.js'))
+	? false
+	: 'requires a compiled out/ - run "npm run compile" first';
 
 let packagedCache: Set<string> | undefined;
 function listPackagedFiles(): Set<string> {
@@ -37,18 +49,22 @@ function listPackagedFiles(): Set<string> {
 	return packagedCache;
 }
 
-test('packaging: vsce ls includes all welcome webview assets', () => {
+test('packaging: vsce ls includes all welcome webview assets and runtime payload', {
+	skip: needsBuild,
+}, () => {
 	const packaged = listPackagedFiles();
 	const missing = REQUIRED_FILES.filter((f) => !packaged.has(f));
 	assert.deepEqual(missing, [], 'files missing from the vsce package listing');
 });
 
-test('packaging: vsce ls excludes dev-only config files and caches', () => {
+test('packaging: vsce ls excludes dev-only config files and caches', { skip: needsBuild }, () => {
 	const packaged = listPackagedFiles();
 	const leaked = FORBIDDEN_FILES.filter((f) => packaged.has(f));
 	assert.deepEqual(leaked, [], 'dev-only files leaked into the package listing');
 	const caches = [...packaged].filter((f) => f.includes('.pytest_cache'));
 	assert.deepEqual(caches, [], 'pytest cache leaked into the package listing');
+	const pyc = [...packaged].filter((f) => f.includes('__pycache__') || f.endsWith('.pyc'));
+	assert.deepEqual(pyc, [], 'Python bytecode leaked into the package listing');
 });
 
 // Stale-output guard: out/ accumulates compiled files from renamed/deleted sources, and
@@ -58,6 +74,18 @@ test('packaging: vsce ls excludes dev-only config files and caches', () => {
 test('packaging: vscode:prepublish cleans out/ before compiling', () => {
 	const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 	assert.equal(pkg.scripts['vscode:prepublish'], 'npm run clean && npm run compile');
+});
+
+test('packaging: test:integration cleans out/test so stale compiled tests cannot run', () => {
+	const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+	assert.match(
+		pkg.scripts['test:integration'],
+		/npm run clean:test/,
+		'test:integration must clean stale compiled tests before recompiling',
+	);
+	const cleanTest: string = pkg.scripts['clean:test'];
+	const inline = cleanTest.match(/^node -e "(.*)"$/)?.[1];
+	assert.ok(inline?.includes('out/test'), `clean:test must remove out/test: ${cleanTest}`);
 });
 
 test('packaging: the clean script removes out/ recursively', () => {

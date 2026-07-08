@@ -116,11 +116,11 @@
 		"configuration": [
 			{
 				"title": "%cfg.title.general%",
-				"scope": "application",
 				"properties": {
 					"baochip.showWelcomeOnStartup": {
 						"type": "boolean",
 						"default": true,
+						"scope": "application",
 						"description": "%cfg.general.showWelcomeOnStartup%",
 						"order": 1
 					},
@@ -308,6 +308,7 @@
 	"main": "./out/extension.js",
 	"scripts": {
 		"clean": "node -e \"fs.rmSync('out',{recursive:true,force:true})\"",
+		"clean:test": "node -e \"fs.rmSync('out/test',{recursive:true,force:true})\"",
 		"compile": "tsc -p . && tsc-alias -p tsconfig.json",
 		"watch": "tsc -w -p .",
 		"vscode:prepublish": "npm run clean && npm run compile",
@@ -316,7 +317,7 @@
 		"lint:fix": "biome check --write --unsafe .",
 		"format": "biome format --write .",
 		"test": "tsx --test \"src/test/unit/**/*.test.ts\"",
-		"test:integration": "npm run compile && tsc -p tsconfig.test.json && tsc-alias -p tsconfig.test.json && vscode-test",
+		"test:integration": "npm run compile && npm run clean:test && tsc -p tsconfig.test.json && tsc-alias -p tsconfig.test.json && vscode-test",
 		"test:python": "uv run --with pytest --with tomlkit --with pyserial pytest resources/tools-bao/tests"
 	},
 	"devDependencies": {

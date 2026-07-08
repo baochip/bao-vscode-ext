@@ -650,8 +650,10 @@ async function ensureBaoPythonDepsUncached({
 
 			// Choose the venv interpreter: a Python we picked, else any system Python, else a managed
 			// Python that uv downloads for us (confined to our storage via uvEnv). Only the last case
-			// downloads, so users who already have a Python are never made to fetch one.
-			const plan = venvPlan(resolvePickedPythonExe(), detectWorkingPythons().length > 0);
+			// downloads, so users who already have a Python are never made to fetch one. Probe for a
+			// system Python lazily - skip the blocking spawns entirely when a picked exe already wins.
+			const picked = resolvePickedPythonExe();
+			const plan = venvPlan(picked, picked ? true : detectWorkingPythons().length > 0);
 
 			// 0) No system Python: have uv install a self-contained one before creating the venv.
 			if (plan.managed) {

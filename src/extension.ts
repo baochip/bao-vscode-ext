@@ -26,44 +26,28 @@ export async function migrateWelcomeSettingToGlobal(): Promise<void> {
 
 	// A folder-scoped value only surfaces when the setting is inspected with that folder's URI,
 	// so probe each folder individually - the top-level inspect misses them in a multi-root window.
-	const folderValues = (vscode.workspace.workspaceFolders ?? []).map((folder) => ({
-		folder,
-		value: vscode.workspace
-			.getConfiguration(undefined, folder.uri)
-			.inspect<boolean>('baochip.showWelcomeOnStartup')?.workspaceFolderValue,
-	}));
+	const folderValues = (vscode.workspace.workspaceFolders ?? []).map(
+		(folder) =>
+			vscode.workspace
+				.getConfiguration(undefined, folder.uri)
+				.inspect<boolean>('baochip.showWelcomeOnStartup')?.workspaceFolderValue,
+	);
 
-	const legacyValues = [showInspect.workspaceValue, ...folderValues.map((f) => f.value)].filter(
+	const legacyValues = [showInspect.workspaceValue, ...folderValues].filter(
 		(v) => v !== undefined,
 	) as boolean[];
 	const globalShowSet = showInspect.globalValue !== undefined;
 
-	// Derive global show from workspace/folder show if no global set
+	// Lift a legacy workspace/folder value to Global when none is set there. The setting is
+	// application-scoped now, so any leftover workspace/folder value is inert (VS Code ignores it on
+	// read) and cannot be cleared via update() at those targets (an application-scoped write there is
+	// rejected) - so we only promote the preference; we do not try to remove the stale entry.
 	if (!globalShowSet && legacyValues.length > 0) {
 		await cfg.update(
 			'baochip.showWelcomeOnStartup',
 			legacyValues[0],
 			vscode.ConfigurationTarget.Global,
 		);
-	}
-
-	// Clean workspace/folder show entries
-	if (showInspect.workspaceValue !== undefined) {
-		await cfg.update(
-			'baochip.showWelcomeOnStartup',
-			undefined,
-			vscode.ConfigurationTarget.Workspace,
-		);
-	}
-	for (const { folder, value } of folderValues) {
-		if (value === undefined) continue;
-		await vscode.workspace
-			.getConfiguration(undefined, folder.uri)
-			.update(
-				'baochip.showWelcomeOnStartup',
-				undefined,
-				vscode.ConfigurationTarget.WorkspaceFolder,
-			);
 	}
 }
 
@@ -169,7 +153,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		flashLocationItem.text = flLoc
 			? `$(chip) ${flLoc}`
 			: `$(chip) ${vscode.l10n.t('Baochip Location: (not set)')}`;
-		flashLocationItem.tooltip = vscode.l10n.t('Click to set baochip location');
+		flashLocationItem.tooltip = flLoc
+			? vscode.l10n.t('Current baochip location: {0}', flLoc)
+			: vscode.l10n.t('Click to set baochip location');
 		flashLocationItem.show();
 
 		// Build target - relevant in both modes; defaults to dabao when not explicitly set

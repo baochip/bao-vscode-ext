@@ -76,6 +76,12 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 	const target = await ensureBuildTargetOrPrompt();
 	if (!target) return;
+	// A hand-edited baochip.buildTarget flows into `cargo xtask <target>` (argv, shell:false - not
+	// shell injection, but argument injection); whitelist it like the terminal build paths do.
+	if (!BUILD_TARGETS.includes(target)) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
+		return;
+	}
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {

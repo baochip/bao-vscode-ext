@@ -320,6 +320,16 @@ suite('App service and scaffolding', () => {
 		);
 	});
 
+	test('createBaoApp rejects a target not in BUILD_TARGETS before touching the template path', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: ['hello'] });
+
+		// A traversal-shaped target must be refused up front (never joined into the template path).
+		await assert.rejects(
+			appService.createBaoApp(root, 'my_app', '../../../../etc'),
+			/Invalid build target/,
+		);
+	});
+
 	/* ------------------------------ scaffoldOutOfTreeApp ------------------------------ */
 
 	// The real updateWorkspaceFolders would convert the test workspace to multi-root and
@@ -352,6 +362,25 @@ suite('App service and scaffolding', () => {
 		assert.ok(updateFolders.calledOnce, 'project folder added to the workspace');
 		const folderArg = updateFolders.firstCall.args[2] as { uri: vscode.Uri };
 		assert.equal(folderArg.uri.fsPath.toLowerCase(), projectDir.toLowerCase());
+	});
+
+	test('scaffoldOutOfTreeApp does not re-add a project already covered by an open workspace folder', async () => {
+		const parent = tmpDir();
+		const projectDir = path.join(parent, 'nested-app');
+		fs.mkdirSync(projectDir);
+		sandbox
+			.stub(vscode.workspace, 'workspaceFolders')
+			.get(() => [
+				{ uri: vscode.Uri.file(parent), name: 'parent', index: 0 } as vscode.WorkspaceFolder,
+			]);
+		const updateFolders = stubScaffoldPrompts(projectDir, 'nested_app');
+		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'project still scaffolded');
+		assert.ok(updateFolders.notCalled, 'not re-added: projectDir is covered by an open folder');
 	});
 
 	test('scaffoldOutOfTreeApp refuses a folder that already has a src directory', async () => {
@@ -394,6 +423,33 @@ suite('App service and scaffolding', () => {
 		assert.ok(updateFolders.notCalled, 'workspace untouched');
 	});
 
+	test('scaffoldOutOfTreeApp refuses a folder that already has a .cargo/config.toml', async () => {
+		const projectDir = tmpDir();
+		fs.mkdirSync(path.join(projectDir, '.cargo'));
+		const precious = '[build]\ntarget-dir = "precious"\n';
+		fs.writeFileSync(path.join(projectDir, '.cargo', 'config.toml'), precious, 'utf8');
+		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const fetchRev = sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(
+			errors
+				.getCalls()
+				.some((c) => String(c.args[0]).includes('.cargo/config.toml already exists')),
+			'config-overwrite refusal shown',
+		);
+		assert.equal(
+			fs.readFileSync(path.join(projectDir, '.cargo', 'config.toml'), 'utf8'),
+			precious,
+			'existing .cargo/config.toml untouched',
+		);
+		assert.ok(fetchRev.notCalled, 'no rev fetch for a refused folder');
+		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'nothing scaffolded');
+		assert.ok(updateFolders.notCalled, 'workspace untouched');
+	});
+
 	test('scaffoldOutOfTreeApp writes nothing when the rev fetch fails', async () => {
 		const projectDir = tmpDir();
 		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
@@ -414,10 +470,21 @@ suite('App service and scaffolding', () => {
 
 	test('scaffoldOutOfTreeApp rolls back Cargo.toml and src when a copy step fails', async () => {
 		const projectDir = tmpDir();
-		// Make the final config copy fail (destination is a directory), so the failure lands after
-		// Cargo.toml and src are already written. A pre-existing .cargo also lets us prove rollback
-		// never deletes folder content it did not create.
-		fs.mkdirSync(path.join(projectDir, '.cargo', 'config.toml'), { recursive: true });
+		// A pre-existing empty .cargo (no config.toml, so the guard passes) proves rollback preserves
+		// the user's dir. A fake template with Cargo.toml + src but NO .cargo/config.toml makes the
+		// final config copy fail naturally, after Cargo.toml and src are written (fs is frozen in this
+		// host, so the failure cannot be injected with a stub).
+		fs.mkdirSync(path.join(projectDir, '.cargo'));
+		const fakeExtRoot = tmpDir();
+		const templateDir = path.join(fakeExtRoot, 'resources', 'templates', 'out-of-tree', 'dabao');
+		fs.mkdirSync(path.join(templateDir, 'src'), { recursive: true });
+		fs.writeFileSync(
+			path.join(templateDir, 'Cargo.toml'),
+			'[package]\nname = "{{NAME}}"\n',
+			'utf8',
+		);
+		fs.writeFileSync(path.join(templateDir, 'src', 'main.rs'), 'fn main() {}\n', 'utf8');
+		sandbox.stub(uvService, 'getExtensionRoot').returns(fakeExtRoot);
 		stubScaffoldPrompts(projectDir, 'my_oot_app');
 		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
@@ -431,7 +498,12 @@ suite('App service and scaffolding', () => {
 		// The retry-blocking guards must be cleared so scaffolding can be retried.
 		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'Cargo.toml rolled back');
 		assert.ok(!fs.existsSync(path.join(projectDir, 'src')), 'src rolled back');
-		// The .cargo folder existed before this run, so rollback must leave it in place.
+		// The .cargo folder existed before this run, so rollback must leave it in place...
 		assert.ok(fs.existsSync(path.join(projectDir, '.cargo')), 'pre-existing .cargo preserved');
+		// ...but must not leave a config.toml behind that would trip the guard on retry.
+		assert.ok(
+			!fs.existsSync(path.join(projectDir, '.cargo', 'config.toml')),
+			'no leftover config.toml to block a retry',
+		);
 	});
 });

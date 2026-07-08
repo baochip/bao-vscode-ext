@@ -6,7 +6,7 @@ import { errorToast } from '@services/logService';
 import { getExtensionRoot } from '@services/uvService';
 import { isLikelyValidAppName } from '@util/appName';
 import { toMessage } from '@util/error';
-import { hasCargoToml } from '@util/fsUtil';
+import { hasCargoToml, isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 function getTemplateDir(target: string): string {
@@ -93,6 +93,16 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		);
 		return;
 	}
+	// Likewise the template's .cargo/config.toml would overwrite a user's existing one.
+	if (fs.existsSync(path.join(projectDir, '.cargo', 'config.toml'))) {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t(
+				'A .cargo/config.toml already exists in {0}. Move it first or pick an empty folder.',
+				projectDir,
+			),
+		);
+		return;
+	}
 
 	let rev: string;
 	try {
@@ -135,7 +145,10 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		try {
 			fs.rmSync(path.join(projectDir, 'Cargo.toml'), { force: true });
 			fs.rmSync(path.join(projectDir, 'src'), { recursive: true, force: true });
-			if (!dotCargoPreexisted) fs.rmSync(dotCargoDir, { recursive: true, force: true });
+			// A guard above verified no config.toml pre-existed, so the one here is ours: remove it
+			// (else it would trip that guard on retry). Only remove the whole .cargo if we made it.
+			if (dotCargoPreexisted) fs.rmSync(path.join(dotCargoDir, 'config.toml'), { force: true });
+			else fs.rmSync(dotCargoDir, { recursive: true, force: true });
 		} catch {}
 		const message = toMessage(e);
 		errorToast(vscode.l10n.t('Failed to create project: {0}', message));
@@ -149,7 +162,9 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	);
 
 	const existingFolders = vscode.workspace.workspaceFolders ?? [];
-	const alreadyOpen = existingFolders.some((f) => f.uri.fsPath === projectDir);
+	// realpath-/case-aware so a differently-cased pick (Windows) or a folder that already covers
+	// projectDir is not re-added as a duplicate.
+	const alreadyOpen = existingFolders.some((f) => isSameOrParentPath(f.uri.fsPath, projectDir));
 	if (!alreadyOpen) {
 		vscode.workspace.updateWorkspaceFolders(existingFolders.length, 0, {
 			uri: vscode.Uri.file(projectDir),

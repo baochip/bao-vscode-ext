@@ -43,7 +43,7 @@
 
 	"cfg.title.intree": "Baochip - In-tree 建置（xous-core）",
 	"cfg.intree.xousCorePath": "本機 xous-core 檔案夾路徑。僅 in-tree 建置（在 xous-core 儲存庫內建置應用程式）時需要。",
-	"cfg.intree.appName": "xous-core/apps-dabao/ 底下的 Bao 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app'），留白則僅建置目標。僅用於 in-tree 建置。",
+	"cfg.intree.appName": "xous-core/apps-dabao/ 底下的 Baochip 應用程式名稱。可用空白分隔多個（例如 'helloworld demo_app'），留白則僅建置目標。僅用於 in-tree 建置。",
 
 	"cfg.title.flashing": "Baochip - 燒錄",
 	"cfg.title.outOfTree": "Baochip - Out-of-Tree 建置",

@@ -150,15 +150,17 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     # Own the terminal raw-mode on THIS (main) thread so the restore always runs, even on Ctrl+C:
     # the daemon writer thread can be killed mid-read, so it must NOT own terminal state.
     raw_ctx = _stdin_raw_noecho() if args.raw else contextlib.nullcontext()
-    raw_ctx.__enter__()
 
-    # Start stdin->serial writer thread
+    # stdin->serial writer thread (constructed here; started inside the try below)
     writer = threading.Thread(
         target=_stdin_to_serial, args=(ser, args, stop_event, write_error), daemon=True
     )
-    writer.start()
 
     try:
+        # Enter raw-mode and start the writer inside the try so a failure here (e.g. the OS refusing
+        # a new thread) still runs the finally - restoring the terminal and releasing the port.
+        raw_ctx.__enter__()
+        writer.start()
         while not stop_event.is_set():
             try:
                 data = ser.read(READ_CHUNK)

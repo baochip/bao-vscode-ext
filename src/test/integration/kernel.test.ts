@@ -359,6 +359,27 @@ suite('Kernel files service', () => {
 		assert.ok(String(errorToast.firstCall.args[0]).includes('Failed to download kernel files'));
 	});
 
+	test('resolveKernelFiles (ci-sync) aborts without downloading if the stale etags cannot be cleared', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		const cache = kernelCacheDir();
+		fs.mkdirSync(cache, { recursive: true });
+		// etags.json as a DIRECTORY makes the up-front clear (rmSync, no recursive) throw; the download
+		// must abort BEFORE writing any file rather than leave a stale etags an offline flash would trust.
+		fs.mkdirSync(path.join(cache, 'etags.json'));
+		const download = sandbox.stub(httpService, 'downloadFile').resolves();
+		stubEtags('new-l', 'new-x');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.equal(files, null, 'aborted, no kernel files resolved');
+		assert.ok(download.notCalled, 'no file downloaded once the clear failed');
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Failed to download kernel files')),
+			'download-failure error shown',
+		);
+	});
+
 	test('resolveKernelFiles (ci-sync) invalidates the stored etags when a re-download fails partway', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		seedKernelCache({ loader: 'old-l', xous: 'old-x' }); // coherent cached pair + etags

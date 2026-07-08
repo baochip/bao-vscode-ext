@@ -10,14 +10,26 @@ function isRedirect(status: number): boolean {
 	return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
 
+function isLoopbackHost(hostname: string): boolean {
+	return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
+}
+
+/**
+ * A redirect must not cross from a public host to a loopback address - a compromised origin could
+ * otherwise turn a download into a loopback GET (a narrow SSRF). Loopback is reachable only when the
+ * ORIGINAL request already targeted loopback (i.e. tests running against a local server).
+ */
+export function isRedirectHostAllowed(initialIsLoopback: boolean, targetHostname: string): boolean {
+	return initialIsLoopback || !isLoopbackHost(targetHostname);
+}
+
 /**
  * Pick the transport for a URL. Real traffic is HTTPS-only; plain http: is allowed solely for
  * loopback hosts so tests can run against a local server.
  */
 function transportFor(u: URL): typeof https {
 	if (u.protocol === 'https:') return https;
-	const loopback = u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '::1';
-	if (u.protocol === 'http:' && loopback) {
+	if (u.protocol === 'http:' && isLoopbackHost(u.hostname)) {
 		// node:http's request() shape is compatible for our GET/HEAD use
 		return nodeHttp as unknown as typeof https;
 	}
@@ -36,6 +48,10 @@ function requestWithRedirects(
 ): Promise<nodeHttp.IncomingMessage> {
 	const { method = 'GET', timeoutMs = DEFAULT_TIMEOUT_MS } = opts;
 	return new Promise((resolve, reject) => {
+		let initialIsLoopback = false;
+		try {
+			initialIsLoopback = isLoopbackHost(new URL(url).hostname);
+		} catch {} // a malformed initial URL is rejected by transportFor in go() below
 		const go = (u: string, hops: number) => {
 			let parsed: URL;
 			let transport: typeof https;
@@ -45,22 +61,27 @@ function requestWithRedirects(
 			} catch (e) {
 				return reject(e instanceof Error ? e : new Error(String(e)));
 			}
-			const req = transport.request(parsed, { method, headers: UA }, (res) => {
+			// `timeout` arms the socket timer before connect too, so a black-holed endpoint (dropped
+			// SYN) is bounded by timeoutMs; req.setTimeout below only covers the post-connect idle phase.
+			const req = transport.request(parsed, { method, headers: UA, timeout: timeoutMs }, (res) => {
 				const status = res.statusCode ?? 0;
 				if (isRedirect(status)) {
 					res.resume();
 					const location = res.headers.location;
 					if (!location) return reject(new Error(`Redirect with no Location from ${u}`));
 					if (hops >= MAX_REDIRECTS) return reject(new Error(`Too many redirects for ${url}`));
-					let next: string;
+					let nextUrl: URL;
 					try {
-						next = new URL(location, u).toString(); // Location may be relative
+						nextUrl = new URL(location, u); // Location may be relative
 					} catch (e) {
 						// a malformed Location would otherwise throw inside this response callback,
 						// escaping the promise so it never settles (the caller hangs forever)
 						return reject(e instanceof Error ? e : new Error(String(e)));
 					}
-					go(next, hops + 1);
+					if (!isRedirectHostAllowed(initialIsLoopback, nextUrl.hostname)) {
+						return reject(new Error(`Refusing a redirect to a loopback address: ${nextUrl}`));
+					}
+					go(nextUrl.toString(), hops + 1);
 					return;
 				}
 				resolve(res);

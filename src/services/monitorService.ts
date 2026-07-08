@@ -38,7 +38,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	// command line: spaces in the uv path are safe regardless of the user's default shell
 	// (a PowerShell line starting with a quoted path is an expression, not an invocation).
 	try {
-		monitorTerm?.sendText('\x03'); // Ctrl+C - let bao.py close the serial port cleanly
+		monitorTerm?.sendText('\x03', false); // Ctrl+C (no newline) - let bao.py close the port cleanly
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTermListener?.dispose();
@@ -63,7 +63,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 
 export function stopMonitorTTY() {
 	try {
-		monitorTerm?.sendText('\x03'); // Ctrl+C - let bao.py close the serial port cleanly
+		monitorTerm?.sendText('\x03', false); // Ctrl+C (no newline) - let bao.py close the port cleanly
 		monitorTerm?.dispose();
 	} catch {}
 	monitorTerm = undefined;
