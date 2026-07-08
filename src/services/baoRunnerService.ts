@@ -19,6 +19,22 @@ export function resolveBaoPy(): string {
 }
 
 /**
+ * Assemble the argv for a bao.py port/baud subcommand: the runner args (uv run python), bao.py,
+ * then `<subcmd> -p <port> -b <baud>` plus any extra flags. Shared by the boot and monitor launches.
+ * The caller passes resolveBaoPy() so that call stays cross-module (test stubbing point).
+ */
+export function buildBaoArgs(
+	runnerArgs: string[],
+	baoPy: string,
+	subcmd: string,
+	port: string,
+	baud: number,
+	extra: string[] = [],
+): string[] {
+	return [...runnerArgs, baoPy, subcmd, '-p', port, '-b', String(baud), ...extra];
+}
+
+/**
  * Best-effort Python dependency check before launching bao.py: installs deps into the global
  * venv when missing (which also creates the storage dir uv runs in). A failure is logged and
  * swallowed so the launch itself surfaces the real error.

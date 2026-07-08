@@ -1,4 +1,4 @@
-import { ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
+import { buildBaoArgs, ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { ensureSerialPort } from '@services/portsService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
@@ -46,7 +46,7 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	await ensureBaoDepsQuietly();
 
 	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
-	const shellArgs = [...args, resolveBaoPy(), 'monitor', '-p', port, '-b', String(baud), ...flags];
+	const shellArgs = buildBaoArgs(args, resolveBaoPy(), 'monitor', port, baud, flags);
 
 	// 3) Launch terminal - it runs uv directly (shellPath/shellArgs), so no shell ever parses the
 	// command line: spaces in the uv path are safe regardless of the user's default shell

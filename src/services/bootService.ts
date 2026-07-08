@@ -1,4 +1,4 @@
-import { ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
+import { buildBaoArgs, ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud } from '@services/configService';
 import { appendSeparator, errorToast, getBaochipChannel } from '@services/logService';
 import { ensureSerialPort } from '@services/portsService';
@@ -26,7 +26,7 @@ export async function sendBoot(): Promise<boolean> {
 	await ensureBaoDepsQuietly();
 
 	const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
-	const fullArgs = [...args, bao, 'boot', '-p', port, '-b', String(baud)];
+	const fullArgs = buildBaoArgs(args, bao, 'boot', port, baud);
 
 	const r = await runProcess(cmd, fullArgs, {
 		cwd: root,
