@@ -9,7 +9,7 @@ import {
 	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
-import { log } from '@services/logService';
+import { getBaochipChannel, log } from '@services/logService';
 import { getProjectMode } from '@services/projectModeService';
 import { setExtensionContext } from '@services/uvService';
 import { autoDetectXousCore } from '@services/xousCoreService';
@@ -66,12 +66,13 @@ export async function runStartupStep(label: string, step: () => Promise<void>): 
 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
+	context.subscriptions.push(getBaochipChannel()); // dispose the shared output channel on deactivate
 	await runStartupStep('migrate welcome setting', migrateWelcomeSettingToGlobal);
 	await runStartupStep('auto-detect xous-core', autoDetectXousCore);
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
-	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-view', tree));
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-view', tree), tree);
 
 	// Documentation tree
 	const docsTree = new DocsTreeProvider();

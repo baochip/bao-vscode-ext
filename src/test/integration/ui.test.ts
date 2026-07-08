@@ -46,6 +46,14 @@ suite('Tree views, welcome panel, and error funnel', () => {
 		assert.ok(items.includes('Build (cargo build)'), 'out-of-tree build label');
 	});
 
+	test('BaoTreeProvider is disposable so its change emitter is released on deactivate', () => {
+		const tree = new BaoTreeProvider();
+		assert.doesNotThrow(() => {
+			tree.dispose();
+			tree.dispose(); // idempotent
+		});
+	});
+
 	test('bao tree monitor child names the default monitor port', async () => {
 		const tree = new BaoTreeProvider();
 		const monitorNode = (await tree.getChildren()).find((i) => String(i.label) === 'Monitor');

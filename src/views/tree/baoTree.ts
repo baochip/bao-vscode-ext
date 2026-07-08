@@ -23,6 +23,10 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 		this._onDidChangeTreeData.fire(undefined);
 	}
 
+	dispose() {
+		this._onDidChangeTreeData.dispose();
+	}
+
 	getTreeItem(el: TreeItem) {
 		// Dynamically update tooltip to show the chosen mode/port/baud
 		if (el === this.monitorNode) {
