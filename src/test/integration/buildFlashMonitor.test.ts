@@ -62,7 +62,13 @@ suite('Build-Flash-Monitor pipeline', () => {
 
 	setup(() => {
 		// Fake only setTimeout so the pipeline's grace/stability delays cost no real wall-clock.
-		clock = sandbox.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		// shouldClearNativeTimers: a background extension (json-language-features) clears its own
+		// native timers on file events while these fakes are installed; without this, fake-timers
+		// throws on the foreign id and the stray error lands in an unrelated afterEach hook.
+		clock = sandbox.useFakeTimers({
+			toFake: ['setTimeout', 'clearTimeout'],
+			shouldClearNativeTimers: true,
+		});
 	});
 
 	test('xous-core happy path runs build, flash, boot, port wait, monitor in order', async () => {
