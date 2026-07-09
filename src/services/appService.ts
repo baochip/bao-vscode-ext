@@ -65,7 +65,7 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 	if (!pick) return undefined;
 
 	await setXousAppName(pick.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to {0}', pick.label));
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
 	return pick.label;
 }
 

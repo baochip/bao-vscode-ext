@@ -755,18 +755,25 @@ export async function rerunExtensionSetup(): Promise<void> {
 
 	await clearUvState();
 	cleanContainedInstall();
+	await settleUvMemos();
 
 	await ensureBaoPythonDeps();
 	info(vscode.l10n.t('Baochip: extension setup complete.'));
 }
 
-/** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
-async function clearUvState(): Promise<void> {
-	// Wait for any in-flight bootstrap to finish before forgetting it, so a concurrent first-run
-	// install cannot keep writing into files a following cleanContainedInstall/venv-delete removes
-	// (which would leave a half-populated venv the finishing install then hash-stamps as good).
+/**
+ * Await any in-flight bootstrap, then drop both cached memos so the next resolve/install starts clean.
+ * Run around a destructive reset: before it so an in-flight install is not writing into files the
+ * reset removes, and after it so no memo holds a result for the install that was just wiped.
+ */
+async function settleUvMemos(): Promise<void> {
 	await depsMemo.settle();
 	await uvBinaryMemo.settle();
+}
+
+/** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
+async function clearUvState(): Promise<void> {
+	await settleUvMemos();
 	await gSet<string | undefined>(KEY_UV_PATH, undefined);
 	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
 	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
@@ -796,4 +803,6 @@ export async function resetUvSetup() {
 			}
 		}
 	}
+
+	await settleUvMemos();
 }

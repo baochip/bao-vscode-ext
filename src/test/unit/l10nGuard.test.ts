@@ -154,38 +154,66 @@ test('l10n: every l10n.t() key in src is a string literal (statically checkable)
 	assert.deepEqual(offenders, [], 'l10n.t() called with a non-literal key');
 });
 
-// Values legitimately identical to their English key: code tokens, brand names, and technical/
-// loanword terms kept in the source language (Bootloader/Run/Monitor, the cargo-labelled build/
-// clean actions, terminal-tab names, MD5:). A NEW value===key outside this set is almost always an
-// accidentally-untranslated string (the class the old ja "Welcome - Baochip" bug belonged to).
-// Deliberately keeping one English? Add it here.
-const ALLOWED_UNTRANSLATED = new Set([
-	'test_app',
-	'auto',
-	'OK',
-	'MD5: {0}',
-	'Bootloader',
-	'Run',
-	'Monitor',
-	'Build (cargo xtask)',
-	'Build (cargo build)',
-	'Clean (cargo clean)',
-	'Build - Flash - Monitor',
-	'Baochip Build',
-	'Baochip Clean',
-	'Baochip Monitor ({0}: {1})',
-]);
+// Values a bundle may legitimately leave identical to their English key, listed PER LOCALE. German
+// keeps the loanwords, cargo-labelled build/clean actions, terminal-tab names, and brand tokens in
+// English; ja/zh translate most of them and keep only code tokens and tech terms. A value===key not
+// listed for its locale is almost always an accidentally-untranslated string. Deliberately keeping
+// one English? Add it under that locale (and only that locale).
+const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
+	de: new Set([
+		'test_app',
+		'auto',
+		'OK',
+		'MD5: {0}',
+		'Bootloader',
+		'Run',
+		'Monitor',
+		'Build (cargo xtask)',
+		'Build (cargo build)',
+		'Clean (cargo clean)',
+		'Build - Flash - Monitor',
+		'Baochip Build',
+		'Baochip Clean',
+		'Baochip Monitor ({0}: {1})',
+	]),
+	ja: new Set(['test_app', 'auto', 'OK', 'MD5: {0}']),
+	'zh-cn': new Set(['test_app', 'auto']),
+	'zh-tw': new Set(['test_app', 'auto']),
+};
 
-test('l10n: no bundle value is left untranslated (equal to its English key) outside the allowlist', () => {
+/** Locale code from a bundle path, e.g. .../bundle.l10n.zh-cn.json -> "zh-cn". */
+function localeOf(file: string): string {
+	const m = /^bundle\.l10n\.(.+)\.json$/.exec(path.basename(file));
+	if (!m) throw new Error(`unexpected bundle filename: ${path.basename(file)}`);
+	return m[1];
+}
+
+test('l10n: no bundle value is left untranslated (equal to its English key) outside its locale allowlist', () => {
 	for (const file of bundleFiles()) {
+		const allowed = ALLOWED_UNTRANSLATED[localeOf(file)] ?? new Set<string>();
 		const bundle = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>;
 		const untranslated = Object.keys(bundle)
-			.filter((k) => bundle[k] === k && !ALLOWED_UNTRANSLATED.has(k))
+			.filter((k) => bundle[k] === k && !allowed.has(k))
 			.sort();
 		assert.deepEqual(
 			untranslated,
 			[],
 			`untranslated (value === key) strings in ${path.basename(file)}`,
+		);
+	}
+});
+
+test('l10n: every per-locale untranslated-allowlist entry is real (present and still English)', () => {
+	const byLocale = new Map(bundleFiles().map((f) => [localeOf(f), f]));
+	for (const [locale, allowed] of Object.entries(ALLOWED_UNTRANSLATED)) {
+		const file = byLocale.get(locale);
+		assert.ok(file, `allowlist names locale "${locale}" but no such bundle exists`);
+		const bundle = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, string>;
+		const stale = [...allowed].filter((k) => bundle[k] !== k).sort();
+		assert.deepEqual(
+			stale,
+			[],
+			`stale allowlist entries for ${locale} (translated or removed - drop them from the allowlist)`,
 		);
 	}
 });

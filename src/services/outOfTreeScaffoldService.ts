@@ -165,10 +165,14 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	// realpath-/case-aware so a differently-cased pick (Windows) or a folder that already covers
 	// projectDir is not re-added as a duplicate.
 	const alreadyOpen = existingFolders.some((f) => isSameOrParentPath(f.uri.fsPath, projectDir));
-	if (!alreadyOpen) {
-		vscode.workspace.updateWorkspaceFolders(existingFolders.length, 0, {
-			uri: vscode.Uri.file(projectDir),
-			name,
-		});
+	if (alreadyOpen) return;
+
+	const uri = vscode.Uri.file(projectDir);
+	if (existingFolders.length === 0) {
+		vscode.workspace.updateWorkspaceFolders(0, 0, { uri, name });
+	} else {
+		// Out-of-tree commands act on the first workspace folder, so the new project opens in its own
+		// window where it is the root.
+		await vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: true });
 	}
 }

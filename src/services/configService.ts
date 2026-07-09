@@ -57,7 +57,10 @@ export const setBuildMode = (mode: BuildMode) => updateSetting('buildMode', mode
 
 // Only pass through values that look like cargo feature names (defense-in-depth for CLI args).
 export const getExtraFeatures = (): string[] => {
-	const all = cfg().get<string[]>('outOfTree.extraFeatures') ?? [];
+	// A hand-edited settings.json may hold a non-array or non-string entries; keep only string entries
+	// of an actual array so a malformed value yields no extra features.
+	const raw = cfg().get<unknown>('outOfTree.extraFeatures');
+	const all = Array.isArray(raw) ? raw.filter((f): f is string => typeof f === 'string') : [];
 	const valid = all.filter(isValidFeatureName);
 	if (valid.length < all.length) {
 		const dropped = all.filter((f) => !isValidFeatureName(f));

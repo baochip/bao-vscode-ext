@@ -51,7 +51,7 @@ export async function promptAndSaveBuildTarget(): Promise<string | undefined> {
 	if (!picked) return undefined;
 
 	await setBuildTarget(picked.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Build target set to {0}', picked.label));
+	vscode.window.showInformationMessage(vscode.l10n.t('Build target set to: {0}', picked.label));
 	return picked.label;
 }
 

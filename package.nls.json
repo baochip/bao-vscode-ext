@@ -13,7 +13,7 @@
 	"cmd.setFlashLocation": "Baochip: Set Flash Location",
 	"cmd.selectBuildTarget": "Baochip: Select Build Target",
 	"cmd.setBuildMode": "Baochip: Set Build Mode",
-	"cmd.clean": "Baochip: Full Clean",
+	"cmd.clean": "Baochip: Clean",
 	"cmd.build": "Baochip: Build Project",
 	"cmd.selectApp": "Baochip: Select App",
 	"cmd.createApp": "Baochip: New App",

@@ -96,7 +96,7 @@ Applications live inside:
 
 ### 5. Write code!
 
-- Write code for your app inside the the apps location you have selected.
+- Write code for your app inside the apps location you have selected.
 
 ### 6. Build, Flash, Monitor
 
@@ -113,13 +113,18 @@ You may use any of the following:
 ## Storage and disk space
 
 The extension installs its Python tooling into VS Code's own global storage - not into your project
-or onto your system PATH - so it is fully self-contained and is removed if you uninstall the
-extension or run `Baochip: Reset uv setup`. If a working `uv` is already installed on your machine,
-the extension reuses it instead of installing its own.
+or onto your system PATH - so it is fully self-contained and is removed when you uninstall the
+extension. If a working `uv` is already installed on your machine, the extension reuses it instead of
+installing its own.
+
+`Baochip: Reset UV Setup` clears the saved setup and can delete the cached virtual environment (rebuilt
+on the next command); `Baochip: Re-run Extension Setup` deletes the private uv, Python, and virtual
+environment and reinstalls them from scratch.
 
 Approximate space used under VS Code global storage:
 
 - uv (installed automatically if not already present): ~35 MB
+- Python runtime (downloaded only if no system Python is found): ~150 MB
 - Python virtual environment and dependencies (pyserial, etc.): ~30 MB
 
 If no suitable Python is found on your system, the extension can download a self-contained Python for

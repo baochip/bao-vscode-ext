@@ -274,6 +274,11 @@ suite('Config and selection commands', () => {
 		);
 	});
 
+	test('getExtraFeatures returns none when the setting is hand-edited to a non-array', async () => {
+		await setCfg('outOfTree.extraFeatures', 'hw-baosec' as unknown as string[]);
+		assert.deepEqual(getExtraFeatures(), [], 'a non-array value falls back to no extra features');
+	});
+
 	test('getMonitorFlags defaults to crlf+raw on, echo off, and follows settings', async () => {
 		assert.deepEqual(getMonitorFlags(), { crlf: true, raw: true, echo: false });
 

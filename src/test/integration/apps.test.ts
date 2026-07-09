@@ -332,8 +332,6 @@ suite('App service and scaffolding', () => {
 
 	/* ------------------------------ scaffoldOutOfTreeApp ------------------------------ */
 
-	// The real updateWorkspaceFolders would convert the test workspace to multi-root and
-	// restart the extension host, so it is stubbed and asserted instead.
 	function stubScaffoldPrompts(projectDir: string, name: string) {
 		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves(
 			'Choose a different folder...',
@@ -342,12 +340,17 @@ suite('App service and scaffolding', () => {
 			vscode.Uri.file(projectDir),
 		]);
 		sandbox.stub(vscode.window, 'showInputBox').resolves(name);
-		return sandbox.stub(vscode.workspace, 'updateWorkspaceFolders').returns(true);
+		// Stub the two folder-registration APIs so the test can assert which one the scaffold calls.
+		const updateFolders = sandbox.stub(vscode.workspace, 'updateWorkspaceFolders').returns(true);
+		const executeCommand = sandbox
+			.stub(vscode.commands, 'executeCommand')
+			.resolves(undefined) as unknown as sinon.SinonStub;
+		return { updateFolders, executeCommand };
 	}
 
 	test('scaffoldOutOfTreeApp creates the project with the fetched rev pinned', async () => {
 		const projectDir = tmpDir();
-		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const { updateFolders, executeCommand } = stubScaffoldPrompts(projectDir, 'my_oot_app');
 		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
@@ -359,9 +362,36 @@ suite('App service and scaffolding', () => {
 		assert.ok(!cargo.includes('{{NAME}}') && !cargo.includes('{{REV}}'), 'no placeholders left');
 		assert.ok(fs.existsSync(path.join(projectDir, 'src', 'main.rs')), 'template src copied');
 		assert.ok(fs.existsSync(path.join(projectDir, '.cargo', 'config.toml')), 'cargo config copied');
-		assert.ok(updateFolders.calledOnce, 'project folder added to the workspace');
+		// A folder is already open (the fixture workspace), so the new project opens as its own window.
+		assert.ok(updateFolders.notCalled, 'not appended after the already-open folder');
+		const openCall = executeCommand.getCalls().find((c) => c.args[0] === 'vscode.openFolder');
+		assert.ok(openCall, 'the new project is opened as a workspace');
+		assert.equal(
+			(openCall.args[1] as vscode.Uri).fsPath.toLowerCase(),
+			projectDir.toLowerCase(),
+			'opened at the scaffolded project dir',
+		);
+		assert.deepEqual(openCall.args[2], { forceNewWindow: true }, 'opened in a new window');
+	});
+
+	test('scaffoldOutOfTreeApp adopts the project as the workspace root when no folder is open', async () => {
+		const projectDir = tmpDir();
+		const { updateFolders, executeCommand } = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		sandbox.stub(vscode.workspace, 'workspaceFolders').get(() => []);
+		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'project scaffolded');
+		assert.ok(updateFolders.calledOnce, 'project adopted as the workspace root');
+		assert.equal(updateFolders.firstCall.args[0], 0, 'inserted at index 0');
 		const folderArg = updateFolders.firstCall.args[2] as { uri: vscode.Uri };
 		assert.equal(folderArg.uri.fsPath.toLowerCase(), projectDir.toLowerCase());
+		assert.ok(
+			executeCommand.getCalls().every((c) => c.args[0] !== 'vscode.openFolder'),
+			'no new window opened for an empty workspace',
+		);
 	});
 
 	test('scaffoldOutOfTreeApp does not re-add a project already covered by an open workspace folder', async () => {
@@ -373,7 +403,7 @@ suite('App service and scaffolding', () => {
 			.get(() => [
 				{ uri: vscode.Uri.file(parent), name: 'parent', index: 0 } as vscode.WorkspaceFolder,
 			]);
-		const updateFolders = stubScaffoldPrompts(projectDir, 'nested_app');
+		const { updateFolders, executeCommand } = stubScaffoldPrompts(projectDir, 'nested_app');
 		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
@@ -381,6 +411,10 @@ suite('App service and scaffolding', () => {
 
 		assert.ok(fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'project still scaffolded');
 		assert.ok(updateFolders.notCalled, 'not re-added: projectDir is covered by an open folder');
+		assert.ok(
+			executeCommand.getCalls().every((c) => c.args[0] !== 'vscode.openFolder'),
+			'no new window: projectDir is covered by an open folder',
+		);
 	});
 
 	test('scaffoldOutOfTreeApp refuses a folder that already has a src directory', async () => {
@@ -408,7 +442,7 @@ suite('App service and scaffolding', () => {
 	test('scaffoldOutOfTreeApp refuses a folder that already has a Cargo.toml', async () => {
 		const projectDir = tmpDir();
 		fs.writeFileSync(path.join(projectDir, 'Cargo.toml'), '[package]\nname = "existing"\n', 'utf8');
-		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const { updateFolders } = stubScaffoldPrompts(projectDir, 'my_oot_app');
 		const fetchRev = sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
@@ -428,7 +462,7 @@ suite('App service and scaffolding', () => {
 		fs.mkdirSync(path.join(projectDir, '.cargo'));
 		const precious = '[build]\ntarget-dir = "precious"\n';
 		fs.writeFileSync(path.join(projectDir, '.cargo', 'config.toml'), precious, 'utf8');
-		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const { updateFolders } = stubScaffoldPrompts(projectDir, 'my_oot_app');
 		const fetchRev = sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
@@ -452,7 +486,7 @@ suite('App service and scaffolding', () => {
 
 	test('scaffoldOutOfTreeApp writes nothing when the rev fetch fails', async () => {
 		const projectDir = tmpDir();
-		const updateFolders = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const { updateFolders } = stubScaffoldPrompts(projectDir, 'my_oot_app');
 		sandbox.stub(kernelService, 'fetchLatestXousCoreRev').rejects(new Error('offline'));
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 

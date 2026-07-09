@@ -8,6 +8,7 @@ import {
 	ensureBaoPythonDeps,
 	getBaoRunner,
 	getGlobalVenvRoot,
+	rerunExtensionSetup,
 	resetUvSetup,
 	setExtensionContext,
 } from '@services/uvService';
@@ -179,6 +180,52 @@ suite('uv service orchestration', () => {
 		assert.ok(
 			run.callCount > afterFirst,
 			'second call retried the install instead of caching failure',
+		);
+	});
+
+	test('rerunExtensionSetup reinstalls even when a concurrent command repopulates the deps memo mid-reset', async () => {
+		// A usable uv (node stands in) plus a hash-matching venv on disk make ensureBaoPythonDeps take
+		// its synchronous skip path, so the "concurrent command" fired below repopulates depsMemo with a
+		// RESOLVED promise - the stale state a naive reset would then join, silently skipping reinstall.
+		await state.update(KEY_UV_PATH, process.execPath);
+		await state.update(KEY_REQ_HASH, bundledReqHash(realExtUri.fsPath));
+		const venvDir = path.join(tmpStorage, '.venv');
+		fs.mkdirSync(venvDir, { recursive: true });
+		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+
+		const run = sandbox.stub(procService, 'runProcess').resolves(OK);
+		// rerunExtensionSetup gates on a modal confirmation.
+		sandbox
+			.stub(vscode.window, 'showWarningMessage')
+			.resolves('Reinstall' as unknown as vscode.MessageItem);
+
+		// Reproduce the race deterministically: the moment clearUvState clears the saved uv path, a
+		// concurrent bao command (e.g. a port-wait probe) fires and repopulates depsMemo via the skip
+		// path, then we re-seed the uv path so the post-wipe reinstall can still resolve a usable uv (in
+		// production the user's system uv or a fresh install; here the node stand-in).
+		let fired = false;
+		const realUpdate = state.update.bind(state);
+		state.update = async (key: string, val: unknown) => {
+			await realUpdate(key, val);
+			if (!fired && key === KEY_UV_PATH && val === undefined) {
+				fired = true;
+				await ensureBaoPythonDeps(); // concurrent probe -> depsMemo resolved (skip path)
+				await realUpdate(KEY_UV_PATH, process.execPath); // usable uv remains findable post-wipe
+			}
+		};
+
+		await rerunExtensionSetup();
+
+		assert.ok(fired, 'the concurrent repopulation was exercised');
+		const calls = run.getCalls();
+		const venvCall = calls.find((c) => (c.args[1] as string[])[0] === 'venv');
+		const pipCall = calls.find((c) => (c.args[1] as string[]).includes('pip'));
+		assert.ok(venvCall, 'the reset reinstalled the venv instead of joining the stale deps memo');
+		assert.ok(pipCall, 'the reset reinstalled the requirements');
+		assert.equal(
+			state.get(KEY_REQ_HASH),
+			bundledReqHash(realExtUri.fsPath),
+			'the requirements hash is stamped after the forced reinstall',
 		);
 	});
 
