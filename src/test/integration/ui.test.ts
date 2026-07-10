@@ -2,6 +2,7 @@ import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { withCommand } from '@commands/withCommand';
+import { errorToast, getBaochipChannel } from '@services/logService';
 import { getGlobalVenvRoot, resetUvSetup } from '@services/uvService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
@@ -122,6 +123,46 @@ suite('Tree views, welcome panel, and error funnel', () => {
 		assert.equal(errors.callCount, 1, 'exactly one error toast');
 		const msg = String(errors.firstCall.args[0]);
 		assert.ok(msg.includes('command failed') && msg.includes('kaboom'), msg);
+		assert.ok(errors.firstCall.args.includes('Show Output'), 'the funnel toast offers Show Output');
+	});
+
+	/* ------------------------------ error toast actions ------------------------------ */
+
+	test('errorToast offers Show Output, and clicking it reveals the Baochip channel', async () => {
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		errors.resolves('Show Output');
+		const show = sandbox.stub(getBaochipChannel(), 'show') as unknown as sinon.SinonStub;
+
+		errorToast('kaboom');
+		await new Promise((r) => setTimeout(r, 0)); // let the fire-and-forget click handler run
+
+		assert.equal(errors.callCount, 1, 'exactly one error toast');
+		assert.deepEqual(errors.firstCall.args.slice(1), ['Show Output'], 'one Show Output button');
+		assert.ok(show.calledOnceWithExactly(true), 'channel revealed, keyboard focus preserved');
+	});
+
+	test('errorToast does not open the output channel when the toast is dismissed', async () => {
+		(sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub).resolves(
+			undefined,
+		);
+		const show = sandbox.stub(getBaochipChannel(), 'show');
+
+		errorToast('kaboom');
+		await new Promise((r) => setTimeout(r, 0));
+
+		assert.equal(show.callCount, 0, 'the channel opens only via the button');
+	});
+
+	test('errorToast runs a caller-supplied action, listed before Show Output', async () => {
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		errors.resolves('Do Thing');
+		let ran = false;
+
+		errorToast('kaboom', [{ label: 'Do Thing', run: () => (ran = true) }]);
+		await new Promise((r) => setTimeout(r, 0));
+
+		assert.deepEqual(errors.firstCall.args.slice(1), ['Do Thing', 'Show Output']);
+		assert.ok(ran, 'the clicked action ran');
 	});
 
 	/* ------------------------------ WelcomePanel ------------------------------ */

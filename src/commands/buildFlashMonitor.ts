@@ -9,6 +9,7 @@ import {
 } from '@services/buildService';
 import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
+import { errorToast } from '@services/logService';
 import { openMonitorTTY } from '@services/monitorService';
 import { ensureSerialPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
@@ -32,7 +33,9 @@ export function registerBuildFlashMonitor() {
 				: await runBuildAndWait(pre.root, pre.target, pre.app);
 		if (code === null) return; // cancelled by the user - not a failure, no error toast
 		if (code !== 0) {
-			vscode.window.showErrorMessage(vscode.l10n.t('Build failed.'));
+			// The cargo output for this pipeline streams to the Baochip channel (runCargoAndWait),
+			// so the toast's Show Output button lands on the compiler errors.
+			errorToast(vscode.l10n.t('Build failed.'));
 			return;
 		}
 

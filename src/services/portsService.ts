@@ -128,6 +128,7 @@ export async function waitForPort(
 /**
  * Show a confirmation modal, enumerate serial ports via bao, and present a quick pick.
  * Returns the chosen port string, or undefined if the user cancelled at any step.
+ * An empty enumeration offers Retry, re-listing until ports appear or the user dismisses.
  */
 async function pickSerialPort(
 	runBao: RunBao,
@@ -148,28 +149,36 @@ async function pickSerialPort(
 
 	// quiet: this function shows the single failure toast itself. A listing failure returns
 	// undefined, kept distinct from a successful empty result ("No serial ports found" below).
-	let lines: string;
-	try {
-		lines = await runBao(['ports'], cwd, { capture: true, quiet: true });
-	} catch (err: unknown) {
-		errorToast(vscode.l10n.t('Could not list ports: {0}', toMessage(err)));
-		return undefined;
+	for (;;) {
+		let lines: string;
+		try {
+			lines = await runBao(['ports'], cwd, { capture: true, quiet: true });
+		} catch (err: unknown) {
+			errorToast(vscode.l10n.t('Could not list ports: {0}', toMessage(err)));
+			return undefined;
+		}
+
+		const items = lines
+			.split(/\r?\n/)
+			.map((s) => s.trim())
+			.filter(Boolean)
+			.map((line) => {
+				const [port, desc] = line.split('\t');
+				return { label: port, description: desc || undefined };
+			});
+
+		if (items.length === 0) {
+			// Non-modal: the user can plug the board in (or press RESET) and then retry.
+			const retryLabel = vscode.l10n.t('Retry');
+			const clicked = await vscode.window.showWarningMessage(
+				vscode.l10n.t('No serial ports found.'),
+				retryLabel,
+			);
+			if (clicked === retryLabel) continue;
+			return undefined;
+		}
+
+		const picked = await vscode.window.showQuickPick(items, { placeHolder: opts.placeholder });
+		return picked?.label;
 	}
-
-	const items = lines
-		.split(/\r?\n/)
-		.map((s) => s.trim())
-		.filter(Boolean)
-		.map((line) => {
-			const [port, desc] = line.split('\t');
-			return { label: port, description: desc || undefined };
-		});
-
-	if (items.length === 0) {
-		vscode.window.showWarningMessage(vscode.l10n.t('No serial ports found.'));
-		return undefined;
-	}
-
-	const picked = await vscode.window.showQuickPick(items, { placeHolder: opts.placeholder });
-	return picked?.label;
 }

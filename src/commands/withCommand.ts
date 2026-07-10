@@ -1,4 +1,4 @@
-import { log } from '@services/logService';
+import { log, showErrorWithActions, showOutputAction } from '@services/logService';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
@@ -13,7 +13,9 @@ export function withCommand(
 		} catch (e) {
 			const msg = toMessage(e);
 			log(`command "${id}" failed: ${msg}`);
-			vscode.window.showErrorMessage(vscode.l10n.t('Baochip: command failed.\n{0}', msg));
+			showErrorWithActions(vscode.l10n.t('Baochip: command failed.\n{0}', msg), [
+				showOutputAction(),
+			]);
 		}
 	});
 }

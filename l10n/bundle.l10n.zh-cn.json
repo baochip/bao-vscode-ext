@@ -83,6 +83,8 @@
 	"Could not list ports: {0}": "无法列出端口：{0}",
 	"No {0} serial port set. Pick one first.": "未设置 {0} 串口，请先选择。",
 	"No serial ports found.": "未找到串口。",
+	"Show Output": "显示输出",
+	"Retry": "重试",
 	"Run mode port {0} didn't appear in time. Trying anyway...": "运行端口 {0} 未在预期时间出现，将继续尝试...",
 	"Run mode serial port set to: {0}": "已设置运行模式串口：{0}",
 	"Select bootloader (drive mode) serial port": "选择引导程序（驱动模式）串口",

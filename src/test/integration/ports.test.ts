@@ -98,6 +98,33 @@ suite('Ports, monitor, and boot', () => {
 		);
 	});
 
+	test('promptAndSaveSerialPort re-enumerates and continues when Retry is clicked', async () => {
+		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
+			'OK',
+		);
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
+		runBao.onFirstCall().resolves(''); // board not plugged in yet
+		runBao.onSecondCall().resolves(PORTS_OUTPUT);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		warnings.resolves('Retry');
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
+			label: 'COM7',
+		});
+
+		const port = await portsService.promptAndSaveSerialPort('run');
+
+		assert.equal(port, 'COM7');
+		assert.equal(cfg().get<string>('serialPortRun'), 'COM7');
+		assert.equal(runBao.callCount, 2, 'ports re-enumerated after Retry');
+		assert.ok(
+			warnings.getCalls().some((c) => c.args.includes('Retry')),
+			'the no-ports warning offers Retry',
+		);
+	});
+
 	test('promptAndSaveSerialPort surfaces a ports-listing failure with a single toast', async () => {
 		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
 			'OK',

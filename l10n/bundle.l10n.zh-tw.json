@@ -83,6 +83,8 @@
 	"Could not list ports: {0}": "無法列出埠：{0}",
 	"No {0} serial port set. Pick one first.": "未設定 {0} 串列埠，請先選擇。",
 	"No serial ports found.": "未找到串列埠。",
+	"Show Output": "顯示輸出",
+	"Retry": "重試",
 	"Run mode port {0} didn't appear in time. Trying anyway...": "執行模式埠 {0} 未在時間內出現，繼續執行...",
 	"Run mode serial port set to: {0}": "已設定執行模式串列埠：{0}",
 	"Select bootloader (drive mode) serial port": "選擇開機載入程式（磁碟模式）串列埠",

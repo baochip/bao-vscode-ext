@@ -4,7 +4,12 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { scanArtifacts } from '@services/artifactsService';
 import { getFlashLocation, setFlashLocation } from '@services/configService';
-import { appendSeparator, getBaochipChannel } from '@services/logService';
+import {
+	appendSeparator,
+	getBaochipChannel,
+	showErrorWithActions,
+	showOutputAction,
+} from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { classifyWriteVerification } from '@util/flashVerify';
@@ -309,7 +314,8 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 			} catch (e: unknown) {
 				const msg = toMessage(e);
 				getBaochipChannel().appendLine(`[bao] ${vscode.l10n.t('Flash failed: {0}', msg)}`);
-				vscode.window.showErrorMessage(vscode.l10n.t('Baochip flash failed: {0}', msg));
+				// The channel line above already records the failure; the toast just adds the button.
+				showErrorWithActions(vscode.l10n.t('Baochip flash failed: {0}', msg), [showOutputAction()]);
 				return false;
 			}
 		},

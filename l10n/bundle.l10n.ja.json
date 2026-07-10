@@ -83,6 +83,8 @@
 	"Could not list ports: {0}": "ポート一覧を取得できませんでした: {0}",
 	"No {0} serial port set. Pick one first.": "{0} のシリアルポートが未設定です。先に選択してください。",
 	"No serial ports found.": "シリアルポートが見つかりません。",
+	"Show Output": "出力を表示",
+	"Retry": "再試行",
 	"Run mode port {0} didn't appear in time. Trying anyway...": "実行モードのポート {0} が時間内に現れませんでした。続行します...",
 	"Run mode serial port set to: {0}": "実行モードのシリアルポートを設定しました: {0}",
 	"Select bootloader (drive mode) serial port": "ブートローダー（ドライブモード）のシリアルポートを選択",

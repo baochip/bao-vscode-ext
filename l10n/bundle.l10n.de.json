@@ -83,6 +83,8 @@
 	"Could not list ports: {0}": "Ports konnten nicht aufgelistet werden: {0}",
 	"No {0} serial port set. Pick one first.": "Kein {0}-Seriellport gesetzt. Bitte zuerst auswählen.",
 	"No serial ports found.": "Keine Seriellports gefunden.",
+	"Show Output": "Ausgabe anzeigen",
+	"Retry": "Wiederholen",
 	"Run mode port {0} didn't appear in time. Trying anyway...": "Run-Port {0} ist nicht rechtzeitig erschienen. Es wird trotzdem fortgefahren...",
 	"Run mode serial port set to: {0}": "Run-Modus-Seriellport gesetzt: {0}",
 	"Select bootloader (drive mode) serial port": "Bootloader-(Laufwerksmodus)-Seriellport auswählen",
