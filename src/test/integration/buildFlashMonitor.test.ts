@@ -48,7 +48,11 @@ function toastIncludes(toastStub: sinon.SinonStub, text: string): boolean {
 // them instead of sleeping ~0.8s of real wall-clock per monitor-reaching test.
 async function runPipeline(clock: sinon.SinonFakeTimers): Promise<void> {
 	const p = vscode.commands.executeCommand(Commands.buildFlashMonitor);
-	await clock.runAllAsync();
+	// tickAsync, not runAllAsync: the extension host owns self-rescheduling timers (e.g. its
+	// unresponsive-monitor), so draining "until empty" never terminates once one lands on the
+	// fake clock. Advancing a fixed window fires the pipeline's delays (500ms grace + 300ms
+	// stability) with headroom and is bounded no matter what else schedules on the clock.
+	await clock.tickAsync(5000);
 	await p;
 }
 
