@@ -5,18 +5,12 @@
 	const actions = {
 		configure: () => vscode.postMessage({ type: 'run', cmd: 'configure' }),
 		createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
-		xousSite: () => vscode.postMessage({ type: 'xousSite' }),
-		extRepo: () => vscode.postMessage({ type: 'extRepo' }),
 		toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
 	};
 
-	['configure', 'xousSite', 'createApp', 'extRepo'].forEach((id) => {
+	['configure', 'createApp'].forEach((id) => {
 		const el = byId(`btn-${id}`);
-		if (el)
-			el.addEventListener('click', (e) => {
-				e.preventDefault(); // the links use href="#"; don't navigate
-				actions[id]();
-			});
+		if (el) el.addEventListener('click', actions[id]);
 	});
 
 	const chk = byId('chk-startup');

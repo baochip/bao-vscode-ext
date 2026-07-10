@@ -105,6 +105,14 @@ a.link .icon {
 	font-size: 16px;
 }
 
+/* Themed focus ring so keyboard focus is visible in every VS Code theme. */
+.btn:focus-visible,
+a.link:focus-visible,
+input[type="checkbox"]:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
 .toolbar {
 	display: grid;
 	grid-template-columns: auto 1fr auto;

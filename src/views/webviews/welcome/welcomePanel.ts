@@ -50,12 +50,6 @@ export class WelcomePanel {
 				try {
 					if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
 						await setShowWelcome(msg.value);
-					} else if (msg?.type === 'xousSite') {
-						await vscode.env.openExternal(vscode.Uri.parse(XOUS_CORE_REPO));
-					} else if (msg?.type === 'extRepo') {
-						await vscode.env.openExternal(
-							vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'),
-						);
 					} else if (msg?.type === 'run' && msg.cmd === 'configure') {
 						await vscode.commands.executeCommand(Commands.openSettings);
 					} else if (msg?.type === 'run' && msg.cmd === 'createApp') {
@@ -130,7 +124,7 @@ export class WelcomePanel {
 
 		return /* html */ `
       <!doctype html>
-      <html>
+      <html lang="${escapeHtml(vscode.env.language)}">
       <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy"
@@ -161,7 +155,7 @@ export class WelcomePanel {
                 <div class="spacer"></div>
 
                 <div class="links">
-                  <a class="link" href="#" id="btn-xousSite" title="${xousLinkTitle}">
+                  <a class="link" href="${XOUS_CORE_REPO}" id="btn-xousSite" title="${xousLinkTitle}">
                     <span class="icon codicon codicon-github-inverted"></span>
                     ${xousLinkText}
                   </a>
@@ -188,7 +182,7 @@ export class WelcomePanel {
             <p>
               ${footerLead}
               <br>
-              <a class="link" href="#" id="btn-extRepo">
+              <a class="link" href="https://github.com/baochip/bao-vscode-ext/issues" id="btn-extRepo">
                 <span class="icon codicon codicon-feedback"></span> ${footerLink}
               </a>
             </p>
