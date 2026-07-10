@@ -128,8 +128,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		items.flash.show();
 
 		// Status bar: B-F-M
-		items.buildFlashMonitor.text = '$(rocket) B-F-M';
-		items.buildFlashMonitor.tooltip = vscode.l10n.t('Build - Flash - Monitor'); // reuse tree label
+		items.buildFlashMonitor.text = '$(rocket) B•F•M';
+		items.buildFlashMonitor.tooltip = vscode.l10n.t('Build • Flash • Monitor'); // reuse tree label
 		items.buildFlashMonitor.show();
 
 		// Status bar: Settings

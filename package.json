@@ -300,8 +300,15 @@
 		"keybindings": [
 			{
 				"command": "baochip.build",
-				"key": "ctrl+alt+b",
-				"when": "editorTextFocus"
+				"key": "ctrl+alt+b"
+			},
+			{
+				"command": "baochip.flash",
+				"key": "ctrl+alt+f"
+			},
+			{
+				"command": "baochip.buildFlashMonitor",
+				"key": "ctrl+alt+shift+b"
 			}
 		]
 	},

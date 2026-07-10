@@ -18,7 +18,7 @@
 	"cmd.selectApp": "Baochip: App auswählen",
 	"cmd.createApp": "Baochip: Neue App",
 	"cmd.flash": "Baochip: Gerät flashen",
-	"cmd.buildFlashMonitor": "Baochip: Build - Flash - Monitor",
+	"cmd.buildFlashMonitor": "Baochip: Build • Flash • Monitor",
 	"cmd.resetUvSetup": "Baochip: UV-Konfiguration zurücksetzen",
 	"cmd.rerunSetup": "Baochip: Erweiterungs-Setup erneut ausführen",
 

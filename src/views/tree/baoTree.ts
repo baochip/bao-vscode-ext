@@ -65,7 +65,7 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 			const build = new TreeItem(buildCommandLabel(mode), Commands.build, 'tools');
 			const flash = new TreeItem(vscode.l10n.t('Flash device'), Commands.flash, 'rocket');
 			const bfm = new TreeItem(
-				vscode.l10n.t('Build - Flash - Monitor'),
+				vscode.l10n.t('Build • Flash • Monitor'),
 				Commands.buildFlashMonitor,
 				'rocket',
 			);

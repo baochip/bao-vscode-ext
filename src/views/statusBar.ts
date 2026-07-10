@@ -61,7 +61,7 @@ export function createStatusBarItems(context: vscode.ExtensionContext): StatusBa
 		buildFlashMonitor: makeStatusItem(
 			91,
 			Commands.buildFlashMonitor,
-			vscode.l10n.t('Baochip: Build - Flash - Monitor'),
+			vscode.l10n.t('Baochip: Build • Flash • Monitor'),
 		),
 		buildMode: makeStatusItem(90, Commands.setBuildMode, vscode.l10n.t('Baochip: Build Mode')),
 		settings: makeStatusItem(89, Commands.openSettings, vscode.l10n.t('Baochip: Settings')),

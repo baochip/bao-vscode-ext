@@ -106,7 +106,7 @@ You may use any of the following:
 - The Baochip sidebar
 - Or the combined all-in-one command:
 
-    Baochip: Build - Flash - Monitor
+    Baochip: Build • Flash • Monitor
 
 ---
 
