@@ -155,10 +155,10 @@ test('l10n: every l10n.t() key in src is a string literal (statically checkable)
 });
 
 // Values a bundle may legitimately leave identical to their English key, listed PER LOCALE. German
-// keeps the loanwords, cargo-labelled build/clean actions, terminal-tab names, and brand tokens in
-// English; ja/zh translate most of them and keep only code tokens and tech terms. A value===key not
-// listed for its locale is almost always an accidentally-untranslated string. Deliberately keeping
-// one English? Add it under that locale (and only that locale).
+// keeps the loanwords, cargo-labelled build/clean actions, terminal-tab names, status-bar item
+// names, and brand tokens in English; ja/zh translate most of them and keep only code tokens and
+// tech terms. A value===key not listed for its locale is almost always an accidentally-untranslated
+// string. Deliberately keeping one English? Add it under that locale (and only that locale).
 const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 	de: new Set([
 		'test_app',
@@ -175,6 +175,12 @@ const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 		'Baochip Build',
 		'Baochip Clean',
 		'Baochip Monitor ({0}: {1})',
+		'Baochip: App',
+		'Baochip: Build',
+		'Baochip: Build - Flash - Monitor',
+		'Baochip: Clean',
+		'Baochip: Flash',
+		'Baochip: Monitor',
 	]),
 	ja: new Set(['test_app', 'auto', 'OK', 'MD5: {0}']),
 	'zh-cn': new Set(['test_app', 'auto']),
