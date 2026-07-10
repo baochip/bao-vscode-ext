@@ -10,7 +10,10 @@ import { Commands } from '../../commands/commandIds';
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 
 function manifest(): {
-	contributes: { commands: { command: string }[]; keybindings: { command: string; key: string }[] };
+	contributes: {
+		commands: { command: string; category?: string }[];
+		keybindings: { command: string; key: string }[];
+	};
 } {
 	return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 }
@@ -33,6 +36,13 @@ test('commands: every package.json command exists in Commands', () => {
 		.filter((id) => !known.has(id))
 		.sort();
 	assert.deepEqual(missing, [], 'IDs in package.json but not in Commands');
+});
+
+test('commands: every contributed command declares the Baochip category (no baked-in title prefixes)', () => {
+	const missing = manifest()
+		.contributes.commands.filter((c) => c.category !== 'Baochip')
+		.map((c) => c.command);
+	assert.deepEqual(missing, [], 'commands without category "Baochip"');
 });
 
 test('keybindings: every binding names a contributed command, each with a distinct key', () => {

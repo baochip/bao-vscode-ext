@@ -37,78 +37,97 @@
 		"commands": [
 			{
 				"command": "baochip.openWelcome",
+				"category": "Baochip",
 				"title": "%cmd.openWelcome%"
 			},
 			{
 				"command": "baochip.openSettings",
+				"category": "Baochip",
 				"title": "%cmd.openSettings%"
 			},
 			{
 				"command": "baochip.setBootloaderSerialPort",
+				"category": "Baochip",
 				"title": "%cmd.setBootPort%"
 			},
 			{
 				"command": "baochip.setRunSerialPort",
+				"category": "Baochip",
 				"title": "%cmd.setRunPort%"
 			},
 			{
 				"command": "baochip.setMonitorDefaultPort",
+				"category": "Baochip",
 				"title": "%cmd.setMonitorDefaultPort%"
 			},
 			{
 				"command": "baochip.setMonitorBaud",
+				"category": "Baochip",
 				"title": "%cmd.setMonitorBaud%"
 			},
 			{
 				"command": "baochip.openMonitor",
+				"category": "Baochip",
 				"title": "%cmd.monitorOpen%"
 			},
 			{
 				"command": "baochip.stopMonitor",
+				"category": "Baochip",
 				"title": "%cmd.monitorStop%"
 			},
 			{
 				"command": "baochip.setFlashLocation",
+				"category": "Baochip",
 				"title": "%cmd.setFlashLocation%"
 			},
 			{
 				"command": "baochip.selectBuildTarget",
+				"category": "Baochip",
 				"title": "%cmd.selectBuildTarget%"
 			},
 			{
 				"command": "baochip.setBuildMode",
+				"category": "Baochip",
 				"title": "%cmd.setBuildMode%"
 			},
 			{
 				"command": "baochip.clean",
+				"category": "Baochip",
 				"title": "%cmd.clean%"
 			},
 			{
 				"command": "baochip.build",
+				"category": "Baochip",
 				"title": "%cmd.build%"
 			},
 			{
 				"command": "baochip.selectApp",
+				"category": "Baochip",
 				"title": "%cmd.selectApp%"
 			},
 			{
 				"command": "baochip.createApp",
+				"category": "Baochip",
 				"title": "%cmd.createApp%"
 			},
 			{
 				"command": "baochip.flash",
+				"category": "Baochip",
 				"title": "%cmd.flash%"
 			},
 			{
 				"command": "baochip.buildFlashMonitor",
+				"category": "Baochip",
 				"title": "%cmd.buildFlashMonitor%"
 			},
 			{
 				"command": "baochip.resetUvSetup",
+				"category": "Baochip",
 				"title": "%cmd.resetUvSetup%"
 			},
 			{
 				"command": "baochip.rerunSetup",
+				"category": "Baochip",
 				"title": "%cmd.rerunSetup%"
 			}
 		],
