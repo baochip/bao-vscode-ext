@@ -170,6 +170,7 @@ const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 		'Monitor',
 		'Build (cargo xtask)',
 		'Build (cargo build)',
+		'Clean',
 		'Clean (cargo clean)',
 		'Build - Flash - Monitor',
 		'Baochip Build',

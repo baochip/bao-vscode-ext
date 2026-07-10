@@ -77,9 +77,14 @@ suite('Command handlers (createApp, clean)', () => {
 
 	/* ------------------------------ Clean ------------------------------ */
 
-	test('Clean opens a terminal at the xous-core root and runs cargo clean', async () => {
+	test('Clean confirms, then opens a terminal at the xous-core root and runs cargo clean', async () => {
 		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(XOUS_ROOT);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		warnings.resolves('Clean');
 		const term = { sendText: sandbox.spy(), show: sandbox.spy() };
 		const ensureTerm = sandbox
 			.stub(terminalService, 'ensureNamedTerminal')
@@ -87,19 +92,42 @@ suite('Command handlers (createApp, clean)', () => {
 
 		await vscode.commands.executeCommand(Commands.clean);
 
+		assert.equal(warnings.callCount, 1, 'one confirmation');
+		const [msg, opts] = warnings.firstCall.args as [string, vscode.MessageOptions];
+		assert.ok(String(msg).includes('cargo clean'), 'confirmation names cargo clean');
+		assert.ok(opts.modal, 'confirmation is modal');
+		assert.ok(String(opts.detail).includes(XOUS_ROOT), 'detail names the project root');
 		assert.ok(ensureTerm.calledOnce, 'terminal ensured');
 		assert.equal(ensureTerm.firstCall.args[1], XOUS_ROOT, 'terminal cwd is the xous-core root');
 		assert.ok(term.sendText.calledOnceWith('cargo clean'), 'cargo clean sent');
 		assert.ok(term.show.calledOnce, 'terminal shown');
 	});
 
-	test('Clean does nothing when the xous-core root cannot be resolved', async () => {
+	test('Clean runs nothing when the confirmation is dismissed', async () => {
 		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
-		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(undefined);
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(XOUS_ROOT);
+		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
+			undefined,
+		);
 		const ensureTerm = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
 		await vscode.commands.executeCommand(Commands.clean);
 
+		assert.ok(ensureTerm.notCalled, 'no terminal opened after cancel');
+	});
+
+	test('Clean does nothing when the xous-core root cannot be resolved', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(undefined);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const ensureTerm = sandbox.stub(terminalService, 'ensureNamedTerminal');
+
+		await vscode.commands.executeCommand(Commands.clean);
+
+		assert.ok(warnings.notCalled, 'no confirmation without a root');
 		assert.ok(ensureTerm.notCalled, 'no terminal opened without a root');
 	});
 });
