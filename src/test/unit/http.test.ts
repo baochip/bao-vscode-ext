@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { isRedirectHostAllowed } from '../../services/httpService';
 
 test('isRedirectHostAllowed: a public origin may NOT redirect to a loopback address (SSRF guard)', () => {
-	for (const host of ['127.0.0.1', 'localhost', '::1']) {
+	// The forms new URL(location).hostname produces: IPv6 bracketed, 127/8 and 0.0.0.0 as dotted-decimal.
+	for (const host of ['127.0.0.1', '127.0.0.5', '0.0.0.0', 'localhost', '[::1]']) {
 		assert.equal(isRedirectHostAllowed(false, host), false, `public -> ${host} must be refused`);
 	}
 });

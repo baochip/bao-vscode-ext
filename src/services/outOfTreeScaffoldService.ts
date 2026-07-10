@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { BUILD_TARGETS } from '@constants';
 import { getBuildTargetOrDefault } from '@services/configService';
 import { fetchLatestXousCoreRev, toastRevFetchFailed } from '@services/kernelService';
 import { errorToast } from '@services/logService';
@@ -104,6 +105,14 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 		return;
 	}
 
+	// Validate the target before it reaches getTemplateDir's path.join (a hostile buildTarget setting
+	// must not select a template dir outside the bundled templates) and before the rev fetch.
+	const target = getBuildTargetOrDefault();
+	if (!BUILD_TARGETS.includes(target)) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
+		return;
+	}
+
 	let rev: string;
 	try {
 		rev = await fetchLatestXousCoreRev();
@@ -117,7 +126,6 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	const dotCargoPreexisted = fs.existsSync(dotCargoDir);
 
 	try {
-		const target = getBuildTargetOrDefault();
 		const templateDir = getTemplateDir(target);
 		if (!hasCargoToml(templateDir)) {
 			vscode.window.showErrorMessage(

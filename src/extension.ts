@@ -20,38 +20,6 @@ import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
 
-export async function migrateWelcomeSettingToGlobal(): Promise<void> {
-	const cfg = vscode.workspace.getConfiguration();
-	const showInspect = cfg.inspect<boolean>('baochip.showWelcomeOnStartup');
-	if (!showInspect) return;
-
-	// A folder-scoped value only surfaces when the setting is inspected with that folder's URI,
-	// so probe each folder individually - the top-level inspect misses them in a multi-root window.
-	const folderValues = (vscode.workspace.workspaceFolders ?? []).map(
-		(folder) =>
-			vscode.workspace
-				.getConfiguration(undefined, folder.uri)
-				.inspect<boolean>('baochip.showWelcomeOnStartup')?.workspaceFolderValue,
-	);
-
-	const legacyValues = [showInspect.workspaceValue, ...folderValues].filter(
-		(v) => v !== undefined,
-	) as boolean[];
-	const globalShowSet = showInspect.globalValue !== undefined;
-
-	// Lift a legacy workspace/folder value to Global when none is set there. The setting is
-	// application-scoped now, so any leftover workspace/folder value is inert (VS Code ignores it on
-	// read) and cannot be cleared via update() at those targets (an application-scoped write there is
-	// rejected) - so we only promote the preference; we do not try to remove the stale entry.
-	if (!globalShowSet && legacyValues.length > 0) {
-		await cfg.update(
-			'baochip.showWelcomeOnStartup',
-			legacyValues[0],
-			vscode.ConfigurationTarget.Global,
-		);
-	}
-}
-
 /**
  * Run a best-effort activation step in isolation. A failure (e.g. cfg.update rejecting on a
  * dirty or invalid settings.json) is logged and swallowed so it cannot abort activation and
@@ -68,7 +36,6 @@ export async function runStartupStep(label: string, step: () => Promise<void>): 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
 	context.subscriptions.push(getBaochipChannel()); // dispose the shared output channel on deactivate
-	await runStartupStep('migrate welcome setting', migrateWelcomeSettingToGlobal);
 	await runStartupStep('auto-detect xous-core', autoDetectXousCore);
 
 	// Sidebar tree

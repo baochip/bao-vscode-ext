@@ -457,6 +457,24 @@ suite('App service and scaffolding', () => {
 		assert.ok(updateFolders.notCalled, 'workspace untouched');
 	});
 
+	test('scaffoldOutOfTreeApp refuses a target not in BUILD_TARGETS before touching the template path', async () => {
+		const projectDir = tmpDir();
+		await setCfg('buildTarget', '../../../../etc'); // traversal-shaped; reset by teardown
+		const { updateFolders } = stubScaffoldPrompts(projectDir, 'my_oot_app');
+		const fetchRev = sandbox.stub(kernelService, 'fetchLatestXousCoreRev').resolves(SHA);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
+
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid build target')),
+			'invalid-target refusal shown',
+		);
+		assert.ok(fetchRev.notCalled, 'rejected before the rev fetch');
+		assert.ok(!fs.existsSync(path.join(projectDir, 'Cargo.toml')), 'nothing scaffolded');
+		assert.ok(updateFolders.notCalled, 'workspace untouched');
+	});
+
 	test('scaffoldOutOfTreeApp refuses a folder that already has a .cargo/config.toml', async () => {
 		const projectDir = tmpDir();
 		fs.mkdirSync(path.join(projectDir, '.cargo'));

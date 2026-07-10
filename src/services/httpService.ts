@@ -11,7 +11,12 @@ function isRedirect(status: number): boolean {
 }
 
 function isLoopbackHost(hostname: string): boolean {
-	return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
+	// URL.hostname brackets IPv6 ([::1]) and canonicalizes IPv4 (any 127.x is dotted-decimal), so strip
+	// the brackets then match localhost, ::1, 0.0.0.0, and all of 127.0.0.0/8. (IPv4-mapped IPv6 such
+	// as [::ffff:7f00:1] is not covered - an exotic form outside this guard's threat model.)
+	const h = hostname.replace(/^\[|\]$/g, '');
+	if (h === 'localhost' || h === '::1' || h === '0.0.0.0') return true;
+	return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
 }
 
 /**
