@@ -71,6 +71,16 @@ test('packaging: vsce ls excludes dev-only config files and caches', { skip: nee
 // vsce packages whatever is on disk. vscode:prepublish must clean out/ before compiling
 // so old layouts cannot ship in the .vsix.
 
+test('packaging: marketplace metadata fields are present and well-formed', () => {
+	const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+	assert.equal(pkg.homepage, 'https://baochip.com');
+	assert.equal(pkg.bugs?.url, 'https://github.com/baochip/bao-vscode-ext/issues');
+	assert.equal(pkg.qna, 'https://github.com/baochip/bao-vscode-ext/issues');
+	assert.match(pkg.galleryBanner?.color ?? '', /^#[0-9a-f]{6}$/i);
+	assert.ok(['dark', 'light'].includes(pkg.galleryBanner?.theme), 'galleryBanner.theme');
+	assert.ok(!('website' in pkg), 'nonstandard "website" field must not return');
+});
+
 test('packaging: vscode:prepublish cleans out/ before compiling', () => {
 	const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 	assert.equal(pkg.scripts['vscode:prepublish'], 'npm run clean && npm run compile');

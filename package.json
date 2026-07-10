@@ -3,7 +3,15 @@
 	"displayName": "%ext.displayName%",
 	"description": "%ext.description%",
 	"publisher": "baochip",
-	"website": "https://baochip.com",
+	"homepage": "https://baochip.com",
+	"bugs": {
+		"url": "https://github.com/baochip/bao-vscode-ext/issues"
+	},
+	"qna": "https://github.com/baochip/bao-vscode-ext/issues",
+	"galleryBanner": {
+		"color": "#4b4c4b",
+		"theme": "dark"
+	},
 	"version": "1.0.0",
 	"icon": "media/baochip-128x128-logo-only.png",
 	"license": "Apache-2.0",
