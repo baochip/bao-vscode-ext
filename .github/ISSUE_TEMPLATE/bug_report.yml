@@ -45,4 +45,4 @@ body:
         Cmd+Shift+P on macOS, then type "Baochip: Re-run Extension Setup") or click the
         "Re-run Extension Setup" link in VS Code Settings under Baochip - General.
       options:
-        - label: I ran "Baochip: Re-run Extension Setup" and the problem persists
+        - label: 'I ran "Baochip: Re-run Extension Setup" and the problem persists'
