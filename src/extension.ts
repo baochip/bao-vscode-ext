@@ -11,7 +11,7 @@ import {
 } from '@services/configService';
 import { setHttpLogger } from '@services/httpService';
 import { getBaochipChannel, log } from '@services/logService';
-import { getProjectMode } from '@services/projectModeService';
+import { getProjectMode, isBaochipWorkspace } from '@services/projectModeService';
 import { setExtensionContext } from '@services/uvService';
 import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
@@ -54,6 +54,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Single UI refresher
 	const refreshUI = () => {
+		// Ambient UI only in Baochip-related workspaces: an unrelated project gets no status bar
+		// row. The activity bar icon, sidebar, commands, and keybindings stay available
+		// everywhere, and any relevance change (a setting saved, a folder added) re-runs this.
+		if (!isBaochipWorkspace()) {
+			for (const item of Object.values(items)) item.hide();
+			tree.refresh();
+			return;
+		}
+
 		const bootloaderSerPort = getBootloaderSerialPort();
 		const runSerPort = getRunSerialPort();
 		const baud = getDefaultBaud();
@@ -161,7 +170,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	registerCommands(context);
 
-	if (getShowWelcome()) {
+	// Auto-open only in Baochip-related workspaces; re-showing to returning users in their real
+	// projects is intended, but an unrelated project should not greet anyone.
+	if (getShowWelcome() && isBaochipWorkspace()) {
 		vscode.commands.executeCommand(Commands.openWelcome);
 	}
 }
