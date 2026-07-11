@@ -82,12 +82,21 @@ function stubPortPicker(sandbox: sinon.SinonSandbox): FakePortPicker {
 	return qp;
 }
 
-/** Poll the event loop until cond() holds - the picker's enumeration runs fire-and-forget. */
-async function until(cond: () => boolean): Promise<void> {
-	for (let i = 0; i < 100 && !cond(); i++) {
-		await new Promise((r) => setTimeout(r, 0));
+/** Wait until cond() holds - the picker's enumeration and background polling run on real time. */
+async function until(cond: () => boolean, timeoutMs = 5000): Promise<void> {
+	const start = Date.now();
+	while (!cond() && Date.now() - start < timeoutMs) {
+		await new Promise((r) => setTimeout(r, 25));
 	}
 	assert.ok(cond(), 'condition not reached in time');
+}
+
+function deferred<T>() {
+	let resolve!: (v: T) => void;
+	const promise = new Promise<T>((r) => {
+		resolve = r;
+	});
+	return { promise, resolve };
 }
 
 suite('Ports, monitor, and boot', () => {
@@ -112,7 +121,7 @@ suite('Ports, monitor, and boot', () => {
 		const pending = portsService.promptAndSaveSerialPort('run');
 		await until(() => qp.items.length > 0 && !qp.busy);
 
-		assert.equal(qp.ignoreFocusOut, true, 'picker survives focus loss while handling the board');
+		assert.equal(qp.ignoreFocusOut, false, 'standard picker: Escape and click-away both dismiss');
 		assert.ok(String(qp.title).includes('PROG'), `run-mode guidance in the title: ${qp.title}`);
 		assert.deepEqual(
 			qp.items.map((i) => i.label),
@@ -222,6 +231,43 @@ suite('Ports, monitor, and boot', () => {
 		assert.equal(runBao.callCount, 2, 'ports re-enumerated after the hint was accepted');
 	});
 
+	test('the picker re-enumerates on its own while open (no user action)', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
+		runBao.onFirstCall().resolves(''); // board not plugged in yet
+		runBao.resolves(PORTS_OUTPUT); // every later poll sees the board
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length === 1 && !qp.busy);
+		// No refresh click, no hint accept: the background poll must pick the board up by itself.
+		await until(() => qp.items.length === 2);
+		qp.accept(qp.items[1]);
+
+		assert.equal(await pending, 'COM7');
+		assert.ok(runBao.callCount >= 2, 'the picker polled without user action');
+	});
+
+	test('a refresh requested mid-enumeration is queued, not dropped', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const first = deferred<string>();
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
+		runBao.onFirstCall().returns(first.promise); // initial enumeration hangs
+		runBao.resolves(PORTS_OUTPUT);
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => runBao.callCount === 1);
+		qp.pressRefresh(); // arrives while the first enumeration is still running
+		first.resolve(''); // first listing: empty
+
+		// The queued refresh must run and deliver the real listing.
+		await until(() => qp.items.length === 2);
+		qp.accept(qp.items[1]);
+		assert.equal(await pending, 'COM7');
+		assert.ok(runBao.callCount >= 2, 'the mid-flight refresh request ran after the first finished');
+	});
+
 	test('promptAndSaveSerialPort surfaces a ports-listing failure with a single toast', async () => {
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('bao.py exploded'));
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
@@ -233,6 +279,26 @@ suite('Ports, monitor, and boot', () => {
 		assert.equal(errors.callCount, 1, 'exactly one error toast');
 		assert.ok(String(errors.firstCall.args[0]).includes('Could not list ports'));
 		assert.ok(qp.disposed, 'picker closed on a listing failure');
+	});
+
+	test('a background poll failure stays silent and keeps the picker open', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
+		runBao.onFirstCall().resolves(PORTS_OUTPUT);
+		runBao.onSecondCall().rejects(new Error('transient hiccup')); // first background poll
+		runBao.resolves(PORTS_OUTPUT);
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length === 2 && !qp.busy);
+		// Wait for the failing poll and one more good one - the picker must ride through both.
+		await until(() => runBao.callCount >= 3, 8000);
+
+		assert.ok(!qp.disposed && qp.visible, 'picker survived the transient poll failure');
+		assert.ok(errors.notCalled, 'no toast for a background hiccup');
+		qp.accept(qp.items[1]);
+		assert.equal(await pending, 'COM7');
 	});
 
 	/* ------------------------------ ensureSerialPort ------------------------------ */
@@ -259,6 +325,46 @@ suite('Ports, monitor, and boot', () => {
 
 		assert.equal(port, 'COM7', 'continues in the same run with the fresh pick');
 		assert.equal(cfg().get<string>('serialPortRun'), 'COM7');
+	});
+
+	/* ------------------------------ isPortPresent / offerRepickMissingPort ------------------------------ */
+
+	test('isPortPresent reports presence, absence, and unknown-on-failure', async () => {
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
+		assert.equal(await portsService.isPortPresent('COM7'), true);
+		assert.equal(await portsService.isPortPresent('COM9'), false);
+		runBao.rejects(new Error('bao.py exploded'));
+		assert.equal(await portsService.isPortPresent('COM7'), null, 'a listing failure is unknown');
+	});
+
+	test('offerRepickMissingPort names the port and returns the fresh pick', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		warnings.resolves('Pick a different port');
+		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.offerRepickMissingPort('run', 'COM9');
+		await until(() => qp.items.length === 2 && !qp.busy);
+		qp.accept(qp.items[1]);
+
+		assert.equal(await pending, 'COM7');
+		assert.equal(cfg().get<string>('serialPortRun'), 'COM7', 'fresh pick saved');
+		const msg = String(warnings.firstCall.args[0]);
+		assert.ok(msg.includes('COM9') && msg.includes('run mode'), `warning names the port: ${msg}`);
+	});
+
+	test('offerRepickMissingPort returns undefined when the warning is dismissed', async () => {
+		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
+			undefined,
+		);
+		const create = sandbox.stub(vscode.window, 'createQuickPick');
+
+		assert.equal(await portsService.offerRepickMissingPort('run', 'COM9'), undefined);
+		assert.ok(create.notCalled, 'no picker after a dismissal');
 	});
 
 	/* ------------------------------ waitForPort ------------------------------ */
@@ -352,6 +458,30 @@ suite('Ports, monitor, and boot', () => {
 		assert.equal(received, token, 'the same token reaches the underlying ports probe');
 	});
 
+	test('runBaoCmd quiet skips the heartbeat log lines but still logs failures', async () => {
+		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
+		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
+		const logSpy = sandbox.stub(logService, 'log');
+		const run = sandbox
+			.stub(procService, 'runProcess')
+			.resolves({ code: 0, stdout: 'COM7\tBaochip', stderr: '', cancelled: false });
+
+		await baoRunnerService.runBaoCmd(['ports'], undefined, { capture: true, quiet: true });
+		assert.ok(
+			logSpy.getCalls().every((c) => !/INVOKE|EXIT|resolved/.test(String(c.args[0]))),
+			`no heartbeat lines when quiet: ${logSpy.getCalls().map((c) => c.args[0])}`,
+		);
+
+		run.resolves({ code: 1, stdout: '', stderr: 'boom', cancelled: false });
+		await assert.rejects(
+			baoRunnerService.runBaoCmd(['ports'], undefined, { capture: true, quiet: true }),
+		);
+		assert.ok(
+			logSpy.getCalls().some((c) => String(c.args[0]).includes('EXIT 1')),
+			'a failing exit is still logged even when quiet',
+		);
+	});
+
 	test('runBaoCmd treats a cancelled run as a cancel, not a bao.py failure toast', async () => {
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
@@ -374,11 +504,14 @@ suite('Ports, monitor, and boot', () => {
 		sendText: sinon.SinonSpy;
 		show: sinon.SinonSpy;
 		dispose: sinon.SinonSpy;
+		shellIntegration?: { executeCommand: sinon.SinonSpy };
 	}
 
-	// The monitor terminal runs uv directly via shellPath/shellArgs (no shell parses a command
-	// line), so the fakes capture createTerminal options instead of sent text.
-	function stubMonitorTerminal(cmd = 'uv') {
+	// The monitor runs in a regular shell terminal so Ctrl+C returns the user to their prompt.
+	// With shell integration the command goes through executeCommand (shell-correct quoting);
+	// without it (cmd, or integration disabled) the command is typed. Fakes capture both paths.
+	function stubMonitorTerminal(opts: { cmd?: string; withIntegration?: boolean } = {}) {
+		const { cmd = 'uv', withIntegration = true } = opts;
 		const terminals: FakeTerminal[] = [];
 		const create = (
 			sandbox.stub(vscode.window, 'createTerminal') as unknown as sinon.SinonStub
@@ -388,6 +521,7 @@ suite('Ports, monitor, and boot', () => {
 				show: sandbox.spy(),
 				dispose: sandbox.spy(),
 			};
+			if (withIntegration) term.shellIntegration = { executeCommand: sandbox.spy() };
 			terminals.push(term);
 			return term as unknown as vscode.Terminal;
 		});
@@ -395,25 +529,30 @@ suite('Ports, monitor, and boot', () => {
 		sandbox.stub(baoRunnerService, 'resolveBaoPy').returns('C:\\fake\\bao.py');
 		sandbox.stub(uvService, 'uvEnv').returns({ BAO_TEST_ENV: 'sentinel' });
 		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
-		const optionsOf = (call: number) =>
-			create.getCall(call).args[0] as vscode.TerminalOptions & { shellArgs?: string[] };
-		return { terminals, create, optionsOf, deps };
+		const present = sandbox.stub(portsService, 'isPortPresent').resolves(true);
+		const repick = sandbox.stub(portsService, 'offerRepickMissingPort').resolves(undefined);
+		const optionsOf = (call: number) => create.getCall(call).args[0] as vscode.TerminalOptions;
+		const executedOf = (call: number) =>
+			terminals[call].shellIntegration?.executeCommand.firstCall?.args as [string, string[]];
+		return { terminals, create, optionsOf, executedOf, deps, present, repick };
 	}
 
-	test('openMonitorTTY launches bao.py monitor with the port, baud, and default flags', async () => {
+	test('openMonitorTTY runs bao.py monitor via shell integration with port, baud, and flags', async () => {
 		const ensurePort = sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
-		const { terminals, create, optionsOf } = stubMonitorTerminal();
+		const { terminals, create, executedOf } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
 		assert.ok(ensurePort.calledOnceWith('run'));
 		assert.ok(create.calledOnce, 'terminal created');
-		const opts = optionsOf(0);
-		assert.equal(opts.shellPath, 'uv', 'uv is the terminal process');
+		const [exe, args] = executedOf(0);
+		assert.equal(exe, 'uv', 'uv handed to shell integration unquoted');
 		assert.deepEqual(
-			opts.shellArgs,
+			args,
 			[
 				'run',
+				'--project',
+				uvService.getGlobalVenvRoot(),
 				'python',
 				'C:\\fake\\bao.py',
 				'monitor',
@@ -425,10 +564,22 @@ suite('Ports, monitor, and boot', () => {
 				'--raw',
 				'--no-echo',
 			],
-			'argv with port, baud, and default flags',
+			'argv with the venv project, port, baud, and default flags',
 		);
-		assert.ok(terminals[0].sendText.notCalled, 'no command line typed into the terminal');
+		assert.ok(terminals[0].sendText.notCalled, 'nothing typed when integration is available');
 		assert.ok(terminals[0].show.calledOnce, 'terminal shown');
+	});
+
+	test('openMonitorTTY types the command when shell integration never activates', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { terminals } = stubMonitorTerminal({ withIntegration: false });
+
+		await monitorService.openMonitorTTY('run'); // waits out the integration timeout
+
+		assert.ok(terminals[0].sendText.calledOnce, 'command typed as the fallback');
+		const line = String(terminals[0].sendText.firstCall.args[0]);
+		assert.ok(line.startsWith('uv run --project'), `runner args lead the line: ${line}`);
+		assert.ok(line.includes('monitor -p COM5 -b 1000000'), `full command line: ${line}`);
 	});
 
 	test('openMonitorTTY honors the monitor flag settings', async () => {
@@ -436,13 +587,12 @@ suite('Ports, monitor, and boot', () => {
 		await setCfg('monitor.raw', false);
 		await setCfg('monitor.echo', true);
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
-		const { optionsOf } = stubMonitorTerminal();
+		const { executedOf } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
-		const shellArgs = optionsOf(0).shellArgs ?? [];
 		assert.deepEqual(
-			shellArgs.slice(-3),
+			executedOf(0)[1].slice(-3),
 			['--no-crlf', '--no-raw', '--echo'],
 			'explicit off/on forms passed so bao.py defaults cannot win',
 		);
@@ -451,22 +601,62 @@ suite('Ports, monitor, and boot', () => {
 	test('openMonitorTTY passes a uv path containing spaces verbatim (A17 regression)', async () => {
 		const spacedUv = 'C:\\Users\\Jean Doe\\AppData\\globalStorage\\uv\\uv.exe';
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
-		const { optionsOf } = stubMonitorTerminal(spacedUv);
+		const { executedOf } = stubMonitorTerminal({ cmd: spacedUv });
 
 		await monitorService.openMonitorTTY('run');
 
-		const opts = optionsOf(0);
-		assert.equal(opts.shellPath, spacedUv, 'path reaches the terminal unmodified');
-		assert.ok(!String(opts.shellPath).includes('"'), 'no shell quoting applied');
+		// Shell integration owns the quoting: the executable must arrive raw, not pre-quoted.
+		assert.equal(executedOf(0)[0], spacedUv, 'path reaches shell integration unmodified');
+		assert.ok(!executedOf(0)[0].includes('"'), 'no quoting applied by the extension');
 	});
 
-	test('openMonitorTTY passes the contained uv environment to the terminal', async () => {
+	test('openMonitorTTY offers a repick when the saved port is absent and uses the new pick', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { create, executedOf, present, repick } = stubMonitorTerminal();
+		present.resolves(false);
+		repick.resolves('COM9');
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.ok(repick.calledOnceWith('run', 'COM5'), 'repick offered for the absent port');
+		assert.ok(create.calledOnce, 'monitor still opens after the repick');
+		assert.ok(executedOf(0)[1].includes('COM9'), 'monitor uses the freshly picked port');
+	});
+
+	test('openMonitorTTY opens no terminal when the absent-port offer is declined', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { create, present } = stubMonitorTerminal();
+		present.resolves(false);
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.ok(create.notCalled, 'no dead monitor at an absent port');
+	});
+
+	test('openMonitorTTY proceeds normally when presence cannot be determined', async () => {
+		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
+		const { create, executedOf, present, repick } = stubMonitorTerminal();
+		present.resolves(null); // listing failed: unknown, not absent
+
+		await monitorService.openMonitorTTY('run');
+
+		assert.ok(repick.notCalled, 'no repick nag on an enumeration failure');
+		assert.ok(create.calledOnce, 'monitor opens; it will surface the real error itself');
+		assert.ok(executedOf(0)[1].includes('COM5'), 'original port used');
+	});
+
+	test('openMonitorTTY opens the terminal at the project root with the contained uv env', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM5');
 		const { optionsOf } = stubMonitorTerminal();
 
 		await monitorService.openMonitorTTY('run');
 
 		assert.equal(optionsOf(0).env?.BAO_TEST_ENV, 'sentinel', 'uvEnv() reaches the terminal');
+		assert.equal(
+			optionsOf(0).cwd,
+			vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+			'the prompt the user lands on after Ctrl+C is the project root, not extension storage',
+		);
 	});
 
 	test('openMonitorTTY interrupts and disposes the previous monitor terminal on reopen', async () => {
@@ -482,7 +672,6 @@ suite('Ports, monitor, and boot', () => {
 			'Ctrl+C (no trailing newline) sent to the old monitor',
 		);
 		assert.ok(terminals[0].dispose.calledOnce, 'old terminal disposed');
-		assert.ok(terminals[1].sendText.notCalled, 'new terminal receives no typed command');
 	});
 
 	test('the monitor close-terminal listener is disposed on reopen and on stop (no leak)', async () => {

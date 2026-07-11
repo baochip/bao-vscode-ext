@@ -1,5 +1,6 @@
-"""Exit-code tests for the monitor command: failure paths must return nonzero so the
-dispatcher (sys.exit(code or 0)) reports them - a failed monitor must not exit 0."""
+"""Monitor exit behavior: the monitor reports its problems interactively (logged messages),
+and the process always exits 0 - a nonzero code only makes editors stack a terminal
+exit-code notification on top of the message the user already saw."""
 
 import argparse
 import logging
@@ -25,6 +26,13 @@ class FakeSerial:
         self.closed = True
 
 
+@pytest.fixture(autouse=True)
+def no_hard_exit(monkeypatch):
+    """cmd_monitor ends with a process-level exit (monitor._hard_exit); neuter it so tests can
+    assert on the in-process return value."""
+    monkeypatch.setattr(monitor, "_hard_exit", lambda: None)
+
+
 @pytest.fixture
 def quiet_writer(monkeypatch):
     """No-op the stdin->serial writer so its background stdin reads don't interfere with the
@@ -40,37 +48,45 @@ def make_args(**overrides):
     return argparse.Namespace(**base)
 
 
-def test_unopenable_port_returns_2(monkeypatch):
+def test_unopenable_port_reports_and_exits_0(monkeypatch, caplog):
     def cannot_open(*a, **k):
         raise SerialException("cannot open COM9: no such port")
 
     monkeypatch.setattr(monitor, "open_serial", cannot_open)
 
-    # An unopenable port exits 2 (like cmd_boot), not the generic 1 from bao.py's handler.
-    assert monitor.cmd_monitor(make_args()) == 2
+    with caplog.at_level(logging.ERROR):
+        code = monitor.cmd_monitor(make_args())
+
+    # The logged message is the product; the exit stays 0.
+    assert code == 0
+    assert any("cannot open" in r.message for r in caplog.records)
 
 
-def test_unwritable_save_file_returns_2(monkeypatch, tmp_path):
+def test_unwritable_save_file_reports_and_exits_0(monkeypatch, tmp_path, caplog):
     ser = FakeSerial(lambda: b"")
     monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
 
     # a directory path cannot be opened as the --save file
-    code = monitor.cmd_monitor(make_args(save=str(tmp_path)))
+    with caplog.at_level(logging.ERROR):
+        code = monitor.cmd_monitor(make_args(save=str(tmp_path)))
 
-    assert code == 2
+    assert code == 0
+    assert any("--save" in r.message for r in caplog.records)
     assert ser.closed, "serial port released on the failure path"
 
 
-def test_persistent_serial_errors_return_1(monkeypatch, quiet_writer):
+def test_persistent_serial_errors_report_and_exit_0(monkeypatch, quiet_writer, caplog):
     def explode():
         raise SerialException("device disconnected")
 
     ser = FakeSerial(explode)
     monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
 
-    code = monitor.cmd_monitor(make_args())
+    with caplog.at_level(logging.ERROR):
+        code = monitor.cmd_monitor(make_args())
 
-    assert code == 1
+    assert code == 0
+    assert any("Too many serial errors" in r.message for r in caplog.records)
     assert ser.closed
 
 
@@ -149,9 +165,9 @@ def test_line_mode_normalizes_to_crlf_and_echoes(monkeypatch, capsys):
     assert capsys.readouterr().out == "hello\r\nworld\r\n", "echo mirrors the lines with CRLF"
 
 
-def test_writer_serial_failure_exits_1_with_a_message(monkeypatch, caplog):
-    """A disconnect on the write side (typing) must exit nonzero with a message, like the read
-    side - not the silent exit 0 of a normal stdin EOF."""
+def test_writer_serial_failure_reports_a_message_and_exits_0(monkeypatch, caplog):
+    """A disconnect on the write side (typing) must be reported with a message, unlike the
+    silent end of a normal stdin EOF; the exit still stays 0."""
 
     def failing_writer(ser, args, stop_event, write_error):
         write_error.set()
@@ -164,9 +180,43 @@ def test_writer_serial_failure_exits_1_with_a_message(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         code = monitor.cmd_monitor(make_args())
 
-    assert code == 1
+    assert code == 0
     assert ser.closed
     assert any("disconnect" in r.message.lower() for r in caplog.records)
+
+
+def test_exit_restores_terminal_charset_and_colors(monkeypatch, quiet_writer):
+    """Raw device output can switch the terminal's charset (e.g. ESC ( K -> German ISO-646,
+    rendering "\\" as "Ö") or leave colors on; the monitor must restore a sane terminal state
+    on exit so the corruption cannot outlive the session into the user's shell prompt."""
+
+    class RecordingStdout:
+        def __init__(self):
+            self.data = ""
+
+        def write(self, s):
+            self.data += s
+            return len(s)
+
+        def flush(self):
+            pass
+
+        def isatty(self):
+            return True
+
+    out = RecordingStdout()
+    monkeypatch.setattr(monitor.sys, "stdout", out)
+
+    def interrupt():
+        raise KeyboardInterrupt
+
+    ser = FakeSerial(interrupt)
+    monkeypatch.setattr(monitor, "open_serial", lambda *a, **k: ser)
+
+    code = monitor.cmd_monitor(make_args())
+
+    assert code == 0
+    assert out.data.endswith("\x0f\x1b(B\x1b[0m"), "terminal restore sequence written last"
 
 
 def test_second_ctrl_c_during_cleanup_still_restores_terminal(monkeypatch):

@@ -11,7 +11,7 @@ import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
 import { errorToast } from '@services/logService';
 import { openMonitorTTY } from '@services/monitorService';
-import { ensureSerialPort, waitForPort } from '@services/portsService';
+import { ensureSerialPort, offerRepickMissingPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
@@ -70,7 +70,7 @@ export function registerBuildFlashMonitor() {
 		}
 
 		// 3) Monitor (wait for run port to appear)
-		await vscode.window.withProgress(
+		const portResult = await vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Notification,
 				title: vscode.l10n.t('Baochip: waiting for {0}...', runPort),
@@ -81,29 +81,29 @@ export function registerBuildFlashMonitor() {
 				await new Promise((r) => setTimeout(r, 500));
 
 				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port...') });
-				const portResult = await waitForPort(runBaoCmd, runPort, {
+				const result = await waitForPort(runBaoCmd, runPort, {
 					timeoutMs: 20000,
 					intervalMs: 500,
 					token,
 				});
-
-				if (token.isCancellationRequested) return;
-
-				// A probe error means bao.py is broken (waitForPort already toasted the reason);
-				// opening the monitor would just fail again, so stop here.
-				if (portResult === 'error') return;
-
-				if (portResult === 'timeout') {
-					vscode.window.showWarningMessage(
-						vscode.l10n.t("Run mode port {0} didn't appear in time. Trying anyway...", runPort),
-					);
-				}
-
-				// Brief stability delay - let the UART settle before the monitor connects
-				await new Promise((r) => setTimeout(r, 300));
-				if (token.isCancellationRequested) return;
-				await openMonitorTTY('run');
+				return token.isCancellationRequested ? 'cancelled' : result;
 			},
 		);
+
+		// A probe error means bao.py is broken (waitForPort already toasted the reason);
+		// opening the monitor would just fail again, so stop here.
+		if (portResult === 'cancelled' || portResult === 'error') return;
+
+		// The saved port may be a wrong-mode port that can never appear; opening a monitor at a
+		// port that is not there just spawns a dead terminal (plus VS Code's own misleading
+		// "terminal exited" toast), so offer to fix the port here instead.
+		if (portResult === 'timeout') {
+			const repicked = await offerRepickMissingPort('run', runPort);
+			if (!repicked) return;
+		}
+
+		// Brief stability delay - let the UART settle before the monitor connects
+		await new Promise((r) => setTimeout(r, 300));
+		await openMonitorTTY('run');
 	});
 }

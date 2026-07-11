@@ -50,9 +50,10 @@ def test_verbose_adds_a_traceback_without_duplicating_the_error(tmp_path):
     assert "Traceback" not in quiet.stderr, "traceback only with --verbose"
 
 
-def test_monitor_with_unopenable_port_exits_2():
-    # An unopenable port exits 2 (like boot), caught in cmd_monitor - not the dispatcher's exit 1.
+def test_monitor_with_unopenable_port_reports_and_exits_0():
+    # The monitor reports its problems interactively and always exits 0, so editors never stack
+    # a terminal exit-code notification on top of the message (boot, being scriptable, keeps 2).
     result = run_bao("monitor", "-p", NO_SUCH_PORT)
 
-    assert result.returncode == 2
+    assert result.returncode == 0
     assert "cannot open" in result.stderr

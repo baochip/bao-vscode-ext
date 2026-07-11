@@ -34,6 +34,7 @@ function stubPipeline(sandbox: sinon.SinonSandbox) {
 		boot: sandbox.stub(bootService, 'sendBoot').resolves(true),
 		ensurePort: sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7'),
 		waitPort: sandbox.stub(portsService, 'waitForPort').resolves('found'),
+		repick: sandbox.stub(portsService, 'offerRepickMissingPort').resolves(undefined),
 		monitor: sandbox.stub(monitorService, 'openMonitorTTY').resolves(),
 		errors: sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub,
 		warnings: sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub,
@@ -152,26 +153,33 @@ suite('Build-Flash-Monitor pipeline', () => {
 		assert.ok(p.waitPort.notCalled && p.monitor.notCalled, 'no port wait or monitor');
 	});
 
-	test('a port that times out warns but still opens the monitor', async () => {
+	test('a port that times out offers a repick; declining opens no monitor', async () => {
 		const p = stubPipeline(sandbox);
 		p.waitPort.resolves('timeout');
 
 		await runPipeline(clock);
 
-		assert.ok(toastIncludes(p.warnings, "didn't appear in time"), 'timeout warning shown');
-		assert.ok(p.monitor.calledOnceWith('run'), 'monitor still opened');
+		assert.ok(p.repick.calledOnceWith('run', 'COM7'), 'repick offered for the missing port');
+		assert.ok(p.monitor.notCalled, 'no monitor at a port that never appeared');
 	});
 
-	test('a port-probe error stops before the monitor with no bogus timeout warning', async () => {
+	test('a port that times out continues to the monitor once a new port is picked', async () => {
+		const p = stubPipeline(sandbox);
+		p.waitPort.resolves('timeout');
+		p.repick.resolves('COM9');
+
+		await runPipeline(clock);
+
+		assert.ok(p.monitor.calledOnceWith('run'), 'monitor opens after the repick');
+	});
+
+	test('a port-probe error stops before the monitor with no repick nag', async () => {
 		const p = stubPipeline(sandbox);
 		p.waitPort.resolves('error'); // bao.py broken; waitForPort already toasted the reason
 
 		await runPipeline(clock);
 
-		assert.ok(
-			!toastIncludes(p.warnings, "didn't appear in time"),
-			'no "trying anyway" warning when the probe itself failed',
-		);
+		assert.ok(p.repick.notCalled, 'no repick offer when the probe itself failed');
 		assert.ok(p.monitor.notCalled, 'no doomed monitor opened after a probe error');
 	});
 

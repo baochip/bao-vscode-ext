@@ -583,10 +583,12 @@ async function resolveUvBinaryUncached(): Promise<string> {
 
 /* ------------------------------ public API ------------------------------ */
 
-/** Returns `{ cmd: <uv binary>, args: ['run','python'] }` */
-export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
+/** Returns `{ cmd: <uv binary>, args: ['run','python'] }`. Quiet skips the routine log line. */
+export async function getBaoRunner(
+	opts: { quiet?: boolean } = {},
+): Promise<{ cmd: string; args: string[] }> {
 	const uvPath = await resolveUvBinary();
-	log(`Bao runner: ${uvPath} run python`);
+	if (!opts.quiet) log(`Bao runner: ${uvPath} run python`);
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 

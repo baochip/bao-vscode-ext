@@ -10,6 +10,17 @@ from serial.serialutil import SerialException
 from utils.serial_utils import DEFAULT_BAUD, open_serial, safe_close
 
 
+def _hard_exit() -> None:
+    """Exit the process immediately, skipping interpreter finalization.
+
+    The daemon stdin-reader thread may be blocked in a console read; CPython tearing it down
+    during finalization crashes on Windows (access violation, exit code 0xC0000005), which
+    editors then report in a scary terminal notification. Tests stub this out and assert on
+    cmd_monitor's return value instead.
+    """
+    os._exit(0)
+
+
 @contextlib.contextmanager
 def _stdin_raw_noecho():
     """Disable local echo & canonical mode so each keystroke is delivered immediately.
@@ -116,8 +127,10 @@ def cmd_monitor(args: argparse.Namespace) -> int:
             timeout=0.1,
         )
     except SerialException as e:
-        logging.error(str(e))  # exit 2 for an unopenable port, matching cmd_boot
-        return 2
+        logging.error(str(e))
+        # A monitor reports its problems interactively (the message above); exit 0 keeps editors
+        # from stacking a terminal exit-code notification on top of it.
+        return 0
     outf = None
     if args.save:
         try:
@@ -127,7 +140,7 @@ def cmd_monitor(args: argparse.Namespace) -> int:
         except Exception as e:
             logging.error(f"cannot open --save file: {e}")
             safe_close(ser)
-            return 2
+            return 0
 
     print(f"[bao] Monitor {args.port} @ {args.baud} - interactive (Ctrl+C to exit)")
     mode = "RAW" if args.raw else ("LINE CRLF" if args.crlf else "LINE LF")
@@ -142,7 +155,7 @@ def cmd_monitor(args: argparse.Namespace) -> int:
     IDLE_SLEEP_S = 0.01   # small yield when idle to avoid a hot loop
     stop_event = threading.Event()
     write_error = threading.Event()  # set by the writer thread if a serial write fails
-    exit_code = 0  # nonzero when the monitor ends because of a failure (disconnect)
+    failed = False  # a read-side disconnect was already reported (avoids doubling the message)
 
     # Persistent UTF-8 decoder so a multibyte char split across ser.read() chunks isn't corrupted.
     rx_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
@@ -180,17 +193,16 @@ def cmd_monitor(args: argparse.Namespace) -> int:
                     logging.warning("Serial read errors - the port may be disconnecting...")
                 if consecutive_errors >= MAX_ERRORS:
                     logging.error("Too many serial errors - port may be disconnected.")
-                    exit_code = 1
+                    failed = True
                     break
                 time.sleep(RETRY_SLEEP_S)
                 continue
             # Small yield to avoid a hot loop when idle
             if not stop_event.is_set():
                 time.sleep(IDLE_SLEEP_S)
-        # Report a writer-side disconnect (serial write failed) as a failure, not a clean exit.
-        if write_error.is_set() and exit_code == 0:
+        # Report a writer-side disconnect (serial write failed) unless the read side already did.
+        if write_error.is_set() and not failed:
             logging.error("Serial write failed - port may be disconnected.")
-            exit_code = 1
     except KeyboardInterrupt:
         pass
     finally:
@@ -215,7 +227,22 @@ def cmd_monitor(args: argparse.Namespace) -> int:
             safe_close(ser)
         except BaseException:
             pass
-    return exit_code
+        # Undo any terminal state the device's raw output may have left behind: garbage bytes
+        # (wrong baud, binary noise at boot) can contain charset-switching escapes - e.g.
+        # ESC ( K selects German ISO-646, which renders "\" as "Ö" - or shift-out, and that
+        # state would otherwise persist into the user's shell prompt after the monitor ends.
+        # SI + designate-ASCII-G0 + SGR reset restores a sane terminal.
+        try:
+            if sys.stdout.isatty():
+                sys.stdout.write("\x0f\x1b(B\x1b[0m")
+                sys.stdout.flush()
+        except BaseException:
+            pass
+    # Always exit 0: the monitor's problems were already reported interactively above, and a
+    # nonzero code only triggers the editor's terminal exit-code notification (with its
+    # unhelpful generic Help link). The hard exit also dodges the Windows finalization crash.
+    _hard_exit()
+    return 0
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:

@@ -11,10 +11,10 @@ import {
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
-/** Return full path to the bundled bao.py inside the installed extension. */
-export function resolveBaoPy(): string {
+/** Return full path to the bundled bao.py inside the installed extension. Quiet skips the log line. */
+export function resolveBaoPy(opts: { quiet?: boolean } = {}): string {
 	const p = path.join(getBundledToolsRoot(), 'bao.py');
-	log(`bao.py resolved: ${p}`);
+	if (!opts.quiet) log(`bao.py resolved: ${p}`);
 	return p;
 }
 
@@ -57,8 +57,12 @@ export async function runBaoCmd(
 	cwd?: string,
 	opts: { capture?: boolean; quiet?: boolean; token?: vscode.CancellationToken } = {},
 ): Promise<string> {
-	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
-	const baoPath = resolveBaoPy();
+	// Quiet callers are heartbeat pollers (the port picker every 2s, waitForPort every 500ms);
+	// their routine log lines flood the channel and make the extension look stuck, so quiet
+	// suppresses them. Failures below always log.
+	const quiet = opts.quiet === true;
+	const { cmd, args } = await getBaoRunner({ quiet }); // uv + ['run','python']
+	const baoPath = resolveBaoPy({ quiet });
 
 	// Ensure deps before we run anything
 	await ensureBaoDepsQuietly();
@@ -68,11 +72,15 @@ export async function runBaoCmd(
 	// Default CWD to global storage so uv discovers .venv there
 	const effectiveCwd = cwd ?? getGlobalVenvRoot();
 
-	log(`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`);
+	if (!quiet) {
+		log(
+			`bao.py INVOKE: ${cmd} ${fullArgs.join(' ')} ${effectiveCwd ? `(cwd=${effectiveCwd})` : ''}`,
+		);
+	}
 
 	// runProcess captures both streams; we only surface stdout to the caller when capture is requested
 	const r = await runProcess(cmd, fullArgs, { cwd: effectiveCwd, env: uvEnv(), token: opts.token });
-	log(`bao.py EXIT ${r.code}`);
+	if (!quiet || r.code !== 0) log(`bao.py EXIT ${r.code}`);
 	if (r.cancelled) {
 		// Cancelled via the caller's token - not a failure: no toast and no bogus "exited null".
 		log('bao.py run cancelled');
