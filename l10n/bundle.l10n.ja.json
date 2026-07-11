@@ -218,6 +218,7 @@
 	"Collect diagnostics (nothing is automatically sent)": "診断情報を収集（自動送信はされません）",
 	"Add the diagnostics report to your issue?": "診断レポートを Issue に追加しますか？",
 	"Report an issue": "問題を報告",
+	"Request a feature": "機能をリクエスト",
 	"Diagnostics collected - the report is shown in the Baochip output. Nothing has been sent.": "診断情報を収集しました - レポートは Baochip 出力に表示されています。何も送信されていません。",
 	"Baochip: Collecting diagnostics...": "Baochip: 診断情報を収集中...",
 	"Copy to Clipboard": "クリップボードにコピー",

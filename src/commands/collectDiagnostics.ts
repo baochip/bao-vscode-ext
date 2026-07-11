@@ -5,7 +5,9 @@ import { appendSeparator, getBaochipChannel } from '@services/logService';
 import * as vscode from 'vscode';
 
 // The issue CHOOSER, not the bug form directly: it offers the bug template, the hardware and
-// Xous contact links, and blank issues, so non-bug reporters are not railroaded into the form.
+// Xous contact links, and blank issues, so a "bug" that is really a board or Xous problem gets
+// routed before the form railroads it. The bug form's intro references "the previous page",
+// which assumes chooser arrival.
 const NEW_ISSUE_URL = 'https://github.com/baochip/bao-vscode-ext/issues/new/choose';
 
 function copiedMessage(): string {
@@ -27,10 +29,7 @@ async function openIssueChooser(report: string): Promise<void> {
 }
 
 export function registerCollectDiagnostics() {
-	// The welcome page's report button invokes this with 'report-issue' for a one-click flow
-	// (collect, copy, open GitHub); a palette invocation shows the report first and offers
-	// those steps as toast buttons instead.
-	return withCommand(Commands.collectDiagnostics, async (origin?: unknown) => {
+	return withCommand(Commands.collectDiagnostics, async () => {
 		const report = await vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Notification,
@@ -42,11 +41,6 @@ export function registerCollectDiagnostics() {
 		appendSeparator(chan, 'Diagnostics');
 		chan.appendLine(report);
 		chan.show(true);
-
-		if (origin === 'report-issue') {
-			await openIssueChooser(report);
-			return;
-		}
 
 		const copyLabel = vscode.l10n.t('Copy to Clipboard');
 		const issueLabel = vscode.l10n.t('Open GitHub Issue');

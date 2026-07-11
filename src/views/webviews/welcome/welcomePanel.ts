@@ -57,9 +57,6 @@ export class WelcomePanel {
 					} else if (msg?.type === 'run' && msg.cmd === 'collectDiagnostics') {
 						// Local-only flow: report into the channel plus a toast; nothing leaves the machine.
 						await vscode.commands.executeCommand(Commands.collectDiagnostics);
-					} else if (msg?.type === 'run' && msg.cmd === 'reportIssue') {
-						// One-click reporting: collect diagnostics, copy them, open the issue chooser.
-						await vscode.commands.executeCommand(Commands.collectDiagnostics, 'report-issue');
 					}
 				} catch (e) {
 					log(`Welcome action failed: ${toMessage(e)}`);
@@ -130,6 +127,7 @@ export class WelcomePanel {
 			vscode.l10n.t('Collect diagnostics (nothing is automatically sent)'),
 		);
 		const reportLabel = escapeHtml(vscode.l10n.t('Report an issue'));
+		const featureLabel = escapeHtml(vscode.l10n.t('Request a feature'));
 
 		return /* html */ `
       <!doctype html>
@@ -192,11 +190,14 @@ export class WelcomePanel {
               ${footerLead}
             </p>
             <div class="footer-actions">
+              <a class="link" href="https://github.com/baochip/bao-vscode-ext/issues/new/choose">
+                <span class="icon codicon codicon-feedback"></span> ${reportLabel}
+              </a>
+              <a class="link" href="https://github.com/baochip/bao-vscode-ext/issues/new?template=feature_request.yml">
+                <span class="icon codicon codicon-lightbulb"></span> ${featureLabel}
+              </a>
               <button class="link-button" id="btn-collectDiagnostics">
                 <span class="icon codicon codicon-output"></span> ${collectLabel}
-              </button>
-              <button class="link-button" id="btn-reportIssue">
-                <span class="icon codicon codicon-feedback"></span> ${reportLabel}
               </button>
             </div>
           </footer>

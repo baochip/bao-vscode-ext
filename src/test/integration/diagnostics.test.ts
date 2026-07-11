@@ -150,21 +150,4 @@ suite('Diagnostics command', () => {
 		assert.ok(clip.calledOnce, 'copied only on request');
 		assert.ok(String(clip.firstCall.args[0]).includes('Mode:'), 'the report itself is copied');
 	});
-
-	test("the welcome page's 'report-issue' origin opens the chooser and offers (not does) the copy", async () => {
-		const { info, clip, open } = stubProbes();
-
-		await vscode.commands.executeCommand(Commands.collectDiagnostics, 'report-issue');
-
-		assert.ok(open.calledOnce, 'issue chooser opened');
-		assert.ok(clip.notCalled, 'nothing copied without the user choosing to');
-		assert.ok(
-			!info.getCalls().some((c) => String(c.args[0]).includes('Diagnostics collected')),
-			'no intermediate question in the one-click flow',
-		);
-		assert.ok(
-			info.getCalls().some((c) => String(c.args[0]).includes('Add the diagnostics report')),
-			'the copy offer is shown instead',
-		);
-	});
 });

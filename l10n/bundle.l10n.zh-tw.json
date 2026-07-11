@@ -218,6 +218,7 @@
 	"Collect diagnostics (nothing is automatically sent)": "收集診斷資訊（不會自動傳送）",
 	"Add the diagnostics report to your issue?": "要將診斷報告加入 Issue 嗎？",
 	"Report an issue": "回報問題",
+	"Request a feature": "請求新功能",
 	"Diagnostics collected - the report is shown in the Baochip output. Nothing has been sent.": "診斷資訊已收集 - 報告顯示在 Baochip 輸出中。未傳送任何內容。",
 	"Baochip: Collecting diagnostics...": "Baochip：正在收集診斷資訊...",
 	"Copy to Clipboard": "複製到剪貼簿",

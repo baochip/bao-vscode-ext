@@ -218,6 +218,7 @@
 	"Collect diagnostics (nothing is automatically sent)": "Diagnose sammeln (es wird nichts automatisch gesendet)",
 	"Add the diagnostics report to your issue?": "Den Diagnosebericht zum Issue hinzufügen?",
 	"Report an issue": "Issue melden",
+	"Request a feature": "Feature vorschlagen",
 	"Diagnostics collected - the report is shown in the Baochip output. Nothing has been sent.": "Diagnose gesammelt - der Bericht wird in der Baochip-Ausgabe angezeigt. Es wurde nichts gesendet.",
 	"Baochip: Collecting diagnostics...": "Baochip: Diagnose wird gesammelt...",
 	"Copy to Clipboard": "In die Zwischenablage kopieren",

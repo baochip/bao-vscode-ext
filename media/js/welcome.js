@@ -6,11 +6,10 @@
 		configure: () => vscode.postMessage({ type: 'run', cmd: 'configure' }),
 		createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
 		collectDiagnostics: () => vscode.postMessage({ type: 'run', cmd: 'collectDiagnostics' }),
-		reportIssue: () => vscode.postMessage({ type: 'run', cmd: 'reportIssue' }),
 		toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
 	};
 
-	['configure', 'createApp', 'collectDiagnostics', 'reportIssue'].forEach((id) => {
+	['configure', 'createApp', 'collectDiagnostics'].forEach((id) => {
 		const el = byId(`btn-${id}`);
 		if (el) el.addEventListener('click', actions[id]);
 	});
