@@ -9,6 +9,7 @@ import {
 	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
+import { setHttpLogger } from '@services/httpService';
 import { getBaochipChannel, log } from '@services/logService';
 import { getProjectMode } from '@services/projectModeService';
 import { setExtensionContext } from '@services/uvService';
@@ -37,6 +38,7 @@ export async function runStartupStep(label: string, step: () => Promise<void>): 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
 	context.subscriptions.push(getBaochipChannel()); // dispose the shared output channel on deactivate
+	setHttpLogger(log); // route HTTP diagnostics into the shared channel
 	await runStartupStep('auto-detect xous-core', autoDetectXousCore);
 
 	// Sidebar tree

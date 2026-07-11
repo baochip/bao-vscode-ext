@@ -6,6 +6,19 @@ const UA = { 'User-Agent': 'bao-vscode-ext' };
 const DEFAULT_TIMEOUT_MS = 15000;
 const MAX_REDIRECTS = 5;
 
+// Diagnostics sink, injected at activation. This module cannot import logService directly:
+// logService pulls in vscode, which this module's unit tests cannot load. Default: silent.
+let httpLog: (msg: string) => void = () => {};
+
+export function setHttpLogger(logger: (msg: string) => void): void {
+	httpLog = logger;
+}
+
+function errCode(e: unknown): string {
+	const code = (e as NodeJS.ErrnoException)?.code;
+	return code ? ` (${code})` : '';
+}
+
 function isRedirect(status: number): boolean {
 	return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
@@ -70,6 +83,9 @@ function requestWithRedirects(
 			// SYN) is bounded by timeoutMs; req.setTimeout below only covers the post-connect idle phase.
 			const req = transport.request(parsed, { method, headers: UA, timeout: timeoutMs }, (res) => {
 				const status = res.statusCode ?? 0;
+				httpLog(
+					`[http] ${status} for ${u} via ${res.socket?.remoteAddress ?? '?'}:${res.socket?.remotePort ?? '?'}`,
+				);
 				if (isRedirect(status)) {
 					res.resume();
 					const location = res.headers.location;
@@ -91,8 +107,19 @@ function requestWithRedirects(
 				}
 				resolve(res);
 			});
-			req.on('error', reject);
+			// The agent class is the tell for VS Code's extension-host proxy layer: the default
+			// node agent logs as "Agent"; a patched request shows the proxy agent's class name.
+			// (agent exists on ClientRequest at runtime but is missing from these type definitions.)
+			const agent = (req as unknown as { agent?: object }).agent;
+			httpLog(
+				`[http] ${method} ${u}${hops > 0 ? ` (hop ${hops})` : ''} agent=${agent?.constructor?.name ?? 'none'}`,
+			);
+			req.on('error', (e) => {
+				httpLog(`[http] request error for ${u}: ${e.message}${errCode(e)}`);
+				reject(e);
+			});
 			req.setTimeout(timeoutMs, () => {
+				httpLog(`[http] idle timeout after ${timeoutMs}ms for ${u}`);
 				req.destroy();
 				reject(new Error(`Request timed out: ${u}`));
 			});
@@ -111,14 +138,26 @@ async function getText(url: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<str
 		throw new Error(`HTTP ${status} for ${url}`);
 	}
 	return await new Promise((resolve, reject) => {
-		let data = '';
-		// UTF-8 via a StringDecoder so a multibyte character split across chunks is not corrupted.
-		res.setEncoding('utf8');
-		res.on('data', (chunk: string) => {
-			data += chunk;
+		const chunks: Buffer[] = [];
+		let bytes = 0;
+		// Consume raw Buffers and decode ONCE at the end. Do NOT setEncoding() here: the extension
+		// host's http stack is shared with other extensions' hooks, some of which assume Buffer
+		// chunks - handing them decoded strings gets the request killed mid-parse with
+		// "Parse Error: JS Exception (HPE_JS_EXCEPTION)". Single-decode also keeps a multibyte
+		// character split across chunks intact.
+		res.on('data', (chunk: Buffer) => {
+			chunks.push(chunk);
+			bytes += chunk.length;
 		});
-		res.on('end', () => resolve(data));
-		res.on('error', reject); // a mid-body connection drop must settle, not hang
+		res.on('end', () => {
+			httpLog(`[http] body complete (${bytes} bytes) for ${url}`);
+			resolve(Buffer.concat(chunks).toString('utf8'));
+		});
+		// a mid-body connection drop must settle, not hang
+		res.on('error', (e) => {
+			httpLog(`[http] response died after ${bytes} bytes for ${url}: ${e.message}${errCode(e)}`);
+			reject(e);
+		});
 	});
 }
 
@@ -149,7 +188,15 @@ export async function downloadFile(
 		res.resume();
 		throw new Error(`HTTP ${status} for ${url}`);
 	}
-	await writeStreamToFile(res, dest);
+	try {
+		await writeStreamToFile(res, dest);
+	} catch (e) {
+		httpLog(
+			`[http] download failed for ${url}: ${e instanceof Error ? e.message : String(e)}${errCode(e)}`,
+		);
+		throw e;
+	}
+	httpLog(`[http] download complete for ${url}`);
 	return (res.headers.etag as string) ?? null;
 }
 
