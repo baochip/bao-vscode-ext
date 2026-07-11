@@ -54,6 +54,12 @@ export class WelcomePanel {
 						await vscode.commands.executeCommand(Commands.openSettings);
 					} else if (msg?.type === 'run' && msg.cmd === 'createApp') {
 						await vscode.commands.executeCommand(Commands.createApp);
+					} else if (msg?.type === 'run' && msg.cmd === 'collectDiagnostics') {
+						// Local-only flow: report into the channel plus a toast; nothing leaves the machine.
+						await vscode.commands.executeCommand(Commands.collectDiagnostics);
+					} else if (msg?.type === 'run' && msg.cmd === 'reportIssue') {
+						// One-click reporting: collect diagnostics, copy them, open the issue chooser.
+						await vscode.commands.executeCommand(Commands.collectDiagnostics, 'report-issue');
 					}
 				} catch (e) {
 					log(`Welcome action failed: ${toMessage(e)}`);
@@ -120,7 +126,10 @@ export class WelcomePanel {
 		const footerLead = escapeHtml(
 			vscode.l10n.t('Found a bug or have a feature request for the extension?'),
 		);
-		const footerLink = escapeHtml(vscode.l10n.t('Open an issue on GitHub')); // "Open an issue on GitHub"
+		const collectLabel = escapeHtml(
+			vscode.l10n.t('Collect diagnostics (nothing is automatically sent)'),
+		);
+		const reportLabel = escapeHtml(vscode.l10n.t('Report an issue'));
 
 		return /* html */ `
       <!doctype html>
@@ -178,14 +187,18 @@ export class WelcomePanel {
             </button>
           </div>
 
-          <footer class="muted" style="margin-top: 1rem; text-align: center;">
+          <footer class="muted">
             <p>
               ${footerLead}
-              <br>
-              <a class="link" href="https://github.com/baochip/bao-vscode-ext/issues" id="btn-extRepo">
-                <span class="icon codicon codicon-feedback"></span> ${footerLink}
-              </a>
             </p>
+            <div class="footer-actions">
+              <button class="link-button" id="btn-collectDiagnostics">
+                <span class="icon codicon codicon-output"></span> ${collectLabel}
+              </button>
+              <button class="link-button" id="btn-reportIssue">
+                <span class="icon codicon codicon-feedback"></span> ${reportLabel}
+              </button>
+            </div>
           </footer>
 
           <script src="${jsUri}"></script>

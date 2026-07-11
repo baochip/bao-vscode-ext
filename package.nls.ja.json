@@ -21,6 +21,7 @@
 	"cmd.buildFlashMonitor": "ビルド・フラッシュ・モニター",
 	"cmd.resetUvSetup": "UV 設定をリセット",
 	"cmd.rerunSetup": "拡張機能のセットアップを再実行",
+	"cmd.collectDiagnostics": "診断情報を収集",
 
 	"cfg.title.general": "Baochip - 全般",
 	"cfg.general.showWelcomeOnStartup": "拡張機能の起動時に「ようこそ」ページを自動で開きます。",

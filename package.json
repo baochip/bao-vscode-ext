@@ -139,6 +139,11 @@
 				"command": "baochip.rerunSetup",
 				"category": "Baochip",
 				"title": "%cmd.rerunSetup%"
+			},
+			{
+				"command": "baochip.collectDiagnostics",
+				"category": "Baochip",
+				"title": "%cmd.collectDiagnostics%"
 			}
 		],
 		"menus": {

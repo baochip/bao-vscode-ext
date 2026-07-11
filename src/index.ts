@@ -1,6 +1,7 @@
 import { registerBuildCommand } from '@commands/build';
 import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
 import { registerCleanCommand } from '@commands/clean';
+import { registerCollectDiagnostics } from '@commands/collectDiagnostics';
 import { Commands } from '@commands/commandIds';
 import { registerCreateApp } from '@commands/createApp';
 import { registerFlashCommand } from '@commands/flash';
@@ -40,5 +41,6 @@ export function registerCommands(context: vscode.ExtensionContext) {
 		withCommand(Commands.openWelcome, () => WelcomePanel.show(context)),
 		withCommand(Commands.resetUvSetup, () => resetUvSetup()),
 		withCommand(Commands.rerunSetup, () => rerunExtensionSetup()),
+		registerCollectDiagnostics(),
 	);
 }

@@ -21,6 +21,7 @@
 	"cmd.buildFlashMonitor": "建置 - 燒錄 - 監視",
 	"cmd.resetUvSetup": "重設 UV 設定",
 	"cmd.rerunSetup": "重新執行擴充功能設定",
+	"cmd.collectDiagnostics": "收集診斷資訊",
 
 	"cfg.title.general": "Baochip - 一般",
 	"cfg.general.showWelcomeOnStartup": "擴充功能啟用時自動開啟 Baochip 歡迎頁。",

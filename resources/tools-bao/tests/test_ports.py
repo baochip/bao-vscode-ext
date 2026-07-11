@@ -19,10 +19,10 @@ def run_ports(monkeypatch, fake_ports):
 
 
 def test_lists_ports_as_tab_separated_device_and_description(monkeypatch, capsys):
-    run_ports(monkeypatch, [FakePort("COM7", "Baochip DaBao")])
+    run_ports(monkeypatch, [FakePort("COM7", "Baochip Dabao")])
 
     out = capsys.readouterr().out.strip()
-    assert out == "COM7\tBaochip DaBao"
+    assert out == "COM7\tBaochip Dabao"
 
 
 def test_appends_vid_pid_when_present(monkeypatch, capsys):

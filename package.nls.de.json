@@ -21,6 +21,7 @@
 	"cmd.buildFlashMonitor": "Build • Flash • Monitor",
 	"cmd.resetUvSetup": "UV-Konfiguration zurücksetzen",
 	"cmd.rerunSetup": "Erweiterungs-Setup erneut ausführen",
+	"cmd.collectDiagnostics": "Diagnose sammeln",
 
 	"cfg.title.general": "Baochip - Allgemein",
 	"cfg.general.showWelcomeOnStartup": "Beim Aktivieren der Erweiterung automatisch die Willkommensseite öffnen.",

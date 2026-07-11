@@ -14,7 +14,7 @@ const cfg = () => vscode.workspace.getConfiguration('baochip');
 const setCfg = (key: string, value: unknown) =>
 	cfg().update(key, value, vscode.ConfigurationTarget.Workspace);
 
-const PORTS_OUTPUT = 'COM3\tUSB Serial Device\nCOM7\tBaochip DaBao';
+const PORTS_OUTPUT = 'COM3\tUSB Serial Device\nCOM7\tBaochip Dabao';
 
 type PortItem = vscode.QuickPickItem & { port?: string };
 
@@ -170,7 +170,7 @@ suite('Ports, monitor, and boot', () => {
 
 	test('promptAndSaveSerialPort preselects a lone port so Enter accepts it', async () => {
 		sandbox.stub(vscode.window, 'showInformationMessage');
-		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('COM7\tBaochip DaBao');
+		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('COM7\tBaochip Dabao');
 		const qp = stubPortPicker(sandbox);
 
 		const pending = portsService.promptAndSaveSerialPort('run');

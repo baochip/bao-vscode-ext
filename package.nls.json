@@ -21,6 +21,7 @@
 	"cmd.buildFlashMonitor": "Build • Flash • Monitor",
 	"cmd.resetUvSetup": "Reset UV Setup",
 	"cmd.rerunSetup": "Re-run Extension Setup",
+	"cmd.collectDiagnostics": "Collect Diagnostics",
 
 	"cfg.title.general": "Baochip - General",
 	"cfg.general.showWelcomeOnStartup": "Automatically open the Baochip Welcome page when the extension activates.",

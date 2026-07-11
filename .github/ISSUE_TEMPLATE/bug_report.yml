@@ -1,0 +1,48 @@
+name: Bug report
+description: Something in the Baochip VS Code extension is broken or behaving oddly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! This tracker is for the **VS Code extension** itself.
+        For Dabao **hardware** problems or **Xous OS** issues, please use the links on the previous page instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: >-
+        How to collect: in VS Code, open the Command Palette with Ctrl+Shift+P (Cmd+Shift+P on
+        macOS), run "Baochip: Collect Diagnostics", and click "Copy to Clipboard" in the
+        notification - or click "Collect diagnostics" on the extension's Welcome page. The
+        report lists your tool versions, extension settings, and detected serial ports; it is
+        only shown to you - nothing is sent or copied anywhere until you choose to.
+        Review it, then paste it below.
+      render: text
+  - type: checkboxes
+    id: tried
+    attributes:
+      label: Already tried
+      description: >-
+        "Re-run Extension Setup" reinstalls the extension's Python tooling from scratch and
+        fixes many setup problems. Run it from the Command Palette (Ctrl+Shift+P, or
+        Cmd+Shift+P on macOS, then type "Baochip: Re-run Extension Setup") or click the
+        "Re-run Extension Setup" link in VS Code Settings under Baochip - General.
+      options:
+        - label: I ran "Baochip: Re-run Extension Setup" and the problem persists

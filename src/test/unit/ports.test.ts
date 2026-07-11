@@ -7,7 +7,7 @@ test('parsePortsOutput: plain lines become port names', () => {
 });
 
 test('parsePortsOutput: takes the first column of tab-separated lines', () => {
-	const out = 'COM3\tUSB Serial Device (VID:PID=1209:3613)\n/dev/ttyACM0\tBaochip DaBao';
+	const out = 'COM3\tUSB Serial Device (VID:PID=1209:3613)\n/dev/ttyACM0\tBaochip Dabao';
 	assert.deepEqual(parsePortsOutput(out), ['COM3', '/dev/ttyACM0']);
 });
 
