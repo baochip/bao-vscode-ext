@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement or new capability for the Baochip VS Code extension
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or workflow you want, and what makes it awkward or impossible today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could the extension help?
+      description: Your idea for how it should work. Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Alternatives you considered, examples from other tools, and so on.
