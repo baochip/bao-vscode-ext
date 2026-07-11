@@ -163,7 +163,6 @@ const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 	de: new Set([
 		'test_app',
 		'auto',
-		'OK',
 		'MD5: {0}',
 		'Bootloader',
 		'Run',
@@ -185,7 +184,7 @@ const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 		'Baochip: Flash',
 		'Baochip: Monitor',
 	]),
-	ja: new Set(['test_app', 'auto', 'OK', 'MD5: {0}']),
+	ja: new Set(['test_app', 'auto', 'MD5: {0}']),
 	'zh-cn': new Set(['test_app', 'auto']),
 	'zh-tw': new Set(['test_app', 'auto']),
 };

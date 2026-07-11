@@ -39,16 +39,14 @@ export async function promptAndSaveSerialPort(
 	const opts =
 		mode === 'run'
 			? {
-					confirmTitle: vscode.l10n.t('Is your Baochip board in run mode?'),
-					confirmDetail: vscode.l10n.t(
-						'If you still see a removable drive named "BAOCHIP",\npress PROG on the board to enter run mode.',
+					title: vscode.l10n.t(
+						'Run mode: if you still see the "BAOCHIP" drive, press PROG on the board',
 					),
 					placeholder: vscode.l10n.t('Select run mode (firmware) serial port'),
 				}
 			: {
-					confirmTitle: vscode.l10n.t('Is your Baochip board in bootloader mode?'),
-					confirmDetail: vscode.l10n.t(
-						'Press RESET on the board if you do not\nsee a removable drive named "BAOCHIP".',
+					title: vscode.l10n.t(
+						'Bootloader mode: press RESET if you do not see the "BAOCHIP" drive',
 					),
 					placeholder: vscode.l10n.t('Select bootloader (drive mode) serial port'),
 				};
@@ -125,60 +123,89 @@ export async function waitForPort(
 	return result;
 }
 
+type PortPickItem = vscode.QuickPickItem & { port?: string };
+
 /**
- * Show a confirmation modal, enumerate serial ports via bao, and present a quick pick.
- * Returns the chosen port string, or undefined if the user cancelled at any step.
- * An empty enumeration offers Retry, re-listing until ports appear or the user dismisses.
+ * Live serial-port QuickPick: shows immediately (busy while enumerating via bao), keeps the
+ * board-mode guidance in the title, re-enumerates from the refresh button or by accepting the
+ * no-ports hint row, and highlights a lone port so Enter accepts it. Resolves to the chosen
+ * port, or undefined when the user dismisses or a listing fails (one error toast).
  */
 async function pickSerialPort(
 	runBao: RunBao,
 	cwd: string,
-	opts: {
-		confirmTitle: string;
-		confirmDetail: string;
-		placeholder: string;
-	},
+	opts: { title: string; placeholder: string },
 ): Promise<string | undefined> {
-	const okLabel = vscode.l10n.t('OK');
-	const clicked = await vscode.window.showInformationMessage(
-		opts.confirmTitle,
-		{ modal: true, detail: opts.confirmDetail },
-		okLabel,
-	);
-	if (clicked !== okLabel) return undefined;
+	const qp = vscode.window.createQuickPick<PortPickItem>();
+	qp.title = opts.title;
+	qp.placeholder = opts.placeholder;
+	// The user is physically handling the board (plugging in, pressing PROG/RESET), so focus
+	// will leave VS Code; the picker must not dismiss itself when that happens.
+	qp.ignoreFocusOut = true;
+	const refreshButton: vscode.QuickInputButton = {
+		iconPath: new vscode.ThemeIcon('refresh'),
+		tooltip: vscode.l10n.t('Refresh ports'),
+	};
+	qp.buttons = [refreshButton];
 
-	// quiet: this function shows the single failure toast itself. A listing failure returns
-	// undefined, kept distinct from a successful empty result ("No serial ports found" below).
-	for (;;) {
+	// quiet: this function shows the single failure toast itself. A listing failure closes the
+	// picker, kept distinct from a successful empty result (the no-ports hint row below).
+	const refresh = async () => {
+		if (qp.busy) return; // ignore re-triggers while a listing is already running
+		qp.busy = true;
 		let lines: string;
 		try {
 			lines = await runBao(['ports'], cwd, { capture: true, quiet: true });
 		} catch (err: unknown) {
 			errorToast(vscode.l10n.t('Could not list ports: {0}', toMessage(err)));
-			return undefined;
+			qp.hide();
+			return;
 		}
 
-		const items = lines
+		const items: PortPickItem[] = lines
 			.split(/\r?\n/)
 			.map((s) => s.trim())
 			.filter(Boolean)
 			.map((line) => {
 				const [port, desc] = line.split('\t');
-				return { label: port, description: desc || undefined };
+				return { label: port, description: desc || undefined, port };
 			});
 
-		if (items.length === 0) {
-			// Non-modal: the user can plug the board in (or press RESET) and then retry.
-			const retryLabel = vscode.l10n.t('Retry');
-			const clicked = await vscode.window.showWarningMessage(
-				vscode.l10n.t('No serial ports found.'),
-				retryLabel,
-			);
-			if (clicked === retryLabel) continue;
-			return undefined;
-		}
+		qp.items = items.length
+			? items
+			: [
+					{
+						label: `$(warning) ${vscode.l10n.t('No serial ports found.')}`,
+						detail: vscode.l10n.t('Plug the board in (or switch its mode), then refresh.'),
+						alwaysShow: true,
+					},
+				];
+		// A lone port is almost always the right one: highlight it so a bare Enter accepts it
+		// (but never auto-accept - the one visible port can still be the wrong-mode port).
+		if (items.length === 1) qp.activeItems = [items[0]];
+		qp.busy = false;
+	};
 
-		const picked = await vscode.window.showQuickPick(items, { placeHolder: opts.placeholder });
-		return picked?.label;
-	}
+	return new Promise<string | undefined>((resolve) => {
+		let picked: string | undefined;
+		qp.onDidTriggerButton((b) => {
+			if (b === refreshButton) void refresh();
+		});
+		qp.onDidAccept(() => {
+			const item = qp.selectedItems[0];
+			if (!item) return;
+			if (!item.port) {
+				void refresh(); // accepting the no-ports hint is the retry gesture
+				return;
+			}
+			picked = item.port;
+			qp.hide();
+		});
+		qp.onDidHide(() => {
+			qp.dispose();
+			resolve(picked);
+		});
+		qp.show();
+		void refresh();
+	});
 }

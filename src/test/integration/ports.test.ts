@@ -16,6 +16,80 @@ const setCfg = (key: string, value: unknown) =>
 
 const PORTS_OUTPUT = 'COM3\tUSB Serial Device\nCOM7\tBaochip DaBao';
 
+type PortItem = vscode.QuickPickItem & { port?: string };
+
+/** Scriptable stand-in for the live port picker: captures state, fires handlers on demand. */
+class FakePortPicker {
+	title: string | undefined;
+	placeholder: string | undefined;
+	ignoreFocusOut = false;
+	busy = false;
+	items: readonly PortItem[] = [];
+	activeItems: readonly PortItem[] = [];
+	selectedItems: readonly PortItem[] = [];
+	buttons: readonly vscode.QuickInputButton[] = [];
+	visible = false;
+	disposed = false;
+	private handlers: {
+		accept?: () => unknown;
+		hide?: () => unknown;
+		button?: (b: vscode.QuickInputButton) => unknown;
+	} = {};
+
+	onDidAccept(h: () => unknown) {
+		this.handlers.accept = h;
+		return { dispose() {} };
+	}
+	onDidHide(h: () => unknown) {
+		this.handlers.hide = h;
+		return { dispose() {} };
+	}
+	onDidTriggerButton(h: (b: vscode.QuickInputButton) => unknown) {
+		this.handlers.button = h;
+		return { dispose() {} };
+	}
+	show() {
+		this.visible = true;
+	}
+	hide() {
+		this.visible = false;
+		this.handlers.hide?.();
+	}
+	dispose() {
+		this.disposed = true;
+	}
+
+	/** Test driver: select an item and press Enter. */
+	accept(item: PortItem) {
+		this.selectedItems = [item];
+		this.handlers.accept?.();
+	}
+	/** Test driver: dismiss without accepting (Escape). */
+	dismiss() {
+		this.hide();
+	}
+	/** Test driver: click the title-bar refresh button. */
+	pressRefresh() {
+		this.handlers.button?.(this.buttons[0]);
+	}
+}
+
+function stubPortPicker(sandbox: sinon.SinonSandbox): FakePortPicker {
+	const qp = new FakePortPicker();
+	sandbox
+		.stub(vscode.window, 'createQuickPick')
+		.returns(qp as unknown as vscode.QuickPick<vscode.QuickPickItem>);
+	return qp;
+}
+
+/** Poll the event loop until cond() holds - the picker's enumeration runs fire-and-forget. */
+async function until(cond: () => boolean): Promise<void> {
+	for (let i = 0; i < 100 && !cond(); i++) {
+		await new Promise((r) => setTimeout(r, 0));
+	}
+	assert.ok(cond(), 'condition not reached in time');
+}
+
 suite('Ports, monitor, and boot', () => {
 	const sandbox = useSandbox();
 
@@ -31,144 +105,157 @@ suite('Ports, monitor, and boot', () => {
 	/* ------------------------------ promptAndSaveSerialPort ------------------------------ */
 
 	test('promptAndSaveSerialPort saves the picked run port under the run key', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
-		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
-		pick.resolves({ label: 'COM7' });
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.promptAndSaveSerialPort('run');
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
+
+		assert.equal(qp.ignoreFocusOut, true, 'picker survives focus loss while handling the board');
+		assert.ok(String(qp.title).includes('PROG'), `run-mode guidance in the title: ${qp.title}`);
+		assert.deepEqual(
+			qp.items.map((i) => i.label),
+			['COM3', 'COM7'],
+		);
+		assert.equal(qp.items[0].description, 'USB Serial Device', 'description from second column');
+		qp.accept(qp.items[1]);
+		const port = await pending;
 
 		assert.equal(port, 'COM7');
 		assert.equal(cfg().get<string>('serialPortRun'), 'COM7');
 		assert.equal(cfg().get<string>('serialPortBootloader') || '', '', 'bootloader key untouched');
-		const items = pick.firstCall.args[0] as { label: string; description?: string }[];
-		assert.deepEqual(
-			items.map((i) => i.label),
-			['COM3', 'COM7'],
-		);
-		assert.equal(items[0].description, 'USB Serial Device', 'description from the second column');
+		assert.ok(qp.disposed, 'picker disposed after accepting');
 	});
 
 	test('promptAndSaveSerialPort saves the picked bootloader port under the bootloader key', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
-		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
-			label: 'COM3',
-		});
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.promptAndSaveSerialPort('bootloader');
+		const pending = portsService.promptAndSaveSerialPort('bootloader');
+		await until(() => qp.items.length > 0 && !qp.busy);
+
+		assert.ok(String(qp.title).includes('RESET'), `bootloader guidance in the title: ${qp.title}`);
+		qp.accept(qp.items[0]);
+		const port = await pending;
 
 		assert.equal(port, 'COM3');
 		assert.equal(cfg().get<string>('serialPortBootloader'), 'COM3');
 		assert.equal(cfg().get<string>('serialPortRun') || '', '', 'run key untouched');
 	});
 
-	test('promptAndSaveSerialPort: cancelling the mode confirmation lists no ports', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			undefined,
-		);
+	test('promptAndSaveSerialPort: dismissing the picker saves nothing', async () => {
+		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
+		qp.dismiss();
+		const port = await pending;
+
+		assert.equal(port, undefined);
+		assert.equal(cfg().get<string>('serialPortRun') || '', '', 'nothing saved');
+		assert.ok(qp.disposed, 'picker disposed after dismissal');
+	});
+
+	test('promptAndSaveSerialPort preselects a lone port so Enter accepts it', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('COM7\tBaochip DaBao');
+		const qp = stubPortPicker(sandbox);
+
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
+
+		assert.equal(qp.activeItems.length, 1, 'lone port highlighted');
+		assert.equal(qp.activeItems[0].label, 'COM7');
+		qp.accept(qp.activeItems[0]);
+		assert.equal(await pending, 'COM7');
+	});
+
+	test('the refresh button re-enumerates the ports', async () => {
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
+		runBao.onFirstCall().resolves('COM3\tUSB Serial Device');
+		runBao.onSecondCall().resolves(PORTS_OUTPUT);
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.promptAndSaveSerialPort('run');
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length === 1 && !qp.busy);
+		qp.pressRefresh();
+		await until(() => qp.items.length === 2 && !qp.busy);
 
-		assert.equal(port, undefined);
-		assert.ok(runBao.notCalled, 'ports never listed after cancel');
+		assert.equal(runBao.callCount, 2, 'ports re-enumerated');
+		qp.dismiss();
+		await pending;
 	});
 
-	test('promptAndSaveSerialPort warns when no serial ports are found', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
+	test('promptAndSaveSerialPort shows a no-ports hint row instead of port items', async () => {
 		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.promptAndSaveSerialPort('run');
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
 
-		assert.equal(port, undefined);
-		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('No serial ports found')),
-			'no-ports warning shown',
-		);
+		assert.equal(qp.items.length, 1, 'a single hint row');
+		assert.ok(String(qp.items[0].label).includes('No serial ports found'), 'hint labels the state');
+		assert.equal(qp.items[0].port, undefined, 'the hint is not a pickable port');
+		qp.dismiss();
+		assert.equal(await pending, undefined);
 	});
 
-	test('promptAndSaveSerialPort re-enumerates and continues when Retry is clicked', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
+	test('accepting the no-ports hint re-enumerates and continues to a real pick', async () => {
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
 		runBao.onFirstCall().resolves(''); // board not plugged in yet
 		runBao.onSecondCall().resolves(PORTS_OUTPUT);
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
-		warnings.resolves('Retry');
-		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
-			label: 'COM7',
-		});
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.promptAndSaveSerialPort('run');
+		const pending = portsService.promptAndSaveSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
+		qp.accept(qp.items[0]); // Enter on the hint = retry
+		await until(() => qp.items.length === 2 && !qp.busy);
+		qp.accept(qp.items[1]);
+		const port = await pending;
 
 		assert.equal(port, 'COM7');
 		assert.equal(cfg().get<string>('serialPortRun'), 'COM7');
-		assert.equal(runBao.callCount, 2, 'ports re-enumerated after Retry');
-		assert.ok(
-			warnings.getCalls().some((c) => c.args.includes('Retry')),
-			'the no-ports warning offers Retry',
-		);
+		assert.equal(runBao.callCount, 2, 'ports re-enumerated after the hint was accepted');
 	});
 
 	test('promptAndSaveSerialPort surfaces a ports-listing failure with a single toast', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('bao.py exploded'));
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const qp = stubPortPicker(sandbox);
 
 		const port = await portsService.promptAndSaveSerialPort('run');
 
 		assert.equal(port, undefined);
 		assert.equal(errors.callCount, 1, 'exactly one error toast');
 		assert.ok(String(errors.firstCall.args[0]).includes('Could not list ports'));
-		assert.ok(
-			!warnings.getCalls().some((c) => String(c.args[0]).includes('No serial ports found')),
-			'a listing failure is not reported as "no ports found"',
-		);
+		assert.ok(qp.disposed, 'picker closed on a listing failure');
 	});
 
 	/* ------------------------------ ensureSerialPort ------------------------------ */
 
 	test('ensureSerialPort returns a configured port without prompting', async () => {
 		await setCfg('serialPortRun', 'COM9');
-		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		const create = sandbox.stub(vscode.window, 'createQuickPick');
 
 		const port = await portsService.ensureSerialPort('run');
 
 		assert.equal(port, 'COM9');
-		assert.ok(pick.notCalled, 'no picker for a configured port');
+		assert.ok(create.notCalled, 'no picker for a configured port');
 	});
 
 	test('ensureSerialPort prompts when unset and returns the freshly saved port', async () => {
-		(sandbox.stub(vscode.window, 'showInformationMessage') as unknown as sinon.SinonStub).resolves(
-			'OK',
-		);
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		sandbox.stub(baoRunnerService, 'runBaoCmd').resolves(PORTS_OUTPUT);
-		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
-			label: 'COM7',
-		});
+		const qp = stubPortPicker(sandbox);
 
-		const port = await portsService.ensureSerialPort('run');
+		const pending = portsService.ensureSerialPort('run');
+		await until(() => qp.items.length > 0 && !qp.busy);
+		qp.accept(qp.items[1]);
+		const port = await pending;
 
 		assert.equal(port, 'COM7', 'continues in the same run with the fresh pick');
 		assert.equal(cfg().get<string>('serialPortRun'), 'COM7');
