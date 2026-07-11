@@ -54,5 +54,6 @@
 
 	"views.container.title": "Baochip",
 	"views.main": "Baochip",
-	"views.docs": "Documentation"
+	"views.docs": "Documentation",
+	"viewsWelcome.noFolder": "Open a folder to start developing for Baochip.\n[Open Folder](command:vscode.openFolder)\nOr create a new app from a template in a fresh folder.\n[New Baochip App](command:baochip.createApp)"
 }

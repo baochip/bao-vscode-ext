@@ -168,6 +168,8 @@ const ALLOWED_UNTRANSLATED: Record<string, ReadonlySet<string>> = {
 		'Bootloader',
 		'Run',
 		'Monitor',
+		'Setup',
+		'Build & Run',
 		'Build (cargo xtask)',
 		'Build (cargo build)',
 		'Clean',

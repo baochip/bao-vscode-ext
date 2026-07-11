@@ -54,5 +54,6 @@
 
 	"views.container.title": "Baochip",
 	"views.main": "Baochip",
-	"views.docs": "文档"
+	"views.docs": "文档",
+	"viewsWelcome.noFolder": "打开一个文件夹以开始 Baochip 开发。\n[打开文件夹](command:vscode.openFolder)\n或在新文件夹中从模板创建新应用。\n[新建 Baochip 应用](command:baochip.createApp)"
 }

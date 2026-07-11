@@ -4,16 +4,21 @@ import { getProjectMode } from '@services/projectModeService';
 import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
 import * as vscode from 'vscode';
 
-export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
-	private _onDidChangeTreeData = new vscode.EventEmitter<TreeItem | undefined>();
+export class BaoTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-	private monitorNode = new TreeItem(
-		vscode.l10n.t('Monitor'),
-		Commands.openMonitor,
-		'vm',
-		vscode.TreeItemCollapsibleState.Collapsed,
+	// Section headers carry stable ids so VS Code persists each user's expand/collapse state.
+	private setupSection = new SectionItem('baochip.section.setup', vscode.l10n.t('Setup'));
+	private projectSection = new SectionItem('baochip.section.project', vscode.l10n.t('Project'));
+	private buildRunSection = new SectionItem(
+		'baochip.section.buildRun',
+		vscode.l10n.t('Build & Run'),
 	);
+
+	// A plain leaf: a collapsible item would make VS Code reserve twisty space for the whole
+	// section, pushing Build & Run's items out of alignment with the other sections.
+	private monitorNode = new TreeItem(vscode.l10n.t('Monitor'), Commands.openMonitor, 'vm');
 
 	refresh() {
 		this._onDidChangeTreeData.fire(undefined);
@@ -23,7 +28,7 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 		this._onDidChangeTreeData.dispose();
 	}
 
-	getTreeItem(el: TreeItem) {
+	getTreeItem(el: vscode.TreeItem) {
 		// Dynamically update tooltip to show the chosen mode/port/baud
 		if (el === this.monitorNode) {
 			el.tooltip = monitorTooltip();
@@ -31,76 +36,73 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
 		return el;
 	}
 
-	getChildren(element?: TreeItem) {
+	getChildren(element?: vscode.TreeItem) {
 		if (!element) {
-			const setBootloaderPort = new TreeItem(
-				vscode.l10n.t('Set bootloader mode serial port'),
-				Commands.setBootloaderSerialPort,
-				'plug',
-			);
-			const setRunPort = new TreeItem(
-				vscode.l10n.t('Set run mode serial port'),
-				Commands.setRunSerialPort,
-				'plug',
-			);
-			const setFlashLoc = new TreeItem(
-				vscode.l10n.t('Set baochip location'),
-				Commands.setFlashLocation,
-				'chip',
-			);
-			const target = new TreeItem(
-				vscode.l10n.t('Select build target'),
-				Commands.selectBuildTarget,
-				'target',
-			);
-			const mode = getProjectMode();
-			const modeItem = new TreeItem(
-				vscode.l10n.t('Build mode: {0}', mode),
-				Commands.setBuildMode,
-				'circuit-board',
-			);
-			const newApp = new TreeItem(vscode.l10n.t('New app'), Commands.createApp, 'add');
-			const selectApp = new TreeItem(vscode.l10n.t('Select app'), Commands.selectApp, 'search');
-			const clean = new TreeItem(vscode.l10n.t('Clean (cargo clean)'), Commands.clean, 'trash');
-			const build = new TreeItem(buildCommandLabel(mode), Commands.build, 'tools');
-			const flash = new TreeItem(vscode.l10n.t('Flash device'), Commands.flash, 'rocket');
-			const bfm = new TreeItem(
-				vscode.l10n.t('Build • Flash • Monitor'),
-				Commands.buildFlashMonitor,
-				'rocket',
-			);
-			const settings = new TreeItem(vscode.l10n.t('Open Settings'), Commands.openSettings, 'gear');
-
-			const items = [
-				setBootloaderPort,
-				setRunPort,
-				setFlashLoc,
-				target,
-				modeItem,
-				newApp,
-				...(mode === 'xous-core' ? [selectApp] : []),
-				clean,
-				build,
-				flash,
-				this.monitorNode,
-				bfm,
-				settings,
-			];
-			return Promise.resolve(items);
+			// Without a folder there is nothing to build or configure: yield no items so the
+			// viewsWelcome contribution renders its get-started content instead.
+			if ((vscode.workspace.workspaceFolders ?? []).length === 0) {
+				return Promise.resolve([]);
+			}
+			return Promise.resolve([this.setupSection, this.projectSection, this.buildRunSection]);
 		}
 
-		if (element === this.monitorNode) {
+		if (element === this.setupSection) {
 			const def = getMonitorDefaultPort();
-			const label = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
-			const defaultMonChild = new TreeItem(
-				vscode.l10n.t('Default monitor: {0}', label),
-				Commands.setMonitorDefaultPort,
-				'gear',
-			);
-			return Promise.resolve([defaultMonChild]);
+			const defLabel = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
+			return Promise.resolve([
+				new TreeItem(
+					vscode.l10n.t('Set bootloader mode serial port'),
+					Commands.setBootloaderSerialPort,
+					'plug',
+				),
+				new TreeItem(vscode.l10n.t('Set run mode serial port'), Commands.setRunSerialPort, 'plug'),
+				new TreeItem(
+					vscode.l10n.t('Default monitor: {0}', defLabel),
+					Commands.setMonitorDefaultPort,
+					'gear',
+				),
+				new TreeItem(vscode.l10n.t('Set baochip location'), Commands.setFlashLocation, 'chip'),
+				new TreeItem(vscode.l10n.t('Select build target'), Commands.selectBuildTarget, 'target'),
+				new TreeItem(
+					vscode.l10n.t('Build mode: {0}', getProjectMode()),
+					Commands.setBuildMode,
+					'circuit-board',
+				),
+			]);
+		}
+
+		if (element === this.projectSection) {
+			return Promise.resolve([
+				new TreeItem(vscode.l10n.t('New app'), Commands.createApp, 'add'),
+				...(getProjectMode() === 'xous-core'
+					? [new TreeItem(vscode.l10n.t('Select app'), Commands.selectApp, 'search')]
+					: []),
+			]);
+		}
+
+		if (element === this.buildRunSection) {
+			return Promise.resolve([
+				new TreeItem(vscode.l10n.t('Clean (cargo clean)'), Commands.clean, 'trash'),
+				new TreeItem(buildCommandLabel(getProjectMode()), Commands.build, 'tools'),
+				new TreeItem(vscode.l10n.t('Flash device'), Commands.flash, 'rocket'),
+				this.monitorNode,
+				new TreeItem(
+					vscode.l10n.t('Build • Flash • Monitor'),
+					Commands.buildFlashMonitor,
+					'rocket',
+				),
+			]);
 		}
 
 		return Promise.resolve([]);
+	}
+}
+
+/** Collapsible header with no icon and no command; groups the action items beneath it. */
+class SectionItem extends vscode.TreeItem {
+	constructor(id: string, label: string) {
+		super(label, vscode.TreeItemCollapsibleState.Expanded);
+		this.id = id;
 	}
 }
 

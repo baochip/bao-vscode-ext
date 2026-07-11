@@ -13,6 +13,9 @@ function manifest(): {
 	contributes: {
 		commands: { command: string; category?: string }[];
 		keybindings: { command: string; key: string }[];
+		menus: Record<string, { command: string; when?: string }[]>;
+		views: Record<string, { id: string }[]>;
+		viewsWelcome: { view: string; contents: string }[];
 	};
 } {
 	return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -43,6 +46,38 @@ test('commands: every contributed command declares the Baochip category (no bake
 		.contributes.commands.filter((c) => c.category !== 'Baochip')
 		.map((c) => c.command);
 	assert.deepEqual(missing, [], 'commands without category "Baochip"');
+});
+
+test('menus: every menu entry names a contributed command and an existing view', () => {
+	const { contributes } = manifest();
+	const declared = new Set(contributes.commands.map((c) => c.command));
+	const viewIds = new Set(
+		Object.values(contributes.views)
+			.flat()
+			.map((v) => v.id),
+	);
+	const entries = Object.values(contributes.menus).flat();
+	assert.ok(
+		entries.length >= 2,
+		`sanity: expected the view/title entries, found ${entries.length}`,
+	);
+	const unknown = entries.filter((e) => !declared.has(e.command)).map((e) => e.command);
+	assert.deepEqual(unknown, [], 'menu entries referencing undeclared commands');
+	for (const e of entries) {
+		const viewRef = /view == ([\w-]+)/.exec(e.when ?? '')?.[1];
+		assert.ok(viewRef && viewIds.has(viewRef), `menu when-clause targets a real view: ${e.when}`);
+	}
+});
+
+test('viewsWelcome: every entry targets a contributed view', () => {
+	const { contributes } = manifest();
+	const viewIds = new Set(
+		Object.values(contributes.views)
+			.flat()
+			.map((v) => v.id),
+	);
+	const unknown = contributes.viewsWelcome.filter((w) => !viewIds.has(w.view)).map((w) => w.view);
+	assert.deepEqual(unknown, [], 'viewsWelcome entries targeting unknown views');
 });
 
 test('keybindings: every binding names a contributed command, each with a distinct key', () => {

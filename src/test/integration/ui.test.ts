@@ -20,6 +20,12 @@ function labels(items: vscode.TreeItem[]): string[] {
 	return items.map((i) => String(i.label));
 }
 
+async function sectionChildren(tree: BaoTreeProvider, label: string): Promise<vscode.TreeItem[]> {
+	const section = (await tree.getChildren()).find((s) => String(s.label) === label);
+	assert.ok(section, `section present: ${label}`);
+	return (await tree.getChildren(section)) ?? [];
+}
+
 suite('Tree views, welcome panel, and error funnel', () => {
 	const sandbox = useSandbox();
 
@@ -33,18 +39,40 @@ suite('Tree views, welcome panel, and error funnel', () => {
 
 	/* ------------------------------ BaoTreeProvider ------------------------------ */
 
+	test('bao tree groups items into Setup, Project, and Build & Run sections', async () => {
+		const tree = new BaoTreeProvider();
+		const sections = await tree.getChildren();
+		assert.deepEqual(labels(sections), ['Setup', 'Project', 'Build & Run']);
+		for (const s of sections) {
+			assert.ok(s.id?.startsWith('baochip.section.'), `stable id persists collapse state: ${s.id}`);
+			assert.equal(s.command, undefined, 'sections are headers, not actions');
+			assert.equal(s.collapsibleState, vscode.TreeItemCollapsibleState.Expanded);
+		}
+	});
+
+	test('bao tree yields nothing without a workspace folder, so viewsWelcome renders', async () => {
+		sandbox.stub(vscode.workspace, 'workspaceFolders').value(undefined);
+		const tree = new BaoTreeProvider();
+		assert.deepEqual(await tree.getChildren(), []);
+	});
+
 	test('bao tree offers Select app only in xous-core mode', async () => {
 		const tree = new BaoTreeProvider();
 
 		await setCfg('buildMode', 'xous-core');
-		let items = labels(await tree.getChildren());
-		assert.ok(items.includes('Select app'), `xous-core tree has Select app: ${items.join(', ')}`);
-		assert.ok(items.includes('Build (cargo xtask)'), 'xous-core build label');
+		let project = labels(await sectionChildren(tree, 'Project'));
+		assert.ok(
+			project.includes('Select app'),
+			`xous-core Project has Select app: ${project.join(', ')}`,
+		);
+		let buildRun = labels(await sectionChildren(tree, 'Build & Run'));
+		assert.ok(buildRun.includes('Build (cargo xtask)'), 'xous-core build label');
 
 		await setCfg('buildMode', 'out-of-tree');
-		items = labels(await tree.getChildren());
-		assert.ok(!items.includes('Select app'), 'out-of-tree tree hides Select app');
-		assert.ok(items.includes('Build (cargo build)'), 'out-of-tree build label');
+		project = labels(await sectionChildren(tree, 'Project'));
+		assert.ok(!project.includes('Select app'), 'out-of-tree Project hides Select app');
+		buildRun = labels(await sectionChildren(tree, 'Build & Run'));
+		assert.ok(buildRun.includes('Build (cargo build)'), 'out-of-tree build label');
 	});
 
 	test('BaoTreeProvider is disposable so its change emitter is released on deactivate', () => {
@@ -55,22 +83,22 @@ suite('Tree views, welcome panel, and error funnel', () => {
 		});
 	});
 
-	test('bao tree monitor child names the default monitor port', async () => {
+	test('the Setup section names the default monitor port and tracks the setting', async () => {
 		const tree = new BaoTreeProvider();
-		const monitorNode = (await tree.getChildren()).find((i) => String(i.label) === 'Monitor');
-		assert.ok(monitorNode, 'monitor node present');
 
-		let children = labels(await tree.getChildren(monitorNode));
-		assert.deepEqual(children, ['Default monitor: Run'], 'run is the default');
+		let setup = labels(await sectionChildren(tree, 'Setup'));
+		assert.ok(setup.includes('Default monitor: Run'), `run is the default: ${setup.join(', ')}`);
 
 		await setCfg('monitorDefaultPort', 'bootloader');
-		children = labels(await tree.getChildren(monitorNode));
-		assert.deepEqual(children, ['Default monitor: Bootloader']);
+		setup = labels(await sectionChildren(tree, 'Setup'));
+		assert.ok(setup.includes('Default monitor: Bootloader'), 'tracks the setting');
 	});
 
 	test('bao tree monitor tooltip reflects the configured port', async () => {
 		const tree = new BaoTreeProvider();
-		const monitorNode = (await tree.getChildren()).find((i) => String(i.label) === 'Monitor');
+		const monitorNode = (await sectionChildren(tree, 'Build & Run')).find(
+			(i) => String(i.label) === 'Monitor',
+		);
 		assert.ok(monitorNode, 'monitor node present');
 
 		let tooltip = String(tree.getTreeItem(monitorNode).tooltip);
@@ -81,14 +109,21 @@ suite('Tree views, welcome panel, and error funnel', () => {
 		assert.ok(tooltip.includes('COM7') && tooltip.includes('1000000'), `set tooltip: ${tooltip}`);
 	});
 
-	test('every bao tree item is wired to a command', async () => {
+	test('every bao tree leaf is wired to a command', async () => {
 		const tree = new BaoTreeProvider();
-		for (const item of await tree.getChildren()) {
-			assert.ok(item.command?.command, `"${String(item.label)}" has a command`);
-			assert.ok(
-				item.command.command.startsWith('baochip.'),
-				`"${String(item.label)}" runs a baochip command`,
-			);
+		for (const section of await tree.getChildren()) {
+			for (const item of (await tree.getChildren(section)) ?? []) {
+				assert.equal(
+					item.collapsibleState,
+					vscode.TreeItemCollapsibleState.None,
+					`"${String(item.label)}" is a plain leaf, so section items stay aligned`,
+				);
+				assert.ok(item.command?.command, `"${String(item.label)}" has a command`);
+				assert.ok(
+					item.command.command.startsWith('baochip.'),
+					`"${String(item.label)}" runs a baochip command`,
+				);
+			}
 		}
 	});
 

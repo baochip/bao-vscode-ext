@@ -46,12 +46,14 @@
 			{
 				"command": "baochip.openWelcome",
 				"category": "Baochip",
-				"title": "%cmd.openWelcome%"
+				"title": "%cmd.openWelcome%",
+				"icon": "$(home)"
 			},
 			{
 				"command": "baochip.openSettings",
 				"category": "Baochip",
-				"title": "%cmd.openSettings%"
+				"title": "%cmd.openSettings%",
+				"icon": "$(gear)"
 			},
 			{
 				"command": "baochip.setBootloaderSerialPort",
@@ -139,7 +141,20 @@
 				"title": "%cmd.rerunSetup%"
 			}
 		],
-		"menus": {},
+		"menus": {
+			"view/title": [
+				{
+					"command": "baochip.openWelcome",
+					"when": "view == bao-view",
+					"group": "navigation@1"
+				},
+				{
+					"command": "baochip.openSettings",
+					"when": "view == bao-view",
+					"group": "navigation@2"
+				}
+			]
+		},
 		"configuration": [
 			{
 				"title": "%cfg.title.general%",
@@ -324,6 +339,12 @@
 				}
 			]
 		},
+		"viewsWelcome": [
+			{
+				"view": "bao-view",
+				"contents": "%viewsWelcome.noFolder%"
+			}
+		],
 		"keybindings": [
 			{
 				"command": "baochip.build",
