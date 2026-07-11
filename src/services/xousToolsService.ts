@@ -1,9 +1,9 @@
-import { spawn, spawnSync } from 'node:child_process';
-import * as os from 'node:os';
-import { chan } from '@services/logService';
+import { spawnSync } from 'node:child_process';
+import { appendSeparator, getBaochipChannel } from '@services/logService';
+import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
-export function isXousAppUf2Available(): boolean {
+function isXousAppUf2Available(): boolean {
 	const r = spawnSync('xous-app-uf2', ['--version'], { encoding: 'utf8', shell: true });
 	return !r.error && r.status === 0;
 }
@@ -19,36 +19,31 @@ export async function checkXousAppUf2(): Promise<boolean> {
 	);
 	if (choice !== installLabel) return false;
 
-	chan.clear();
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'Install xous-tools');
 	chan.show(true);
 
 	return vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing xous-tools…'),
+			title: vscode.l10n.t('Baochip: Installing xous-tools...'),
 			cancellable: false,
 		},
-		() =>
-			new Promise<boolean>((resolve) => {
-				const child = spawn('cargo', ['install', 'xous-tools'], {
-					shell: os.platform() === 'win32',
-				});
-
-				child.stdout.on('data', (d) => chan.append(d.toString()));
-				child.stderr.on('data', (d) => chan.append(d.toString()));
-				child.on('close', (code) => {
-					if (code === 0) {
-						vscode.window.showInformationMessage(
-							vscode.l10n.t('Baochip: xous-tools installed successfully.'),
-						);
-						resolve(true);
-					} else {
-						vscode.window.showErrorMessage(
-							vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.'),
-						);
-						resolve(false);
-					}
-				});
-			}),
+		async () => {
+			const r = await runProcess('cargo', ['install', 'xous-tools'], {
+				onStdout: (s) => chan.append(s),
+				onStderr: (s) => chan.append(s),
+			});
+			if (!r.error && r.code === 0) {
+				vscode.window.showInformationMessage(
+					vscode.l10n.t('Baochip: xous-tools installed successfully.'),
+				);
+				return true;
+			}
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.'),
+			);
+			return false;
+		},
 	);
 }

@@ -105,6 +105,45 @@ a.link .icon {
 	font-size: 16px;
 }
 
+/* An action styled like a link (real button semantics: it runs a command, not a navigation). */
+button.link-button {
+	color: var(--accent);
+	background: none;
+	border: none;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+}
+
+button.link-button .icon {
+	font-family: codicon, "Segoe UI", sans-serif;
+	font-size: 16px;
+}
+
+/* Footer layout lives here, never in a style attribute (the CSP has no unsafe-inline, so
+ * inline styles are silently dropped). Left-aligned like the body content. */
+footer {
+	margin-top: 1rem;
+}
+
+.footer-actions {
+	display: flex;
+	gap: 18px;
+	margin-top: 6px;
+}
+
+/* Themed focus ring so keyboard focus is visible in every VS Code theme. */
+.btn:focus-visible,
+a.link:focus-visible,
+button.link-button:focus-visible,
+input[type="checkbox"]:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
 .toolbar {
 	display: grid;
 	grid-template-columns: auto 1fr auto;

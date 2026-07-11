@@ -5,13 +5,12 @@
 	const actions = {
 		configure: () => vscode.postMessage({ type: 'run', cmd: 'configure' }),
 		createApp: () => vscode.postMessage({ type: 'run', cmd: 'createApp' }),
-		examples: () => vscode.postMessage({ type: 'run', cmd: 'examples' }),
-		xousSite: () => vscode.postMessage({ type: 'xousSite' }),
-		extRepo: () => vscode.postMessage({ type: 'extRepo' }),
+		collectDiagnostics: () => vscode.postMessage({ type: 'run', cmd: 'collectDiagnostics' }),
+		reportIssue: () => vscode.postMessage({ type: 'run', cmd: 'reportIssue' }),
 		toggleStartup: (checked) => vscode.postMessage({ type: 'setShowOnStartup', value: checked }),
 	};
 
-	['configure', 'xousSite', 'createApp', 'extRepo'].forEach((id) => {
+	['configure', 'createApp', 'collectDiagnostics', 'reportIssue'].forEach((id) => {
 		const el = byId(`btn-${id}`);
 		if (el) el.addEventListener('click', actions[id]);
 	});

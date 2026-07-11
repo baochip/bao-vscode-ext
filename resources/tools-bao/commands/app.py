@@ -1,42 +1,96 @@
 import argparse
+import logging
 from pathlib import Path
 from utils.toml_utils import navigate, read_toml, write_toml
 
-XOUS_CORE_GIT_URL = "betrusted-io/xous-core"
+XOUS_CORE_REPO_PATH = "betrusted-io/xous-core"
+
+# Sections that can carry git dependencies, at top level and under [target."cfg(...)"].
+DEP_SECTIONS = ("dependencies", "dev-dependencies", "build-dependencies")
+
+
+def _is_xous_core_url(url: str) -> bool:
+    """Exact repo match: .../betrusted-io/xous-core, optionally with .git or a trailing
+    slash - so sibling repos like xous-core-utils never match."""
+    tail = url.strip().rstrip("/")
+    if tail.endswith(".git"):
+        tail = tail[: -len(".git")]
+    return tail.endswith("/" + XOUS_CORE_REPO_PATH)
+
+
+def _dependency_tables(doc):
+    """Every table that can hold dependency entries: the top-level and per-target
+    dependency sections, [workspace.dependencies], and each [patch.<source>] table."""
+    tables = []
+    for name in DEP_SECTIONS:
+        try:
+            table = navigate(doc, [name])
+        except (KeyError, TypeError):
+            continue
+        if isinstance(table, dict):
+            tables.append(table)
+    try:
+        ws_deps = navigate(doc, ["workspace", "dependencies"])
+    except (KeyError, TypeError):
+        ws_deps = None
+    if isinstance(ws_deps, dict):
+        tables.append(ws_deps)
+    try:
+        target = navigate(doc, ["target"])
+    except (KeyError, TypeError):
+        target = None
+    if isinstance(target, dict):
+        for cfg_table in target.values():
+            if not isinstance(cfg_table, dict):
+                continue
+            for name in DEP_SECTIONS:
+                dep_table = cfg_table.get(name)
+                if isinstance(dep_table, dict):
+                    tables.append(dep_table)
+    # [patch.<source>] entries (e.g. the template's [patch.crates-io] getrandom pin) carry
+    # git/rev the same way dependency entries do.
+    try:
+        patch = navigate(doc, ["patch"])
+    except (KeyError, TypeError):
+        patch = None
+    if isinstance(patch, dict):
+        for source_table in patch.values():
+            if isinstance(source_table, dict):
+                tables.append(source_table)
+    return tables
 
 
 def cmd_app_update_rev(args: argparse.Namespace) -> int:
     path = Path(args.file)
     if not path.exists():
-        print(f"error: file not found: {path}")
+        logging.error(f"file not found: {path}")
         return 2
 
     doc = read_toml(path)
     updated = False
 
-    # Search [dependencies] and [workspace.dependencies]
-    for section_keys in [["dependencies"], ["workspace", "dependencies"]]:
-        try:
-            deps = navigate(doc, section_keys)
-        except (KeyError, TypeError):
-            continue
+    for deps in _dependency_tables(doc):
         for dep_val in deps.values():
             if not isinstance(dep_val, dict):
                 continue
-            if XOUS_CORE_GIT_URL in str(dep_val.get("git", "")):
+            if _is_xous_core_url(str(dep_val.get("git", ""))):
+                # cargo allows only one of branch/tag/rev on a git dep - drop any existing
+                # pin so setting rev cannot produce a manifest cargo rejects
+                dep_val.pop("branch", None)
+                dep_val.pop("tag", None)
                 dep_val["rev"] = args.rev
                 updated = True
 
     if not updated:
-        print(f"error: no dependency with git URL containing '{XOUS_CORE_GIT_URL}' found in {path}")
+        logging.error(f"no dependency with a git URL for '{XOUS_CORE_REPO_PATH}' found in {path}")
         return 2
 
     write_toml(path, doc)
-    print(f"updated xous-core rev to {args.rev}")
+    print(f"[bao] updated xous-core rev to {args.rev}")
     return 0
 
 
-def register(sub: argparse._SubParsersAction):
+def register(sub: argparse._SubParsersAction) -> None:
     ap = sub.add_parser("app", help="Bao app utilities")
     sp = ap.add_subparsers(dest="app_cmd", required=True)
 

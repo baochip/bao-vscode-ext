@@ -1,33 +1,9 @@
-import { getBuildTarget, setBuildTarget } from '@services/configService';
+import { Commands } from '@commands/commandIds';
+import { withCommand } from '@commands/withCommand';
+import { promptAndSaveBuildTarget } from '@services/buildService';
 
-const BUILD_TARGETS = ['dabao', 'baosec'];
-
-import * as vscode from 'vscode';
-
-export function registerSelectBuildTarget(
-	_context: vscode.ExtensionContext,
-	refreshUI: () => void,
-) {
-	return vscode.commands.registerCommand('baochip.selectBuildTarget', async () => {
-		const targets = BUILD_TARGETS;
-		if (!targets || targets.length === 0) {
-			vscode.window.showWarningMessage(vscode.l10n.t('No build targets available.'));
-			return;
-		}
-
-		const current = getBuildTarget();
-		const picked = await vscode.window.showQuickPick(
-			targets.map((t) => ({
-				label: t,
-				description: t === current ? vscode.l10n.t('current') : undefined,
-			})),
-			{ placeHolder: vscode.l10n.t('Select build target') },
-		);
-
-		if (!picked) return;
-
-		await setBuildTarget(picked.label);
-		vscode.window.showInformationMessage(vscode.l10n.t('Build target set to {0}', picked.label));
-		refreshUI();
+export function registerSelectBuildTarget() {
+	return withCommand(Commands.selectBuildTarget, async () => {
+		await promptAndSaveBuildTarget();
 	});
 }

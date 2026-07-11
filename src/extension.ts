@@ -1,110 +1,73 @@
+import { Commands } from '@commands/commandIds';
 import {
 	getBootloaderSerialPort,
-	getBuildTarget,
+	getBuildTargetOrDefault,
 	getDefaultBaud,
 	getFlashLocation,
 	getMonitorDefaultPort,
 	getRunSerialPort,
+	getShowWelcome,
 	getXousAppName,
 } from '@services/configService';
-import { autoDetectXousCore } from '@services/pathService';
-import { getProjectMode } from '@services/projectModeService';
-import { resetUvSetup, setExtensionContext } from '@services/uvService';
+import { setHttpLogger } from '@services/httpService';
+import { getBaochipChannel, log } from '@services/logService';
+import { getProjectMode, isBaochipWorkspace } from '@services/projectModeService';
+import { setExtensionContext } from '@services/uvService';
+import { autoDetectXousCore } from '@services/xousCoreService';
 import { BaoTreeProvider } from '@tree/baoTree';
 import { DocsTreeProvider } from '@tree/docsTree';
+import { toMessage } from '@util/error';
+import { createStatusBarItems } from '@views/statusBar';
+import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
 import * as vscode from 'vscode';
 import { registerCommands } from './index';
 
-const shouldShowWelcome = () =>
-	vscode.workspace.getConfiguration().get<boolean>('baochip.showWelcomeOnStartup', true);
-
-const migrateWelcomeSettingToGlobal = async () => {
-	const cfg = vscode.workspace.getConfiguration();
-	const showInspect = cfg.inspect<boolean>('baochip.showWelcomeOnStartup');
-	if (!showInspect) return;
-
-	const workspaceShowValues = [showInspect.workspaceValue, showInspect.workspaceFolderValue].filter(
-		(v) => v !== undefined,
-	) as boolean[];
-	const hasWorkspaceShow = workspaceShowValues.length > 0;
-
-	const globalShowSet = showInspect.globalValue !== undefined;
-
-	// Derive global show from workspace/folder show if no global set
-	if (!globalShowSet && hasWorkspaceShow) {
-		const chosen = workspaceShowValues.find((v) => v !== undefined);
-		if (chosen !== undefined) {
-			await cfg.update('baochip.showWelcomeOnStartup', chosen, vscode.ConfigurationTarget.Global);
-		}
+/**
+ * Run a best-effort activation step in isolation. A failure (e.g. cfg.update rejecting on a
+ * dirty or invalid settings.json) is logged and swallowed so it cannot abort activation and
+ * leave the extension with no commands, trees, or status bar.
+ */
+export async function runStartupStep(label: string, step: () => Promise<void>): Promise<void> {
+	try {
+		await step();
+	} catch (e: unknown) {
+		log(`startup step "${label}" failed (continuing): ${toMessage(e)}`);
 	}
-
-	// Clean workspace/folder show entries
-	if (hasWorkspaceShow) {
-		await cfg.update(
-			'baochip.showWelcomeOnStartup',
-			undefined,
-			vscode.ConfigurationTarget.Workspace,
-		);
-
-		for (const folder of vscode.workspace.workspaceFolders ?? []) {
-			const folderCfg = vscode.workspace.getConfiguration(undefined, folder.uri);
-			await folderCfg.update(
-				'baochip.showWelcomeOnStartup',
-				undefined,
-				vscode.ConfigurationTarget.WorkspaceFolder,
-			);
-		}
-	}
-};
+}
 
 export async function activate(context: vscode.ExtensionContext) {
 	setExtensionContext(context);
-	await migrateWelcomeSettingToGlobal();
-	await autoDetectXousCore();
+	context.subscriptions.push(getBaochipChannel()); // dispose the shared output channel on deactivate
+	setHttpLogger(log); // route HTTP diagnostics into the shared channel
+	await runStartupStep('auto-detect xous-core', autoDetectXousCore);
 
 	// Sidebar tree
 	const tree = new BaoTreeProvider();
-	vscode.window.registerTreeDataProvider('bao-view', tree);
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-view', tree), tree);
 
 	// Documentation tree
 	const docsTree = new DocsTreeProvider();
-	vscode.window.registerTreeDataProvider('bao-docs', docsTree);
+	context.subscriptions.push(vscode.window.registerTreeDataProvider('bao-docs', docsTree));
 
 	// --- Status bar items (left side) ---
-	// Higher priority number = appears more to the left
-	function makeStatusItem(priority: number, command: string): vscode.StatusBarItem {
-		const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
-		item.command = command;
-		context.subscriptions.push(item);
-		return item;
-	}
-
-	const bootloaderSerialPortItem = makeStatusItem(100, 'baochip.setBootloaderSerialPort');
-	const runSerialPortItem = makeStatusItem(99, 'baochip.setRunSerialPort');
-	const flashLocationItem = makeStatusItem(98, 'baochip.setFlashLocation');
-	const targetItem = makeStatusItem(97, 'baochip.selectBuildTarget');
-	const appItem = makeStatusItem(96, 'baochip.selectApp');
-	const cleanItem = makeStatusItem(95, 'baochip.clean');
-	const buildItem = makeStatusItem(94, 'baochip.build');
-	const flashItem = makeStatusItem(93, 'baochip.flash');
-	const monitorBtn = makeStatusItem(92, 'baochip.openMonitor');
-	const bfmItem = makeStatusItem(91, 'baochip.buildFlashMonitor');
-	const modeItem = makeStatusItem(90, 'baochip.setBuildMode');
-	const settingsItem = makeStatusItem(89, 'baochip.openSettings');
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('baochip.resetUvSetup', async () => {
-			await resetUvSetup();
-		}),
-	);
+	const items = createStatusBarItems(context);
 
 	// Single UI refresher
 	const refreshUI = () => {
+		// Ambient UI only in Baochip-related workspaces: an unrelated project gets no status bar
+		// row. The activity bar icon, sidebar, commands, and keybindings stay available
+		// everywhere, and any relevance change (a setting saved, a folder added) re-runs this.
+		if (!isBaochipWorkspace()) {
+			for (const item of Object.values(items)) item.hide();
+			tree.refresh();
+			return;
+		}
+
 		const bootloaderSerPort = getBootloaderSerialPort();
 		const runSerPort = getRunSerialPort();
 		const baud = getDefaultBaud();
 		const flLoc = getFlashLocation();
-		const target = getBuildTarget();
+		const target = getBuildTargetOrDefault();
 		const app = getXousAppName();
 		const mode = getProjectMode();
 
@@ -113,126 +76,104 @@ export async function activate(context: vscode.ExtensionContext) {
 		const defLabel = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
 
 		// Bootloader serial port item
-		bootloaderSerialPortItem.text = bootloaderSerPort
+		items.bootloaderSerialPort.text = bootloaderSerPort
 			? `$(plug) ${bootloaderSerPort}`
 			: `$(plug) ${vscode.l10n.t('Bootloader Mode Serial Port: (not set)')}`;
-		bootloaderSerialPortItem.tooltip = bootloaderSerPort
+		items.bootloaderSerialPort.tooltip = bootloaderSerPort
 			? vscode.l10n.t('Current bootloader mode serial port @ {0}', String(baud))
 			: vscode.l10n.t('Click to set bootloader mode serial port');
-		bootloaderSerialPortItem.show();
+		items.bootloaderSerialPort.show();
 
 		// Monitor button
-		if (chosenPort) {
-			monitorBtn.text = `$(vm) ${defLabel}: ${chosenPort}`;
-			monitorBtn.tooltip = vscode.l10n.t(
-				'Open monitor on {0} port {1} @ {2}',
-				defLabel,
-				chosenPort,
-				String(baud),
-			);
-		} else {
-			monitorBtn.text = `$(vm) ${vscode.l10n.t('Monitor')}`;
-			monitorBtn.tooltip =
-				def === 'run'
-					? vscode.l10n.t('Open monitor (run mode serial port not set)')
-					: vscode.l10n.t('Open monitor (bootloader mode serial port not set)');
-		}
-		monitorBtn.show();
+		items.monitor.text = chosenPort
+			? `$(vm) ${defLabel}: ${chosenPort}`
+			: `$(vm) ${vscode.l10n.t('Monitor')}`;
+		items.monitor.tooltip = monitorTooltip();
+		items.monitor.show();
 
 		// Run serial port item
-		runSerialPortItem.text = runSerPort
+		items.runSerialPort.text = runSerPort
 			? `$(plug) ${runSerPort}`
 			: `$(plug) ${vscode.l10n.t('Run Mode Serial Port: (not set)')}`;
-		runSerialPortItem.tooltip = runSerPort
+		items.runSerialPort.tooltip = runSerPort
 			? vscode.l10n.t('Current run mode serial port @ {0}', String(baud))
 			: vscode.l10n.t('Click to set run mode serial port');
-		runSerialPortItem.show();
+		items.runSerialPort.show();
 
 		// Flash location
-		flashLocationItem.text = flLoc
+		items.flashLocation.text = flLoc
 			? `$(chip) ${flLoc}`
 			: `$(chip) ${vscode.l10n.t('Baochip Location: (not set)')}`;
-		flashLocationItem.tooltip = vscode.l10n.t('Click to set baochip location');
-		flashLocationItem.show();
+		items.flashLocation.tooltip = flLoc
+			? vscode.l10n.t('Current baochip location: {0}', flLoc)
+			: vscode.l10n.t('Click to set baochip location');
+		items.flashLocation.show();
 
-		// Build target — relevant in both modes; defaults to dabao when not explicitly set
-		targetItem.text = `$(target) ${target || 'dabao'}`;
-		targetItem.tooltip = vscode.l10n.t('Click to select build target');
-		targetItem.show();
+		// Build target - relevant in both modes; defaults to dabao when not explicitly set
+		items.buildTarget.text = `$(target) ${target}`;
+		items.buildTarget.tooltip = vscode.l10n.t('Click to select build target');
+		items.buildTarget.show();
 
-		// App name — only relevant in xous-core mode
+		// App name - only relevant in xous-core mode
 		if (mode === 'xous-core') {
-			appItem.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
-			appItem.tooltip = vscode.l10n.t('Click to select xous-core app');
-			appItem.show();
+			items.app.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
+			items.app.tooltip = vscode.l10n.t('Click to select xous-core app');
+			items.app.show();
 		} else {
-			appItem.hide();
+			items.app.hide();
 		}
 
-		// Status bar: Full Clean (keep cargo literal)
-		cleanItem.text = '$(trash)';
-		cleanItem.tooltip = vscode.l10n.t('Full clean (cargo clean)'); // "Full clean (cargo clean)"
-		cleanItem.show();
+		// Status bar: Clean (keep cargo literal)
+		items.clean.text = '$(trash)';
+		items.clean.tooltip = vscode.l10n.t('Clean (cargo clean)');
+		items.clean.show();
 
 		// Status bar: Build
-		buildItem.text = '$(tools)';
-		buildItem.tooltip =
-			mode === 'xous-core'
-				? vscode.l10n.t('Build (cargo xtask)')
-				: vscode.l10n.t('Build (cargo build)');
-		buildItem.show();
+		items.build.text = '$(tools)';
+		items.build.tooltip = buildCommandLabel(mode);
+		items.build.show();
 
 		// Status bar: Flash
-		flashItem.text = '$(rocket)';
-		flashItem.tooltip = vscode.l10n.t('Flash to device');
-		flashItem.show();
+		items.flash.text = '$(rocket)';
+		items.flash.tooltip = vscode.l10n.t('Flash to device');
+		items.flash.show();
 
-		// Status bar: B•F•M
-		bfmItem.text = '$(rocket) B•F•M';
-		bfmItem.tooltip = vscode.l10n.t('Build • Flash • Monitor'); // reuse tree label
-		bfmItem.show();
+		// Status bar: B-F-M
+		items.buildFlashMonitor.text = '$(rocket) B•F•M';
+		items.buildFlashMonitor.tooltip = vscode.l10n.t('Build • Flash • Monitor'); // reuse tree label
+		items.buildFlashMonitor.show();
 
 		// Status bar: Settings
-		settingsItem.text = '$(gear)';
-		settingsItem.tooltip = vscode.l10n.t('Open Baochip Settings');
-		settingsItem.show();
+		items.settings.text = '$(gear)';
+		items.settings.tooltip = vscode.l10n.t('Open Baochip Settings');
+		items.settings.show();
 
 		// Status bar: Project mode indicator
-		modeItem.text = `$(circuit-board) ${mode}`;
-		modeItem.tooltip = vscode.l10n.t('Build mode: {0} (click to change in settings)', mode);
-		modeItem.show();
+		items.buildMode.text = `$(circuit-board) ${mode}`;
+		items.buildMode.tooltip = vscode.l10n.t('Build mode: {0} (click to change)', mode);
+		items.buildMode.show();
 
+		// One full-tree refresh repaints every node (incl. the monitor); the docs tree is static.
 		tree.refresh();
-		tree.refreshMonitor();
-		docsTree.refresh();
 	};
 
 	refreshUI();
 
-	// If settings change outside commands (e.g., user edits Settings UI), auto-update status bar
+	// If any baochip setting changes outside commands (e.g., user edits Settings UI), repaint the UI.
 	const cfgWatcher = vscode.workspace.onDidChangeConfiguration((e) => {
-		if (
-			e.affectsConfiguration('baochip.monitorDefaultPort') ||
-			e.affectsConfiguration('baochip.serialPortBootloader') ||
-			e.affectsConfiguration('baochip.serialPortRun') ||
-			e.affectsConfiguration('baochip.monitor.defaultBaud') ||
-			e.affectsConfiguration('baochip.buildTarget') ||
-			e.affectsConfiguration('baochip.xousAppName') ||
-			e.affectsConfiguration('baochip.flashLocation') ||
-			e.affectsConfiguration('baochip.buildMode')
-		) {
-			refreshUI();
-		}
+		if (e.affectsConfiguration('baochip')) refreshUI();
 	});
 	context.subscriptions.push(cfgWatcher);
 
 	// Re-evaluate mode when workspace folders change (e.g. user opens a different project)
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => refreshUI()));
 
-	registerCommands(context, refreshUI);
+	registerCommands(context);
 
-	if (shouldShowWelcome()) {
-		vscode.commands.executeCommand('baochip.openWelcome');
+	// Auto-open only in Baochip-related workspaces; re-showing to returning users in their real
+	// projects is intended, but an unrelated project should not greet anyone.
+	if (getShowWelcome() && isBaochipWorkspace()) {
+		vscode.commands.executeCommand(Commands.openWelcome);
 	}
 }
 

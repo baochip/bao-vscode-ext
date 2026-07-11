@@ -1,13 +1,13 @@
+import argparse
 import logging
 from serial.tools import list_ports
 
-def cmd_ports(args) -> None:
+def cmd_ports(args: argparse.Namespace) -> None:
     ports = list(list_ports.comports())
     if getattr(args, "verbose", False):
-        logging.info(f"[bao] pyserial found {len(ports)} port(s)")
+        logging.info(f"pyserial found {len(ports)} port(s)")
     if not ports:
-        logging.warning("[bao] No serial ports found.")
-        print("      Try: python -m serial.tools.list_ports -v")
+        logging.warning("No serial ports found. Try: python -m serial.tools.list_ports -v")
         return
     for p in ports:
         vidpid = ""
@@ -16,6 +16,6 @@ def cmd_ports(args) -> None:
         print(f"{p.device}\t{p.description}{vidpid}")
 
 
-def register(subparsers) -> None:
+def register(subparsers: argparse._SubParsersAction) -> None:
     s = subparsers.add_parser("ports", help="List serial ports")
     s.set_defaults(func=cmd_ports)

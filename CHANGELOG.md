@@ -1,3 +1,36 @@
+## [1.1.0] - 2026-07-11
+
+### Added
+- **Baochip: Collect Diagnostics** - one command gathers versions, settings, ports, and
+  toolchain checks into a report, with copy-to-clipboard and GitHub issue reporting;
+  nothing is sent automatically
+- GitHub bug-report form with diagnostics instructions; hardware and Xous OS questions
+  are routed to the right places
+- **Baochip: Re-run Extension Setup** reinstalls the self-contained Python tooling
+- Keybindings: Ctrl+Alt+F flashes, Ctrl+Alt+Shift+B runs Build • Flash • Monitor
+
+### Improved
+- Live serial port picker: refreshes automatically as you plug in or switch board modes,
+  with PROG/RESET instructions on screen; a missing saved port offers "Pick a different
+  port" instead of failing
+- The monitor runs in your regular shell again: Ctrl+C returns to your prompt at the
+  project root, exits are always clean (no "terminated with exit code" notifications),
+  and garbled device output can no longer corrupt the terminal
+- Sidebar grouped into Setup / Project / Build & Run, with Welcome and Settings title
+  icons and a get-started view when no folder is open
+- The status bar row and Welcome auto-open appear only in Baochip-related workspaces
+- Error notifications offer "Show Output" instead of opening the Output panel themselves
+- Welcome page shows again for returning users; links and keyboard focus improved
+
+### Fixed
+- Builds failing with "aborted" while fetching the latest xous-core revision when certain
+  other extensions are installed
+- A monitor crash on Ctrl+C on Windows
+- Many small fixes and hardening, now backed by a new automated test suite (unit,
+  integration)
+
+---
+
 ## [1.0.0] - 2026-06-04
 
 ### Out-of-Tree Builds

@@ -1,15 +1,12 @@
-import { ensureXousCorePath } from '@services/pathService';
+import { Commands } from '@commands/commandIds';
+import { withCommand } from '@commands/withCommand';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
+import { ensureNamedTerminal } from '@services/terminalService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
 
-function ensureTerminal(name: string): vscode.Terminal {
-	return (
-		vscode.window.terminals.find((t) => t.name === name) ?? vscode.window.createTerminal({ name })
-	);
-}
-
-export function registerCleanCommand(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.clean', async () => {
+export function registerCleanCommand() {
+	return withCommand(Commands.clean, async () => {
 		let root: string;
 
 		if (getProjectMode() === 'out-of-tree') {
@@ -17,17 +14,28 @@ export function registerCleanCommand(_context: vscode.ExtensionContext) {
 			if (!ootRoot) return;
 			root = ootRoot;
 		} else {
-			try {
-				root = await ensureXousCorePath();
-			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
-				vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-				return;
-			}
+			const resolved = await resolveXousRootOrNotify();
+			if (!resolved) return;
+			root = resolved;
 		}
 
-		const term = ensureTerminal(vscode.l10n.t('Bao Clean'));
-		term.sendText(`cd "${root}"`);
+		// Modal: the status bar trash sits next to the constantly-clicked build/flash icons, and a
+		// stray cargo clean silently costs a full rebuild.
+		const cleanLabel = vscode.l10n.t('Clean');
+		const clicked = await vscode.window.showWarningMessage(
+			vscode.l10n.t('Run cargo clean?'),
+			{
+				modal: true,
+				detail: vscode.l10n.t(
+					'This deletes all build output under {0}. The next build recompiles everything from scratch.',
+					root,
+				),
+			},
+			cleanLabel,
+		);
+		if (clicked !== cleanLabel) return;
+
+		const term = ensureNamedTerminal(vscode.l10n.t('Baochip Clean'), root);
 		term.sendText('cargo clean');
 		term.show(true);
 	});

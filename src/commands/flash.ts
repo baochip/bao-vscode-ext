@@ -1,12 +1,13 @@
-import { getBuildTarget, getXousAppName } from '@services/configService';
+import { Commands } from '@commands/commandIds';
+import { withCommand } from '@commands/withCommand';
+import { ensureBuildTargetOrPrompt } from '@services/buildService';
 import { decideAndFlash } from '@services/flashService';
 import { resolveKernelFiles } from '@services/kernelService';
-import { ensureXousCorePath } from '@services/pathService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
-import * as vscode from 'vscode';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
 
-export function registerFlashCommand(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.flash', async () => {
+export function registerFlashCommand() {
+	return withCommand(Commands.flash, async () => {
 		if (getProjectMode() === 'out-of-tree') {
 			const root = getOutOfTreeRoot();
 			if (!root) return;
@@ -16,34 +17,14 @@ export function registerFlashCommand(_context: vscode.ExtensionContext) {
 			return;
 		}
 
-		let root: string;
-		try {
-			root = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
+		const root = await resolveXousRootOrNotify();
+		if (!root) return;
 
-		const target = getBuildTarget();
-		if (!target) {
-			const a = await vscode.window.showWarningMessage(
-				vscode.l10n.t('No build target set.'),
-				vscode.l10n.t('Select Target'),
-			);
-			if (a === vscode.l10n.t('Select Target')) {
-				await vscode.commands.executeCommand('baochip.selectBuildTarget');
-			}
-			return;
-		}
+		const target = await ensureBuildTargetOrPrompt();
+		if (!target) return;
 
-		const app = getXousAppName();
-		if (!app) {
-			await vscode.window.showWarningMessage(vscode.l10n.t('No app selected.'));
-			await vscode.commands.executeCommand('baochip.selectApp');
-			return;
-		}
-
+		// No app check: flash pushes the already-built UF2s from disk, so which app is
+		// configured is irrelevant here (it only matters at build time).
 		await decideAndFlash(root);
 	});
 }

@@ -1,11 +1,9 @@
-import {
-	getBootloaderSerialPort,
-	getBuildTarget,
-	getDefaultBaud,
-	getFlashLocation,
-	getRunSerialPort,
-	getXousCorePath,
-} from '@services/configService';
+import { Commands } from '@commands/commandIds';
+import { XOUS_CORE_REPO } from '@constants';
+import { getShowWelcome, setShowWelcome } from '@services/configService';
+import { log } from '@services/logService';
+import { toMessage } from '@util/error';
+import { escapeHtml } from '@util/html';
 import * as vscode from 'vscode';
 
 export class WelcomePanel {
@@ -22,7 +20,7 @@ export class WelcomePanel {
 
 		const panel = vscode.window.createWebviewPanel(
 			'baoWelcome',
-			vscode.l10n.t('Welcome • Baochip'),
+			vscode.l10n.t('Welcome - Baochip'),
 			vscode.ViewColumn.Active,
 			{
 				enableScripts: true,
@@ -49,34 +47,22 @@ export class WelcomePanel {
 
 		this.panel.webview.onDidReceiveMessage(
 			async (msg) => {
-				if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
-					await vscode.workspace
-						.getConfiguration()
-						.update('baochip.showWelcomeOnStartup', msg.value, vscode.ConfigurationTarget.Global);
-					return;
-				}
-
-				if (msg?.type === 'xousSite') {
-					vscode.env.openExternal(vscode.Uri.parse('https://github.com/betrusted-io/xous-core'));
-					return;
-				}
-				if (msg?.type === 'extRepo') {
-					vscode.env.openExternal(
-						vscode.Uri.parse('https://github.com/baochip/bao-vscode-ext/issues'),
-					);
-					return;
-				}
-
-				if (msg?.type === 'run') {
-					switch (msg.cmd) {
-						case 'configure':
-							vscode.commands.executeCommand('baochip.openSettings');
-							break;
-						case 'createApp':
-							vscode.commands.executeCommand('baochip.createApp');
-							break;
+				try {
+					if (msg?.type === 'setShowOnStartup' && typeof msg.value === 'boolean') {
+						await setShowWelcome(msg.value);
+					} else if (msg?.type === 'run' && msg.cmd === 'configure') {
+						await vscode.commands.executeCommand(Commands.openSettings);
+					} else if (msg?.type === 'run' && msg.cmd === 'createApp') {
+						await vscode.commands.executeCommand(Commands.createApp);
+					} else if (msg?.type === 'run' && msg.cmd === 'collectDiagnostics') {
+						// Local-only flow: report into the channel plus a toast; nothing leaves the machine.
+						await vscode.commands.executeCommand(Commands.collectDiagnostics);
+					} else if (msg?.type === 'run' && msg.cmd === 'reportIssue') {
+						// One-click reporting: collect diagnostics, copy them, open the issue chooser.
+						await vscode.commands.executeCommand(Commands.collectDiagnostics, 'report-issue');
 					}
-					return;
+				} catch (e) {
+					log(`Welcome action failed: ${toMessage(e)}`);
 				}
 			},
 			null,
@@ -87,16 +73,7 @@ export class WelcomePanel {
 	}
 
 	private refreshState() {
-		const cfg = vscode.workspace.getConfiguration();
-		const state = {
-			xousCorePath: getXousCorePath(),
-			bootloaderSerialPort: getBootloaderSerialPort(),
-			runSerialPort: getRunSerialPort(),
-			baud: getDefaultBaud(),
-			flashLocation: getFlashLocation(),
-			target: getBuildTarget(),
-			showOnStartup: cfg.get<boolean>('baochip.showWelcomeOnStartup', true),
-		};
+		const state = { showOnStartup: getShowWelcome() };
 		this.panel.webview.postMessage({ type: 'init', state });
 	}
 
@@ -134,23 +111,29 @@ export class WelcomePanel {
 			vscode.Uri.joinPath(this.ctx.extensionUri, 'media', 'logo.svg'),
 		);
 
-		// Localized strings injected into the HTML
-		const titleBar = vscode.l10n.t('Welcome • Baochip'); // "Welcome • Baochip"
-		const h1 = vscode.l10n.t('Welcome to Baochip'); // "Welcome to Baochip"
-		const sub = vscode.l10n.t('Quick actions to get you started.'); // "Quick actions to get you started."
-		const chkLabel = vscode.l10n.t('Show Welcome on extension startup'); // "Show Welcome on extension startup"
-		const xousLinkTitle = vscode.l10n.t('Open xous-core on GitHub'); // "Open xous-core on GitHub"
+		// Localized strings injected into the HTML - escaped so a translation containing markup
+		// characters can never alter the page structure (defense-in-depth; the CSP is already tight).
+		const titleBar = escapeHtml(vscode.l10n.t('Welcome - Baochip')); // "Welcome - Baochip"
+		const h1 = escapeHtml(vscode.l10n.t('Welcome to Baochip')); // "Welcome to Baochip"
+		const sub = escapeHtml(vscode.l10n.t('Quick actions to get you started.')); // "Quick actions to get you started."
+		const chkLabel = escapeHtml(vscode.l10n.t('Show Welcome on extension startup')); // "Show Welcome on extension startup"
+		const xousLinkTitle = escapeHtml(vscode.l10n.t('Open xous-core on GitHub')); // "Open xous-core on GitHub"
 		const xousLinkText = 'betrusted-io/xous-core'; // keep repo slug literal
-		const btnConfigureTitle = vscode.l10n.t('Configure extension');
-		const btnConfigureSub = vscode.l10n.t('Paths, ports, defaults');
-		const btnCreateTitle = vscode.l10n.t('Create new app');
-		const btnCreateSub = vscode.l10n.t('Start a new app from a template');
-		const footerLead = vscode.l10n.t('Found a bug or have a feature request for the extension?');
-		const footerLink = vscode.l10n.t('Open an issue on GitHub'); // "Open an issue on GitHub"
+		const btnConfigureTitle = escapeHtml(vscode.l10n.t('Configure extension'));
+		const btnConfigureSub = escapeHtml(vscode.l10n.t('Paths, ports, defaults'));
+		const btnCreateTitle = escapeHtml(vscode.l10n.t('Create new app'));
+		const btnCreateSub = escapeHtml(vscode.l10n.t('Start a new app from a template'));
+		const footerLead = escapeHtml(
+			vscode.l10n.t('Found a bug or have a feature request for the extension?'),
+		);
+		const collectLabel = escapeHtml(
+			vscode.l10n.t('Collect diagnostics (nothing is automatically sent)'),
+		);
+		const reportLabel = escapeHtml(vscode.l10n.t('Report an issue'));
 
 		return /* html */ `
       <!doctype html>
-      <html>
+      <html lang="${escapeHtml(vscode.env.language)}">
       <head>
         <meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy"
@@ -181,7 +164,7 @@ export class WelcomePanel {
                 <div class="spacer"></div>
 
                 <div class="links">
-                  <a class="link" href="javascript:void(0)" id="btn-xousSite" title="${xousLinkTitle}">
+                  <a class="link" href="${XOUS_CORE_REPO}" id="btn-xousSite" title="${xousLinkTitle}">
                     <span class="icon codicon codicon-github-inverted"></span>
                     ${xousLinkText}
                   </a>
@@ -204,14 +187,18 @@ export class WelcomePanel {
             </button>
           </div>
 
-          <footer class="muted" style="margin-top: 1rem; text-align: center;">
+          <footer class="muted">
             <p>
               ${footerLead}
-              <br>
-              <a class="link" href="javascript:void(0)" id="btn-extRepo">
-                <span class="icon codicon codicon-feedback"></span> ${footerLink}
-              </a>
             </p>
+            <div class="footer-actions">
+              <button class="link-button" id="btn-collectDiagnostics">
+                <span class="icon codicon codicon-output"></span> ${collectLabel}
+              </button>
+              <button class="link-button" id="btn-reportIssue">
+                <span class="icon codicon codicon-feedback"></span> ${reportLabel}
+              </button>
+            </div>
           </footer>
 
           <script src="${jsUri}"></script>

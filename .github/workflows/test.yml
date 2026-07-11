@@ -1,0 +1,51 @@
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Unit tests
+        run: npm test
+
+      # VS Code cannot launch headless on Linux, so the integration suite runs under xvfb there.
+      # The Linux job also runs the opt-in real-world drift tests (network, a shallow clone of
+      # xous-core, and liveness checks of the kernel CI and toolchain release endpoints).
+      - name: Integration tests (Linux, under xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+        env:
+          BAO_TEST_REAL: "1"
+
+      - name: Integration tests
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Python CLI tests
+        run: npm run test:python

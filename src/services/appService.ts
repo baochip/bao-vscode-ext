@@ -1,20 +1,72 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { getAppsDir } from '@constants';
+import { BUILD_TARGETS, getAppsDir } from '@constants';
+import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
+import { getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
+import { ensureXousWorkspaceOpen } from '@services/workspaceService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
+import {
+	addWorkspaceMemberToToml,
+	parseWorkspaceMembers,
+	readCargoPackageName,
+	rewriteXousGitDepsToPaths,
+	transformAppCargoToml,
+} from '@util/cargo';
+import { hasCargoToml, isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
-
-const XOUS_CORE_GIT_URL = 'https://github.com/betrusted-io/xous-core';
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
-	if (!fs.existsSync(appsDir) || !fs.statSync(appsDir).isDirectory()) return [];
+	if (!isDirectory(appsDir)) return [];
 	const entries = fs.readdirSync(appsDir, { withFileTypes: true });
 	return entries
 		.filter((e) => e.isDirectory())
 		.map((e) => e.name)
-		.filter((name) => fs.existsSync(path.join(appsDir, name, 'Cargo.toml')))
+		.filter((name) => hasCargoToml(path.join(appsDir, name)))
 		.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Prompt the user to pick an app for the current xous-core workspace, persist it, and return it.
+ * Returns undefined in out-of-tree mode, if no apps exist, or if the user cancels.
+ */
+export async function promptAndSaveApp(): Promise<string | undefined> {
+	if (getProjectMode() === 'out-of-tree') return undefined;
+
+	const root = await resolveXousRootOrNotify();
+	if (!root) return undefined;
+
+	// Enforce opening xous-core as the workspace. The user may adopt the currently-open folder,
+	// so list apps from the returned root, not the configured one they might have declined.
+	const effectiveRoot = await ensureXousWorkspaceOpen(root);
+	if (!effectiveRoot) return undefined;
+
+	const target = getBuildTargetOrDefault();
+	const apps = await listBaoApps(effectiveRoot, target);
+	if (apps.length === 0) {
+		vscode.window.showWarningMessage(
+			vscode.l10n.t(
+				'No apps found under {0}. Create one first.',
+				`${effectiveRoot}/${getAppsDir(target)}`,
+			),
+		);
+		return undefined;
+	}
+
+	const current = getXousAppName();
+	const pick = await vscode.window.showQuickPick(
+		apps.map((a) => ({
+			label: a,
+			description: a === current ? vscode.l10n.t('current') : undefined,
+		})),
+		{ placeHolder: vscode.l10n.t('Select app') },
+	);
+	if (!pick) return undefined;
+
+	await setXousAppName(pick.label);
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
+	return pick.label;
 }
 
 export function missingApps(xousRoot: string, appNames: string, target: string): string[] {
@@ -25,11 +77,7 @@ export function missingApps(xousRoot: string, appNames: string, target: string):
 		.filter(Boolean)
 		.filter((n) => {
 			const dir = path.join(appsDir, n);
-			return !(
-				fs.existsSync(dir) &&
-				fs.statSync(dir).isDirectory() &&
-				fs.existsSync(path.join(dir, 'Cargo.toml'))
-			);
+			return !(isDirectory(dir) && hasCargoToml(dir));
 		});
 }
 
@@ -37,91 +85,72 @@ export function appExists(xousRoot: string, appNames: string, target: string): b
 	return missingApps(xousRoot, appNames, target).length === 0;
 }
 
-// lightweight validator for UX
-export function isLikelyValidAppName(name: string): boolean {
-	return /^[a-z][a-z0-9_-]*$/.test(name); // lowercase, start with letter
-}
-
 /* ------------------------------ workspace helpers ------------------------------ */
 
 function readWorkspaceMembers(xousRoot: string): string[] {
 	try {
 		const content = fs.readFileSync(path.join(xousRoot, 'Cargo.toml'), 'utf8');
-		const m = content.match(/^members\s*=\s*\[([\s\S]*?)\]/m);
-		if (!m) return [];
-		return [...m[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+		return parseWorkspaceMembers(content);
 	} catch {
 		return [];
 	}
 }
 
-/** Build a map of crate-name → workspace-relative-path by scanning workspace members. */
+/** Build a map of crate-name -> workspace-relative-path by scanning workspace members. */
 function buildWorkspacePackageMap(xousRoot: string): Map<string, string> {
 	const map = new Map<string, string>();
 	for (const member of readWorkspaceMembers(xousRoot)) {
-		try {
-			const content = fs.readFileSync(path.join(xousRoot, member, 'Cargo.toml'), 'utf8');
-			const m = content.match(/^name\s*=\s*"([^"]+)"/m);
-			if (m) map.set(m[1], member);
-		} catch {}
+		const name = readCargoPackageName(path.join(xousRoot, member));
+		if (name) map.set(name, member);
 	}
 	return map;
 }
 
-function addWorkspaceMember(xousRoot: string, member: string): void {
+/** Returns true when the member was added; false when the members array could not be edited. */
+function addWorkspaceMember(xousRoot: string, member: string): boolean {
 	const cargoPath = path.join(xousRoot, 'Cargo.toml');
-	const content = fs.readFileSync(cargoPath, 'utf8');
-	const updated = content.replace(/(^members\s*=\s*\[[\s\S]*?)(\n\])/m, `$1\n  "${member}",$2`);
-	fs.writeFileSync(cargoPath, updated, 'utf8');
+	try {
+		const content = fs.readFileSync(cargoPath, 'utf8');
+		// Already listed (e.g. recreating an app whose folder was deleted but whose entry remained)?
+		// Return without appending so the members array does not accumulate duplicates.
+		if (parseWorkspaceMembers(content).includes(member)) {
+			return true;
+		}
+		const updated = addWorkspaceMemberToToml(content, member);
+		if (updated !== null) {
+			fs.writeFileSync(cargoPath, updated, 'utf8');
+			return true;
+		}
+	} catch {
+		// Reading or writing the root Cargo.toml failed (e.g. it is read-only): return false so the
+		// caller reports the single "add it manually" message; the app itself was still created.
+	}
+	// Members array missing, unchanged, or unwritable: the caller surfaces the manual-add message.
+	return false;
 }
 
 /* ------------------------------ app creation ------------------------------ */
 
 /**
- * Generate a [patch."https://github.com/betrusted-io/xous-core"] section by
- * finding all git deps in the Cargo.toml that point to xous-core and mapping
- * them to local workspace paths.
+ * Scaffold a new in-tree app from the bundled template. Returns true when the app was also
+ * registered in the root workspace members; false when it was created but the members array
+ * could not be edited automatically (the user was told to add it manually).
  */
-function generateXousPatchSection(
-	cargoContent: string,
-	pkgMap: Map<string, string>,
-	newDir: string,
-	xousRoot: string,
-): string {
-	const entries: string[] = [];
-	// Match dependency entries that use the xous-core git URL
-	const pattern =
-		/^\s*([\w-]+)\s*=\s*\{[^}]*git\s*=\s*"https:\/\/github\.com\/betrusted-io\/xous-core"[^}]*\}/gm;
-	const seen = new Set<string>();
-	for (const m of cargoContent.matchAll(pattern)) {
-		const entry = m[0];
-		const depKey = m[1].trim();
-		// Crate may be aliased via package = "..."
-		const pkgMatch = entry.match(/package\s*=\s*"([^"]+)"/);
-		const pkgName = pkgMatch ? pkgMatch[1] : depKey;
-		if (seen.has(pkgName)) continue;
-		seen.add(pkgName);
-		const memberPath = pkgMap.get(pkgName);
-		if (memberPath) {
-			const absPath = path.join(xousRoot, memberPath);
-			const relPath = path.relative(newDir, absPath).replace(/\\/g, '/');
-			entries.push(`${pkgName} = { path = "${relPath}" }`);
-		}
-	}
-	if (entries.length === 0) return '';
-	return `\n[patch."${XOUS_CORE_GIT_URL}"]\n${entries.join('\n')}\n`;
-}
-
 export async function createBaoApp(
 	xousRoot: string,
 	appName: string,
 	target: string,
-): Promise<void> {
+): Promise<boolean> {
+	// target is a workspace-controlled setting interpolated into the template path below; reject
+	// anything not whitelisted so it can never become a traversal path segment.
+	if (!BUILD_TARGETS.includes(target)) {
+		throw new Error(vscode.l10n.t('Invalid build target: {0}', target));
+	}
 	const appsDir = path.join(xousRoot, getAppsDir(target));
 	const newDir = path.join(appsDir, appName);
 
 	if (fs.existsSync(newDir)) {
-		throw new Error(`App directory already exists: ${newDir}`);
+		throw new Error(vscode.l10n.t('App directory already exists: {0}', newDir));
 	}
 
 	const templateDir = path.join(
@@ -131,49 +160,53 @@ export async function createBaoApp(
 		'out-of-tree',
 		target,
 	);
-	if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
+	if (!hasCargoToml(templateDir)) {
 		throw new Error(vscode.l10n.t('No out-of-tree template available for target "{0}".', target));
 	}
 
-	// Build workspace map for patch generation
+	// Build workspace map for the path-dep rewrite
 	const pkgMap = buildWorkspacePackageMap(xousRoot);
 
 	// Process Cargo.toml
-	let cargo = fs.readFileSync(path.join(templateDir, 'Cargo.toml'), 'utf8');
+	const template = fs.readFileSync(path.join(templateDir, 'Cargo.toml'), 'utf8');
+	let cargo = transformAppCargoToml(template, appName);
 
-	// Replace package name
-	cargo = cargo.replace(/\{\{NAME\}\}/g, appName);
-
-	// Remove rev = "{{REV}}" — not needed since we patch with local paths
-	cargo = cargo.replace(/,?\s*rev\s*=\s*"{{REV}}"/g, '');
-
-	// Remove [patch.crates-io] section — workspace members inherit workspace-level patches
-	cargo = `${cargo.replace(/\[patch\.crates-io\][\s\S]*?(?=\n\[|\s*$)/, '').trimEnd()}\n`;
-
-	// Generate and append [patch."https://github.com/betrusted-io/xous-core"] section
-	const patchSection = generateXousPatchSection(cargo, pkgMap, newDir, xousRoot);
-	if (patchSection) {
-		cargo += patchSection;
+	// In-tree apps reference sibling xous-core crates by path: cargo ignores [patch] sections
+	// in member manifests, so keeping the git deps would silently resolve them from GitHub
+	// instead of this tree.
+	const rewrite = rewriteXousGitDepsToPaths(cargo, pkgMap, newDir, xousRoot);
+	if (rewrite.missing.length > 0) {
+		throw new Error(
+			vscode.l10n.t(
+				'Could not find {0} in your xous-core checkout. Update xous-core and try again.',
+				rewrite.missing.join(', '),
+			),
+		);
 	}
+	cargo = rewrite.toml;
 
 	// Write app files
 	fs.mkdirSync(newDir, { recursive: true });
-	fs.writeFileSync(path.join(newDir, 'Cargo.toml'), cargo, 'utf8');
+	try {
+		fs.writeFileSync(path.join(newDir, 'Cargo.toml'), cargo, 'utf8');
 
-	// Copy src/
-	fs.cpSync(path.join(templateDir, 'src'), path.join(newDir, 'src'), { recursive: true });
+		// Copy src/
+		fs.cpSync(path.join(templateDir, 'src'), path.join(newDir, 'src'), { recursive: true });
 
-	// Copy .cargo/config.toml
-	fs.mkdirSync(path.join(newDir, '.cargo'), { recursive: true });
-	fs.copyFileSync(
-		path.join(templateDir, '.cargo', 'config.toml'),
-		path.join(newDir, '.cargo', 'config.toml'),
-	);
+		// Copy .cargo/config.toml
+		fs.mkdirSync(path.join(newDir, '.cargo'), { recursive: true });
+		fs.copyFileSync(
+			path.join(templateDir, '.cargo', 'config.toml'),
+			path.join(newDir, '.cargo', 'config.toml'),
+		);
+	} catch (e) {
+		// Remove the partial app dir so a retry is not blocked by "already exists".
+		try {
+			fs.rmSync(newDir, { recursive: true, force: true });
+		} catch {}
+		throw e;
+	}
 
 	// Register in workspace Cargo.toml
-	addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
-
-	try {
-		await vscode.workspace.saveAll();
-	} catch {}
+	return addWorkspaceMember(xousRoot, `${getAppsDir(target)}/${appName}`);
 }

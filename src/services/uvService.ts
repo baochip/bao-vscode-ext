@@ -1,9 +1,22 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { chan, errorToast, info, log } from '@services/logService';
+import { downloadFile } from '@services/httpService';
+import { errorToast, getBaochipChannel, info, log } from '@services/logService';
+import { runProcess } from '@services/procService';
+import { toMessage } from '@util/error';
+import { InFlightMemo } from '@util/inFlightMemo';
+import { isFullPathCommand } from '@util/shell';
+import {
+	classifyPipFailure,
+	containedUvEnv,
+	installerScriptUrl,
+	knownUvLocations,
+	uvPathIn,
+	venvPlan,
+} from '@util/uvInstall';
 import * as vscode from 'vscode';
 
 /* ------------------------------ extension context ------------------------------ */
@@ -37,59 +50,81 @@ export function getGlobalVenvRoot(): string {
 	return ctx().globalStorageUri.fsPath;
 }
 
-/* ------------------------------ workspace state ------------------------------ */
+/* ------------------------------ global state ------------------------------ */
 
-const WS_KEY_UV_PYTHON = 'baochip.ws.uvPythonCommand';
-const WS_KEY_UV_PATH = 'baochip.ws.uvBinaryPath';
-const WS_KEY_REQ_HASH = 'baochip.ws.reqHash'; // sha256 of bundled requirements.txt
+// uv and its venv are machine-global (the venv lives in globalStorage), so these are remembered
+// GLOBALLY, not per-workspace - otherwise every new workspace re-runs the whole uv bootstrap.
+const KEY_UV_PYTHON = 'baochip.uvPythonCommand';
+const KEY_UV_PATH = 'baochip.uvBinaryPath';
+const KEY_REQ_HASH = 'baochip.reqHash'; // sha256 of bundled requirements.txt
 
-function wsGet<T>(key: string, def: T): T {
-	return ctx().workspaceState.get<T>(key, def) ?? def;
+function gGet<T>(key: string, def: T): T {
+	return ctx().globalState.get<T>(key, def) ?? def;
 }
-async function wsSet<T>(key: string, val: T | undefined): Promise<void> {
-	await ctx().workspaceState.update(key, val);
+async function gSet<T>(key: string, val: T | undefined): Promise<void> {
+	await ctx().globalState.update(key, val);
 }
 
 /* ------------------------------ subprocess utilities ------------------------------ */
 
+/**
+ * Env that forces a Python child to UTF-8 stdio (and filesystem), so its output matches our UTF-8
+ * decode even on non-UTF-8 OS locales (e.g. Japanese Windows cp932). Harmless for non-Python procs.
+ */
+function pythonUtf8Env(): NodeJS.ProcessEnv {
+	return { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
+}
+
+/**
+ * Base env for every uv invocation: UTF-8 Python stdio plus uv's managed-Python and cache dirs
+ * confined to our global storage, so uv never installs a Python or caches downloads outside VS Code.
+ */
+export function uvEnv(): NodeJS.ProcessEnv {
+	return { ...pythonUtf8Env(), ...containedUvEnv(getGlobalVenvRoot()) };
+}
+
 /** Run a subprocess; concise logs; only surface stdout/stderr on failure. */
-function run(
+async function run(
 	cmd: string,
 	args: string[],
 	cwd?: string,
+	extraEnv?: NodeJS.ProcessEnv,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
-	log(`→ ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
-	return new Promise((resolve, reject) => {
-		const p = spawn(cmd, args, { cwd, shell: os.platform() === 'win32' });
-		let stdout = '';
-		let stderr = '';
-		p.stdout.on('data', (d) => {
-			stdout += d.toString();
-		});
-		p.stderr.on('data', (d) => {
-			stderr += d.toString();
-		});
-		p.on('close', (code) => {
-			if (code === 0) {
-				log(`✓ ${cmd} exited 0`);
-				resolve({ stdout, stderr, code });
-			} else {
-				const msg = `${cmd} failed (exit ${code})\n${stderr || stdout || ''}`.trim();
-				log(`ERROR: ${msg}`);
-				chan.show(true);
-				reject(new Error(msg));
-			}
-		});
-	});
+	log(`-> ${cmd} ${args.join(' ')}${cwd ? `  (cwd=${cwd})` : ''}`);
+	const r = await runProcess(cmd, args, { cwd, env: { ...uvEnv(), ...extraEnv } });
+	if (r.error) {
+		const msg = vscode.l10n.t('{0} failed to start: {1}', cmd, r.error.message);
+		log(`ERROR: ${msg}`);
+		getBaochipChannel().show(true);
+		throw new Error(msg);
+	}
+	if (r.code === 0) {
+		log(`[ok] ${cmd} exited 0`);
+		return { stdout: r.stdout, stderr: r.stderr, code: 0 };
+	}
+	// A signal-killed uv has a null exit code; name the signal instead of "(exit null)".
+	const reason =
+		r.code === null && r.signal
+			? vscode.l10n.t('{0} terminated by signal {1}', cmd, r.signal)
+			: vscode.l10n.t('{0} failed (exit {1})', cmd, String(r.code));
+	const msg = `${reason}\n${r.stderr || r.stdout || ''}`.trim();
+	log(`ERROR: ${msg}`);
+	getBaochipChannel().show(true);
+	throw new Error(msg);
 }
 
 function spawnVersion(cmd: string, args: string[] = ['--version']): { ok: boolean; out: string } {
 	try {
-		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: true });
+		// A full path (contains a path separator) runs WITHOUT a shell so spaces/metacharacters in
+		// the path pass through natively. Bare names ('uv', 'py -3') keep the shell for PATH/PATHEXT
+		// resolution. Using shell:true on a spaced full path would split it at the first space
+		// (Node DEP0190) and falsely report the binary as unusable.
+		const useShell = !isFullPathCommand(cmd);
+		const r = spawnSync(cmd, args, { encoding: 'utf8', shell: useShell, env: pythonUtf8Env() });
 		const out = ((r.stdout || '') + (r.stderr || '')).trim();
 		return { ok: r.status === 0, out };
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		return { ok: false, out: message };
 	}
 }
@@ -101,27 +136,24 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 		const exe = parts[0];
 		const baseArgs = parts.slice(1);
 
-		const tmpDir = path.join(os.tmpdir(), 'baochip-pyeval');
+		// Unique per-run dir (owner-only perms on POSIX), removed in finally so nothing is left behind.
+		const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-pyeval-'));
 		try {
-			fs.mkdirSync(tmpDir, { recursive: true });
-		} catch {}
-		const tmpFile = path.join(
-			tmpDir,
-			`snippet-${Date.now()}-${Math.random().toString(36).slice(2)}.py`,
-		);
-		fs.writeFileSync(tmpFile, code, 'utf8');
+			const tmpFile = path.join(tmpDir, 'snippet.py');
+			fs.writeFileSync(tmpFile, code, 'utf8');
 
-		const args = [...baseArgs, tmpFile];
-		const res = spawnSync(exe, args, { encoding: 'utf8', shell: false });
-
-		try {
-			fs.unlinkSync(tmpFile);
-		} catch {}
-
-		const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
-		return { ok: res.status === 0, out: stdout };
+			const res = spawnSync(exe, [...baseArgs, tmpFile], {
+				encoding: 'utf8',
+				shell: false,
+				env: pythonUtf8Env(),
+			});
+			const stdout = ((res.stdout || '') + (res.stderr || '')).trim();
+			return { ok: res.status === 0, out: stdout };
+		} finally {
+			fs.rmSync(tmpDir, { recursive: true, force: true });
+		}
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
+		const message = toMessage(e);
 		return { ok: false, out: message };
 	}
 }
@@ -130,7 +162,7 @@ function pyEval(pythonCmd: string, code: string): { ok: boolean; out: string } {
 
 function detectWorkingPythons(): { cmd: string; version: string }[] {
 	const cands =
-		os.platform() === 'win32' ? ['py -3', 'py', 'python3', 'python'] : ['python3', 'python'];
+		process.platform === 'win32' ? ['py -3', 'py', 'python3', 'python'] : ['python3', 'python'];
 	const list: { cmd: string; version: string }[] = [];
 	for (const c of cands) {
 		const v = spawnVersion(c, ['--version']);
@@ -144,19 +176,33 @@ function detectWorkingPythons(): { cmd: string; version: string }[] {
 	return list;
 }
 
+/** Astral's uv installation guide, offered when uv is required but auto-install failed. */
+const UV_INSTALL_DOCS = 'https://docs.astral.sh/uv/getting-started/installation/';
+
+/**
+ * Show the terminal "uv is required" error (with a button to uv's install guide) and throw.
+ * Reached only when every automatic path to uv has failed. A user who then installs uv themselves
+ * is detected automatically on the next command (resolveUvBinary steps 2-3), no reset needed.
+ */
+async function promptUvRequired(): Promise<never> {
+	const msg = vscode.l10n.t(
+		'Baochip requires uv but could not install it automatically. Install uv yourself (see the uv installation guide), then run a Baochip command again - it will detect uv automatically.',
+	);
+	const openLabel = vscode.l10n.t('Open uv installation guide');
+	const choice = await vscode.window.showErrorMessage(msg, openLabel);
+	if (choice === openLabel) {
+		await vscode.env.openExternal(vscode.Uri.parse(UV_INSTALL_DOCS));
+	}
+	throw new Error(msg);
+}
+
 async function pickPython(): Promise<string> {
 	const found = detectWorkingPythons();
 	if (found.length === 0) {
-		const envPath = process.env.PATH || '';
-		errorToast(
-			vscode.l10n.t(
-				'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
-			),
-		);
-		log(`PATH at failure:\n${envPath}`);
-		throw new Error(
-			'No working Python interpreters detected on PATH. Please install Python (python.org) and retry.',
-		);
+		// The standalone installer has already failed and there is no Python for the pip fallback, so
+		// every automatic path to uv is exhausted. uv - not Python - is what we actually require.
+		log(`PATH at failure:\n${process.env.PATH || ''}`);
+		return await promptUvRequired();
 	}
 	const pick = await vscode.window.showQuickPick(
 		found.map((w) => ({ label: w.cmd, description: w.version })),
@@ -166,7 +212,7 @@ async function pickPython(): Promise<string> {
 			placeHolder: vscode.l10n.t('Pick the Python to run "pip install --user uv"'),
 		},
 	);
-	if (!pick) throw new Error('Python selection cancelled.');
+	if (!pick) throw new Error(vscode.l10n.t('Python selection cancelled.'));
 	log(`Python selected for uv install: ${pick.label}`);
 	return pick.label.trim();
 }
@@ -179,8 +225,28 @@ function uvUsable(uvCmd: string): boolean {
 }
 
 function whichUvFromPath(): string | null {
-	const name = os.platform() === 'win32' ? 'uv.exe' : 'uv';
+	const name = process.platform === 'win32' ? 'uv.exe' : 'uv';
 	return uvUsable(name) ? name : null;
+}
+
+/**
+ * Return the first candidate that exists and is a usable uv, else uv resolved from PATH, else null.
+ * `context` tags the log lines with which install path is probing.
+ */
+function findUsableUv(candidates: string[], context: string): string | null {
+	for (const c of candidates) {
+		if (c && fs.existsSync(c) && uvUsable(c)) {
+			log(`uv found (${context}) at: ${c}`);
+			return c;
+		}
+		if (c) log(`uv not at: ${c}`);
+	}
+	const onPath = whichUvFromPath();
+	if (onPath) {
+		log(`uv found (${context}) on PATH: ${onPath}`);
+		return onPath;
+	}
+	return null;
 }
 
 function expectedUvPathsFromPython(pythonCmd: string): string[] {
@@ -246,7 +312,7 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 	try {
 		const parts = pythonCmd.split(' ').filter(Boolean);
 		const exeOnly = parts[0];
-		if (exeOnly && os.platform() === 'win32' && exeOnly.toLowerCase().endsWith('python.exe')) {
+		if (exeOnly && process.platform === 'win32' && exeOnly.toLowerCase().endsWith('python.exe')) {
 			paths.push(path.join(path.dirname(exeOnly), 'Scripts', 'uv.exe'));
 		}
 	} catch {}
@@ -254,62 +320,247 @@ print(json.dumps(sorted(os.path.join(c, exe) for c in cands)))
 	return Array.from(new Set(paths));
 }
 
+/** Map a pip-install failure (its stderr) to concise, localized, actionable guidance. */
+function pipInstallFailedMessage(stderr: string): string {
+	let hint: string;
+	switch (classifyPipFailure(stderr)) {
+		case 'pep668':
+			hint = vscode.l10n.t(
+				'This Python is externally managed (PEP 668), so pip will not install into it. Try a different Python, or install uv with its standalone installer or pipx.',
+			);
+			break;
+		case 'no-pip':
+			hint = vscode.l10n.t(
+				'The selected Python has no pip. Run "python -m ensurepip --upgrade", or pick a different Python.',
+			);
+			break;
+		case 'ssl':
+			hint = vscode.l10n.t(
+				'TLS verification failed, usually a corporate proxy intercepting HTTPS. Ask your IT team for the proxy root certificate and set the SSL_CERT_FILE environment variable, then retry.',
+			);
+			break;
+		case 'network':
+			hint = vscode.l10n.t(
+				'Could not reach PyPI. Check your network, set HTTP_PROXY/HTTPS_PROXY if you use a proxy, then retry.',
+			);
+			break;
+		default:
+			hint = vscode.l10n.t(
+				'This usually means no network, a proxy or firewall blocking PyPI, or a broken pip. Check your connection and proxy, then retry.',
+			);
+			break;
+	}
+	return vscode.l10n.t('Baochip: could not install uv with pip. {0}', hint);
+}
+
+/** Resolve the saved bootstrap Python (e.g. "py -3") to its actual executable path, or undefined. */
+function resolvePickedPythonExe(): string | undefined {
+	const pythonCmd = gGet<string | undefined>(KEY_UV_PYTHON, undefined);
+	if (!pythonCmd) return undefined;
+	const r = pyEval(pythonCmd, 'import sys; print(sys.executable)');
+	const exe = r.ok ? r.out.trim() : '';
+	return exe && fs.existsSync(exe) ? exe : undefined;
+}
+
+/**
+ * Directory into which WE install a self-contained uv. Lives inside the extension's global storage
+ * (alongside the venv), so nothing is written to the user's home directory or PATH.
+ */
+function ownUvDir(): string {
+	return path.join(getGlobalVenvRoot(), 'uv');
+}
+
+/**
+ * uv paths to probe inside our own install dir. The standalone installer's UV_INSTALL_DIR layout
+ * has varied by version (binary directly in the dir, or under a `bin/` subdir), so we check both.
+ */
+function ownUvCandidates(): string[] {
+	const dir = ownUvDir();
+	return [uvPathIn(dir), uvPathIn(path.join(dir, 'bin'))];
+}
+
+/** Remove a directory tree, ignoring errors (best-effort temp cleanup). */
+function cleanupDir(dir: string): void {
+	try {
+		fs.rmSync(dir, { recursive: true, force: true });
+	} catch {}
+}
+
+/**
+ * Proxy env overlay so the installer's own downloads honor a corporate proxy: VS Code's `http.proxy`
+ * setting if configured, else the standard proxy env vars. Empty when no proxy is in play.
+ */
+function proxyEnv(): NodeJS.ProcessEnv {
+	const configured = vscode.workspace.getConfiguration('http').get<string>('proxy')?.trim();
+	const proxy =
+		configured ||
+		process.env.HTTPS_PROXY ||
+		process.env.https_proxy ||
+		process.env.HTTP_PROXY ||
+		process.env.http_proxy;
+	return proxy ? { HTTPS_PROXY: proxy, HTTP_PROXY: proxy } : {};
+}
+
+/**
+ * Install uv with Astral's standalone installer into our own global storage, needing no Python.
+ * Fully contained: UV_INSTALL_DIR points at our dir and INSTALLER_NO_MODIFY_PATH stops it from
+ * editing the user's PATH. Returns the uv path on success, or null so the caller can fall back.
+ */
+async function installUvViaStandalone(): Promise<string | null> {
+	const dir = ownUvDir();
+	try {
+		fs.mkdirSync(dir, { recursive: true });
+	} catch (e: unknown) {
+		log(`could not create uv install dir ${dir}: ${toMessage(e)}`);
+		return null;
+	}
+
+	const isWin = process.platform === 'win32';
+	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bao-uv-'));
+	const scriptPath = path.join(tmpDir, isWin ? 'install.ps1' : 'install.sh');
+
+	info(vscode.l10n.t('Baochip: Installing uv (standalone installer)...'));
+	try {
+		// Shared downloader: timeout, capped redirects, atomic write. In-process requests go
+		// through VS Code's extension-host proxy handling; proxyEnv() below covers only the
+		// installer SUBPROCESS, whose own downloads bypass that handling.
+		await downloadFile(installerScriptUrl(), scriptPath);
+	} catch (e: unknown) {
+		log(`uv installer download failed: ${toMessage(e)}`);
+		cleanupDir(tmpDir);
+		return null;
+	}
+
+	// Contained install: land uv inside our storage and never touch the user's PATH.
+	const installEnv: NodeJS.ProcessEnv = {
+		...pythonUtf8Env(),
+		...proxyEnv(),
+		UV_INSTALL_DIR: dir,
+		INSTALLER_NO_MODIFY_PATH: '1',
+	};
+
+	// We invoke the script THROUGH the interpreter (powershell -File / sh <file>), so no execute bit
+	// is needed. powershell.exe (Windows PowerShell 5.1) is used for the broadest compatibility.
+	const [cmd, args]: [string, string[]] = isWin
+		? ['powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath]]
+		: ['sh', [scriptPath]];
+
+	log(`-> ${cmd} ${args.join(' ')}`);
+	const r = await runProcess(cmd, args, { env: installEnv });
+	cleanupDir(tmpDir);
+	if (r.error || r.code !== 0) {
+		log(
+			`uv standalone installer failed: ${r.error?.message ?? `exit ${r.code}`}\n${(
+				r.stderr || r.stdout || ''
+			).trim()}`,
+		);
+		return null;
+	}
+
+	const found = findUsableUv(ownUvCandidates(), 'standalone install');
+	if (found) return found;
+	log('uv standalone installer completed but uv was not found in the expected locations');
+	return null;
+}
+
 /** Install uv using the selected Python, then locate the uv binary. */
 async function installUvAndFindBinary(pythonCmd: string): Promise<string> {
-	info(vscode.l10n.t('Baochip: Installing uv…'));
+	info(vscode.l10n.t('Baochip: Installing uv...'));
 	const parts = pythonCmd.split(' ').filter(Boolean);
 	const exe = parts[0];
 	const args = [...parts.slice(1), '-m', 'pip', 'install', '--user', 'uv'];
 	try {
 		await run(exe, args);
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		errorToast(vscode.l10n.t('Baochip: Failed to install uv via pip.\n{0}', message));
+		errorToast(pipInstallFailedMessage(toMessage(e)));
 		throw e;
 	}
 
 	const cands = expectedUvPathsFromPython(pythonCmd);
-	for (const c of cands) {
-		if (c && fs.existsSync(c) && uvUsable(c)) {
-			log(`uv found at: ${c}`);
-			return c;
-		}
-		log(`uv not at: ${c}`);
-	}
+	const found = findUsableUv(cands, 'pip install');
+	if (found) return found;
 
-	const onPath = whichUvFromPath();
-	if (onPath) {
-		log(`uv found on PATH: ${onPath}`);
-		return onPath;
-	}
+	log(`uv not found after install. PATH:\n${process.env.PATH || ''}`);
 
-	const envPath = process.env.PATH || '';
-	log(`uv not found after install. PATH:\n${envPath}`);
-	throw new Error(
-		os.platform() === 'win32'
-			? vscode.l10n.t(
-					'uv was installed but not found. Ensure your Python user Scripts directory is on PATH or select a different Windows Python.',
-				)
-			: vscode.l10n.t(
-					'uv was installed but not found. Ensure your user bin directory is on PATH or select a different Python.',
-				),
+	// Recoverable: name the expected dir and let the user open it or point us at uv directly.
+	const expectedDir = cands.length > 0 ? path.dirname(cands[0]) : '';
+	const notFoundMsg = vscode.l10n.t(
+		'uv was installed but Baochip could not locate the uv executable. Expected it in: {0}. Add that folder to PATH, or use "Enter uv path" to point Baochip at it directly.',
+		expectedDir || '(unknown)',
 	);
+	const openLabel = vscode.l10n.t('Open Folder');
+	const enterLabel = vscode.l10n.t('Enter uv path');
+	const buttons = expectedDir ? [openLabel, enterLabel] : [enterLabel];
+	const choice = await vscode.window.showErrorMessage(notFoundMsg, ...buttons);
+	if (choice === enterLabel) {
+		const entered = await vscode.window.showInputBox({
+			title: vscode.l10n.t('Enter the full path to the uv executable'),
+			ignoreFocusOut: true,
+		});
+		const trimmed = entered?.trim();
+		if (trimmed && uvUsable(trimmed)) {
+			log(`uv path entered manually: ${trimmed}`);
+			return trimmed;
+		}
+		throw new Error(vscode.l10n.t('That uv path is not usable.'));
+	}
+	if (choice === openLabel && expectedDir) {
+		await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(expectedDir));
+	}
+	throw new Error(vscode.l10n.t('uv setup was not completed.'));
 }
 
+/*
+ * Session cache + concurrency guard: without it every command re-probes uv with a synchronous
+ * `--version` (and re-hashes requirements.txt), and the pipeline's port wait triggers that every
+ * 500ms - each probe blocks the extension host. We also memoize the in-flight bootstrap promise
+ * so two first-run commands can't both run the installer into the same dirs. On success the memo
+ * is kept (fast path for later commands); on failure it is cleared so the next command retries.
+ * Cleared by resetUvSetup/rerunExtensionSetup. The probe itself stays synchronous by design: it
+ * runs once per session, and making it async would ripple into the deferred shell:true probes.
+ */
+const uvBinaryMemo = new InFlightMemo<string>();
+const depsMemo = new InFlightMemo<void>();
+
 async function resolveUvBinary(): Promise<string> {
-	const saved = wsGet<string | undefined>(WS_KEY_UV_PATH, undefined);
+	return uvBinaryMemo.run(resolveUvBinaryUncached);
+}
+
+async function resolveUvBinaryUncached(): Promise<string> {
+	// 1) A uv we already resolved (saved in our own global state).
+	const saved = gGet<string | undefined>(KEY_UV_PATH, undefined);
 	if (saved && uvUsable(saved)) {
 		log(`Using saved uv path: ${saved}`);
 		return saved;
 	}
 
+	// 2) A uv already installed globally (on PATH) - reuse it rather than installing our own.
 	const fromPath = whichUvFromPath();
 	if (fromPath) {
-		await wsSet(WS_KEY_UV_PATH, fromPath);
+		await gSet(KEY_UV_PATH, fromPath);
 		info(vscode.l10n.t('Baochip: uv ready.'));
 		return fromPath;
 	}
 
+	// 3) A uv we installed before, or a user standalone/cargo install, found by full path.
+	for (const cand of [...ownUvCandidates(), ...knownUvLocations(os.homedir())]) {
+		if (fs.existsSync(cand) && uvUsable(cand)) {
+			log(`Found existing uv at: ${cand}`);
+			await gSet(KEY_UV_PATH, cand);
+			info(vscode.l10n.t('Baochip: uv ready.'));
+			return cand;
+		}
+	}
+
+	// 4) Install uv, self-contained, needing no Python (Astral standalone installer).
+	const viaStandalone = await installUvViaStandalone();
+	if (viaStandalone) {
+		await gSet(KEY_UV_PATH, viaStandalone);
+		info(vscode.l10n.t('Baochip: uv ready.'));
+		return viaStandalone;
+	}
+
+	// 5) Last resort: install uv into the user's own Python with pip.
 	const pythonCmd = await pickPython();
 	if (process.platform === 'win32') {
 		const sys = pyEval(pythonCmd, 'import platform; print(platform.system())');
@@ -321,25 +572,33 @@ async function resolveUvBinary(): Promise<string> {
 			throw new Error(msg);
 		}
 	}
-	await wsSet(WS_KEY_UV_PYTHON, pythonCmd);
+	await gSet(KEY_UV_PYTHON, pythonCmd);
 	log(`Saving Python for uv bootstrap: ${pythonCmd}`);
 
 	const uvPath = await installUvAndFindBinary(pythonCmd);
-	await wsSet(WS_KEY_UV_PATH, uvPath);
+	await gSet(KEY_UV_PATH, uvPath);
 	info(vscode.l10n.t('Baochip: uv ready.'));
 	return uvPath;
 }
 
 /* ------------------------------ public API ------------------------------ */
 
-/** Returns `{ cmd: <uv binary>, args: ['run','python'] }` */
-export async function getBaoRunner(): Promise<{ cmd: string; args: string[] }> {
+/** Returns `{ cmd: <uv binary>, args: ['run','python'] }`. Quiet skips the routine log line. */
+export async function getBaoRunner(
+	opts: { quiet?: boolean } = {},
+): Promise<{ cmd: string; args: string[] }> {
 	const uvPath = await resolveUvBinary();
-	log(`Bao runner: ${uvPath} run python`);
+	if (!opts.quiet) log(`Bao runner: ${uvPath} run python`);
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 
-export async function ensureBaoPythonDeps({
+export async function ensureBaoPythonDeps(opts: { quiet?: boolean } = {}): Promise<void> {
+	// Memoized so a resolved run is the "already done" fast path and concurrent first-run
+	// commands share one install; cleared on failure so the next command retries.
+	return depsMemo.run(() => ensureBaoPythonDepsUncached(opts));
+}
+
+async function ensureBaoPythonDepsUncached({
 	quiet = false,
 }: {
 	quiet?: boolean;
@@ -349,62 +608,112 @@ export async function ensureBaoPythonDeps({
 	const reqPath = path.join(toolsRoot, 'requirements.txt');
 	const venvDir = path.join(venvRoot, '.venv');
 
+	// Ensure the global storage directory exists before creating the venv there; callers also
+	// rely on it as the cwd for uv launches, so it must exist on every return path.
+	fs.mkdirSync(venvRoot, { recursive: true });
+
 	if (!fs.existsSync(reqPath)) {
 		log(`No requirements file found at: ${reqPath} (skipping install)`);
 		return;
 	}
 
-	// Ensure the global storage directory exists before creating the venv there.
-	fs.mkdirSync(venvRoot, { recursive: true });
-
 	const currentHash = createHash('sha256').update(fs.readFileSync(reqPath)).digest('hex');
-	const prevHash = wsGet<string>(WS_KEY_REQ_HASH, '');
+	const prevHash = gGet<string>(KEY_REQ_HASH, '');
 	log(`requirements.txt path: ${reqPath}`);
 	log(`requirements current hash: ${currentHash}`);
 	log(`requirements previous hash: ${prevHash || '(none)'}`);
 	log(`checking venv: ${venvDir}`);
 
-	// If the venv folder is missing, remake it and reinstall everything.
-	const venvMissing = !fs.existsSync(venvDir);
+	// If the venv folder is missing OR half-built (no pyvenv.cfg, e.g. an interrupted create),
+	// remake it and reinstall everything.
+	const venvMissing = !fs.existsSync(venvDir) || !fs.existsSync(path.join(venvDir, 'pyvenv.cfg'));
 
 	if (!venvMissing && prevHash === currentHash) {
 		log('requirements unchanged and venv present; skipping install.');
 		return;
 	}
 
-	const reason = venvMissing ? 'missing virtual environment' : 'requirements changed';
-	if (!quiet) info(`Baochip: ${reason} — installing Python deps…`);
+	if (!quiet) {
+		info(
+			venvMissing
+				? vscode.l10n.t('Baochip: missing virtual environment - installing Python deps...')
+				: vscode.l10n.t('Baochip: requirements changed - installing Python deps...'),
+		);
+	}
 
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing Python deps (uv)…'),
+			title: vscode.l10n.t('Baochip: Installing Python deps (uv)...'),
 			cancellable: false,
 		},
 		async () => {
 			const uv = await resolveUvBinary();
 
-			// 1) Ensure (or recreate) the venv in global storage (idempotent)
+			// Choose the venv interpreter: a Python we picked, else any system Python, else a managed
+			// Python that uv downloads for us (confined to our storage via uvEnv). Only the last case
+			// downloads, so users who already have a Python are never made to fetch one. Probe for a
+			// system Python lazily - skip the blocking spawns entirely when a picked exe already wins.
+			const picked = resolvePickedPythonExe();
+			const plan = venvPlan(picked, picked ? true : detectWorkingPythons().length > 0);
+
+			// 0) No system Python: have uv install a self-contained one before creating the venv.
+			if (plan.managed) {
+				if (!quiet) {
+					info(
+						vscode.l10n.t(
+							'Baochip: no Python found - downloading a Python runtime (one-time, ~150 MB)...',
+						),
+					);
+				}
+				try {
+					await run(uv, ['python', 'install'], venvRoot, { UV_PYTHON_DOWNLOADS: 'automatic' });
+				} catch (e: unknown) {
+					const message = toMessage(e);
+					log(`uv python install failed: ${message}`);
+					errorToast(
+						vscode.l10n.t(
+							'Baochip could not download a Python runtime. Check your network and any proxy or firewall, then retry.\n{0}',
+							message,
+						),
+					);
+					throw e;
+				}
+			}
+
+			// 1) Ensure (or recreate) the venv in global storage (idempotent).
 			try {
-				await run(uv, ['venv'], venvRoot);
+				await run(uv, plan.venvArgs, venvRoot, { UV_PYTHON_DOWNLOADS: plan.downloads });
 			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
+				const message = toMessage(e);
 				log(`uv venv failed: ${message}`);
-				errorToast(vscode.l10n.t('Failed to create uv venv:\n{0}', message));
+				errorToast(
+					vscode.l10n.t(
+						'Baochip could not create the uv virtual environment. Often the storage folder is not writable, the disk is full, or antivirus is blocking it. Free space or check permissions, then retry.\n{0}',
+						message,
+					),
+				);
 				throw e;
 			}
 
 			// 2) Install requirements into that venv
 			try {
-				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot);
+				await run(uv, ['pip', 'install', '-r', reqPath], venvRoot, {
+					UV_PYTHON_DOWNLOADS: 'never',
+				});
 			} catch (e: unknown) {
-				const message = e instanceof Error ? e.message : String(e);
-				errorToast(vscode.l10n.t('Baochip: Failed installing Python deps via uv.\n{0}', message));
+				const message = toMessage(e);
+				errorToast(
+					vscode.l10n.t(
+						'Baochip could not install the Python dependencies with uv. Check your network and any proxy or firewall to PyPI, then retry.\n{0}',
+						message,
+					),
+				);
 				throw e;
 			}
 
 			// 3) Cache the current hash
-			await wsSet(WS_KEY_REQ_HASH, currentHash);
+			await gSet(KEY_REQ_HASH, currentHash);
 			log(`requirements hash updated: ${currentHash}`);
 		},
 	);
@@ -412,11 +721,90 @@ export async function ensureBaoPythonDeps({
 	if (!quiet) info(vscode.l10n.t('Baochip: Python dependencies installed (uv).'));
 }
 
-export async function resetUvSetup() {
-	await wsSet<string | undefined>(WS_KEY_UV_PATH, undefined);
-	await wsSet<string | undefined>(WS_KEY_UV_PYTHON, undefined);
-	info(
-		vscode.l10n.t('Baochip: reset uv setup for this workspace. Re-run a command to reconfigure.'),
+/**
+ * Delete everything setup installs under our global storage - the contained uv, the managed Python,
+ * uv's download cache, and the venv - so the next setup rebuilds from scratch. A uv the user
+ * installed globally themselves is untouched (it lives outside our storage) and is reused on rebuild.
+ */
+function cleanContainedInstall(): void {
+	const root = getGlobalVenvRoot();
+	for (const sub of ['uv', 'python', 'cache', '.venv']) {
+		const dir = path.join(root, sub);
+		try {
+			fs.rmSync(dir, { recursive: true, force: true });
+			log(`removed ${dir}`);
+		} catch (e: unknown) {
+			log(`could not remove ${dir}: ${toMessage(e)}`);
+		}
+	}
+}
+
+/**
+ * Re-run the automatic environment setup on demand, from a clean slate: remove what we installed
+ * (contained uv, managed Python, cache, venv), clear saved state, then reinstall everything. Gated
+ * behind a confirmation because it deletes the install and re-downloads over the network.
+ */
+export async function rerunExtensionSetup(): Promise<void> {
+	const proceed = vscode.l10n.t('Reinstall');
+	const choice = await vscode.window.showWarningMessage(
+		vscode.l10n.t(
+			'Re-run setup from scratch? This deletes only the private copies of uv, Python, and the virtual environment that Baochip keeps inside VS Code, then reinstalls them. Any uv or Python installed elsewhere on your system is not affected. A network connection is required.',
+		),
+		{ modal: true },
+		proceed,
 	);
+	if (choice !== proceed) return;
+
+	await clearUvState();
+	cleanContainedInstall();
+	await settleUvMemos();
+
+	await ensureBaoPythonDeps();
+	info(vscode.l10n.t('Baochip: extension setup complete.'));
+}
+
+/**
+ * Await any in-flight bootstrap, then drop both cached memos so the next resolve/install starts clean.
+ * Run around a destructive reset: before it so an in-flight install is not writing into files the
+ * reset removes, and after it so no memo holds a result for the install that was just wiped.
+ */
+async function settleUvMemos(): Promise<void> {
+	await depsMemo.settle();
+	await uvBinaryMemo.settle();
+}
+
+/** Forget the resolved uv path, saved Python, requirements hash, and session memos. */
+async function clearUvState(): Promise<void> {
+	await settleUvMemos();
+	await gSet<string | undefined>(KEY_UV_PATH, undefined);
+	await gSet<string | undefined>(KEY_UV_PYTHON, undefined);
+	await gSet<string | undefined>(KEY_REQ_HASH, undefined);
+}
+
+export async function resetUvSetup() {
+	await clearUvState();
+	info(vscode.l10n.t('Baochip: reset uv setup. Re-run a command to reconfigure.'));
 	log(`PATH snapshot:\n${process.env.PATH || ''}`);
+
+	// Offer to delete the cached venv too, so "reset and retry" forces a clean rebuild.
+	const venvDir = path.join(getGlobalVenvRoot(), '.venv');
+	if (fs.existsSync(venvDir)) {
+		const deleteLabel = vscode.l10n.t('Delete .venv');
+		const choice = await vscode.window.showInformationMessage(
+			vscode.l10n.t(
+				'Also delete the cached uv virtual environment? It will be rebuilt on the next command.',
+			),
+			deleteLabel,
+		);
+		if (choice === deleteLabel) {
+			try {
+				fs.rmSync(venvDir, { recursive: true, force: true });
+				log(`deleted venv: ${venvDir}`);
+			} catch (e: unknown) {
+				log(`could not delete venv: ${toMessage(e)}`);
+			}
+		}
+	}
+
+	await settleUvMemos();
 }

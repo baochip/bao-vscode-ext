@@ -9,9 +9,11 @@ repos:
         exclude: "(^node_modules/|^out/|^\\.vscode/|^dist/)"
         pass_filenames: true
         stages: [pre-commit, manual, pre-push]
+      # no --unsafe: semantic auto-fixes must not land unreviewed at commit time
+      # (the manual `npm run lint:fix` keeps --unsafe for interactive use)
       - id: biome-fix
         name: biome fix (commit stage)
-        entry: npx biome check --write --unsafe
+        entry: npx biome check --write
         language: system
         files: "\\.(ts|tsx|js|mjs|cjs|json)$"
         exclude: "(^node_modules/|^out/|^\\.vscode/|^dist/)"

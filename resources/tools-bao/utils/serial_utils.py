@@ -3,6 +3,9 @@ import time
 import serial
 from serial.serialutil import SerialException
 
+# Baochip default UART baud rate (shared by the boot + monitor commands).
+DEFAULT_BAUD = 1000000
+
 
 def open_serial(port: str, baud: int, *, timeout: float = 0.1, reset: bool = False, **kwargs) -> serial.Serial:
     try:

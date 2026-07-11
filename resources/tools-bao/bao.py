@@ -11,7 +11,7 @@ from commands import ports
 def main():
     ap = argparse.ArgumentParser(
         prog="bao.py",
-        description="Baochip CLI — host-side utilities for Baochip development."
+        description="Baochip CLI - host-side utilities for Baochip development."
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (debug logging and tracebacks)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -27,17 +27,18 @@ def main():
     logging.basicConfig(level=log_level, format="[bao] %(levelname)s: %(message)s")
 
     try:
-        args.func(args)
+        code = args.func(args)
     except KeyboardInterrupt:
-        print("\n[bao] aborted by user.")
+        print("\n[bao] aborted by user.", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
+        print(f"[bao] error: {e}", file=sys.stderr)
         if getattr(args, "verbose", False):
-            print(f"[bao] error: {e}", file=sys.stderr)
             traceback.print_exc()
-        else:
-            print(f"[bao] error: {e}", file=sys.stderr)
         sys.exit(1)
+
+    # Commands return an int exit code (or None for success); propagate it to the process.
+    sys.exit(code or 0)
 
 if __name__ == "__main__":
     main()

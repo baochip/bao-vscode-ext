@@ -1,9 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { isLikelyValidAppName } from '@services/appService';
-import { getBuildTarget } from '@services/configService';
-import { fetchLatestXousCoreRev } from '@services/kernelService';
+import { BUILD_TARGETS } from '@constants';
+import { getBuildTargetOrDefault } from '@services/configService';
+import { fetchLatestXousCoreRev, toastRevFetchFailed } from '@services/kernelService';
+import { errorToast } from '@services/logService';
 import { getExtensionRoot } from '@services/uvService';
+import { isLikelyValidAppName } from '@util/appName';
+import { toMessage } from '@util/error';
+import { hasCargoToml, isSameOrParentPath } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
 function getTemplateDir(target: string): string {
@@ -45,7 +49,7 @@ export async function scaffoldOutOfTreeApp(): Promise<void> {
 
 	if (openFolder) {
 		const useCurrentLabel = vscode.l10n.t('Use current folder: {0}', openFolder.uri.fsPath);
-		const chooseDifferentLabel = vscode.l10n.t('Choose a different folder…');
+		const chooseDifferentLabel = vscode.l10n.t('Choose a different folder...');
 		const choice = await vscode.window.showQuickPick([useCurrentLabel, chooseDifferentLabel], {
 			title: vscode.l10n.t('Where should the project be created?'),
 		});
@@ -74,10 +78,38 @@ export async function scaffoldOutOfTreeApp(): Promise<void> {
 }
 
 async function scaffoldInto(projectDir: string, name: string): Promise<void> {
-	if (fs.existsSync(path.join(projectDir, 'Cargo.toml'))) {
+	if (hasCargoToml(projectDir)) {
 		vscode.window.showErrorMessage(
 			vscode.l10n.t('A Cargo.toml already exists in {0}.', projectDir),
 		);
+		return;
+	}
+	// The template copy below would silently overwrite existing sources.
+	if (fs.existsSync(path.join(projectDir, 'src'))) {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t(
+				'A src folder already exists in {0}. Move it first or pick an empty folder.',
+				projectDir,
+			),
+		);
+		return;
+	}
+	// Likewise the template's .cargo/config.toml would overwrite a user's existing one.
+	if (fs.existsSync(path.join(projectDir, '.cargo', 'config.toml'))) {
+		vscode.window.showErrorMessage(
+			vscode.l10n.t(
+				'A .cargo/config.toml already exists in {0}. Move it first or pick an empty folder.',
+				projectDir,
+			),
+		);
+		return;
+	}
+
+	// Validate the target before it reaches getTemplateDir's path.join (a hostile buildTarget setting
+	// must not select a template dir outside the bundled templates) and before the rev fetch.
+	const target = getBuildTargetOrDefault();
+	if (!BUILD_TARGETS.includes(target)) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
 		return;
 	}
 
@@ -85,17 +117,17 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 	try {
 		rev = await fetchLatestXousCoreRev();
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		vscode.window.showErrorMessage(
-			vscode.l10n.t('Failed to fetch latest xous-core rev: {0}', message),
-		);
+		toastRevFetchFailed(e);
 		return;
 	}
 
+	// Whether .cargo already existed decides whether the rollback below may remove it.
+	const dotCargoDir = path.join(projectDir, '.cargo');
+	const dotCargoPreexisted = fs.existsSync(dotCargoDir);
+
 	try {
-		const target = getBuildTarget() || 'dabao';
 		const templateDir = getTemplateDir(target);
-		if (!fs.existsSync(path.join(templateDir, 'Cargo.toml'))) {
+		if (!hasCargoToml(templateDir)) {
 			vscode.window.showErrorMessage(
 				vscode.l10n.t('No out-of-tree template available for target "{0}".', target),
 			);
@@ -107,26 +139,48 @@ async function scaffoldInto(projectDir: string, name: string): Promise<void> {
 			.replace(/\{\{NAME\}\}/g, name)
 			.replace(/\{\{REV\}\}/g, rev);
 
-		fs.mkdirSync(path.join(projectDir, '.cargo'), { recursive: true });
+		fs.mkdirSync(dotCargoDir, { recursive: true });
 
 		fs.writeFileSync(path.join(projectDir, 'Cargo.toml'), cargoContent, 'utf8');
 		fs.cpSync(path.join(templateDir, 'src'), path.join(projectDir, 'src'), { recursive: true });
 		fs.copyFileSync(
 			path.join(templateDir, '.cargo', 'config.toml'),
-			path.join(projectDir, '.cargo', 'config.toml'),
+			path.join(dotCargoDir, 'config.toml'),
 		);
 	} catch (e: unknown) {
-		const message = e instanceof Error ? e.message : String(e);
-		vscode.window.showErrorMessage(vscode.l10n.t('Failed to create project: {0}', message));
+		// Roll back what this run wrote so a half-created project does not block a retry (Cargo.toml
+		// and src are the folder guards above, verified absent). Only remove paths this run created.
+		try {
+			fs.rmSync(path.join(projectDir, 'Cargo.toml'), { force: true });
+			fs.rmSync(path.join(projectDir, 'src'), { recursive: true, force: true });
+			// A guard above verified no config.toml pre-existed, so the one here is ours: remove it
+			// (else it would trip that guard on retry). Only remove the whole .cargo if we made it.
+			if (dotCargoPreexisted) fs.rmSync(path.join(dotCargoDir, 'config.toml'), { force: true });
+			else fs.rmSync(dotCargoDir, { recursive: true, force: true });
+		} catch {}
+		const message = toMessage(e);
+		errorToast(vscode.l10n.t('Failed to create project: {0}', message));
 		return;
 	}
 
-	const existingFolders = vscode.workspace.workspaceFolders ?? [];
-	vscode.workspace.updateWorkspaceFolders(existingFolders.length, 0, {
-		uri: vscode.Uri.file(projectDir),
-		name,
-	});
+	// Announce success before touching workspace folders: adding the first folder to an empty
+	// window reloads the extension host, which would discard a toast shown afterward.
 	vscode.window.showInformationMessage(
 		vscode.l10n.t('Created out-of-tree app "{0}" at {1}.', name, projectDir),
 	);
+
+	const existingFolders = vscode.workspace.workspaceFolders ?? [];
+	// realpath-/case-aware so a differently-cased pick (Windows) or a folder that already covers
+	// projectDir is not re-added as a duplicate.
+	const alreadyOpen = existingFolders.some((f) => isSameOrParentPath(f.uri.fsPath, projectDir));
+	if (alreadyOpen) return;
+
+	const uri = vscode.Uri.file(projectDir);
+	if (existingFolders.length === 0) {
+		vscode.workspace.updateWorkspaceFolders(0, 0, { uri, name });
+	} else {
+		// Out-of-tree commands act on the first workspace folder, so the new project opens in its own
+		// window where it is the root.
+		await vscode.commands.executeCommand('vscode.openFolder', uri, { forceNewWindow: true });
+	}
 }

@@ -3,8 +3,16 @@
 	"displayName": "%ext.displayName%",
 	"description": "%ext.description%",
 	"publisher": "baochip",
-	"website": "https://baochip.com",
-	"version": "1.0.0",
+	"homepage": "https://baochip.com",
+	"bugs": {
+		"url": "https://github.com/baochip/bao-vscode-ext/issues"
+	},
+	"qna": "https://github.com/baochip/bao-vscode-ext/issues",
+	"galleryBanner": {
+		"color": "#4b4c4b",
+		"theme": "dark"
+	},
+	"version": "1.1.0",
 	"icon": "media/baochip-128x128-logo-only.png",
 	"license": "Apache-2.0",
 	"pricing": "Free",
@@ -37,88 +45,136 @@
 		"commands": [
 			{
 				"command": "baochip.openWelcome",
-				"title": "%cmd.openWelcome%"
+				"category": "Baochip",
+				"title": "%cmd.openWelcome%",
+				"icon": "$(home)"
 			},
 			{
 				"command": "baochip.openSettings",
-				"title": "%cmd.openSettings%"
+				"category": "Baochip",
+				"title": "%cmd.openSettings%",
+				"icon": "$(gear)"
 			},
 			{
 				"command": "baochip.setBootloaderSerialPort",
+				"category": "Baochip",
 				"title": "%cmd.setBootPort%"
 			},
 			{
 				"command": "baochip.setRunSerialPort",
+				"category": "Baochip",
 				"title": "%cmd.setRunPort%"
 			},
 			{
 				"command": "baochip.setMonitorDefaultPort",
+				"category": "Baochip",
 				"title": "%cmd.setMonitorDefaultPort%"
 			},
 			{
 				"command": "baochip.setMonitorBaud",
+				"category": "Baochip",
 				"title": "%cmd.setMonitorBaud%"
 			},
 			{
 				"command": "baochip.openMonitor",
+				"category": "Baochip",
 				"title": "%cmd.monitorOpen%"
 			},
 			{
 				"command": "baochip.stopMonitor",
+				"category": "Baochip",
 				"title": "%cmd.monitorStop%"
 			},
 			{
 				"command": "baochip.setFlashLocation",
+				"category": "Baochip",
 				"title": "%cmd.setFlashLocation%"
 			},
 			{
 				"command": "baochip.selectBuildTarget",
+				"category": "Baochip",
 				"title": "%cmd.selectBuildTarget%"
 			},
 			{
 				"command": "baochip.setBuildMode",
+				"category": "Baochip",
 				"title": "%cmd.setBuildMode%"
 			},
 			{
 				"command": "baochip.clean",
+				"category": "Baochip",
 				"title": "%cmd.clean%"
 			},
 			{
 				"command": "baochip.build",
+				"category": "Baochip",
 				"title": "%cmd.build%"
 			},
 			{
 				"command": "baochip.selectApp",
+				"category": "Baochip",
 				"title": "%cmd.selectApp%"
 			},
 			{
 				"command": "baochip.createApp",
+				"category": "Baochip",
 				"title": "%cmd.createApp%"
 			},
 			{
 				"command": "baochip.flash",
+				"category": "Baochip",
 				"title": "%cmd.flash%"
 			},
 			{
 				"command": "baochip.buildFlashMonitor",
+				"category": "Baochip",
 				"title": "%cmd.buildFlashMonitor%"
 			},
 			{
 				"command": "baochip.resetUvSetup",
+				"category": "Baochip",
 				"title": "%cmd.resetUvSetup%"
+			},
+			{
+				"command": "baochip.rerunSetup",
+				"category": "Baochip",
+				"title": "%cmd.rerunSetup%"
+			},
+			{
+				"command": "baochip.collectDiagnostics",
+				"category": "Baochip",
+				"title": "%cmd.collectDiagnostics%"
 			}
 		],
-		"menus": {},
+		"menus": {
+			"view/title": [
+				{
+					"command": "baochip.openWelcome",
+					"when": "view == bao-view",
+					"group": "navigation@1"
+				},
+				{
+					"command": "baochip.openSettings",
+					"when": "view == bao-view",
+					"group": "navigation@2"
+				}
+			]
+		},
 		"configuration": [
 			{
 				"title": "%cfg.title.general%",
-				"scope": "application",
 				"properties": {
 					"baochip.showWelcomeOnStartup": {
 						"type": "boolean",
 						"default": true,
+						"scope": "application",
 						"description": "%cfg.general.showWelcomeOnStartup%",
 						"order": 1
+					},
+					"baochip.reRunExtensionSetup": {
+						"type": "null",
+						"markdownDescription": "%cfg.general.rerunSetup%",
+						"order": 2
 					}
 				}
 			},
@@ -155,7 +211,7 @@
 				"scope": "resource",
 				"properties": {
 					"baochip.monitor.defaultBaud": {
-						"type": "number",
+						"type": "integer",
 						"default": 1000000,
 						"minimum": 1,
 						"description": "%cfg.monitor.defaultBaud%",
@@ -288,33 +344,62 @@
 				}
 			]
 		},
+		"viewsWelcome": [
+			{
+				"view": "bao-view",
+				"contents": "%viewsWelcome.noFolder%"
+			}
+		],
 		"keybindings": [
 			{
 				"command": "baochip.build",
-				"key": "ctrl+alt+b",
-				"when": "editorTextFocus"
+				"key": "ctrl+alt+b"
+			},
+			{
+				"command": "baochip.flash",
+				"key": "ctrl+alt+f"
+			},
+			{
+				"command": "baochip.buildFlashMonitor",
+				"key": "ctrl+alt+shift+b"
 			}
 		]
 	},
 	"main": "./out/extension.js",
 	"scripts": {
+		"clean": "node -e \"fs.rmSync('out',{recursive:true,force:true})\"",
+		"clean:test": "node -e \"fs.rmSync('out/test',{recursive:true,force:true})\"",
 		"compile": "tsc -p . && tsc-alias -p tsconfig.json",
 		"watch": "tsc -w -p .",
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run clean && npm run compile",
 		"package": "npx vsce package",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write --unsafe .",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"test": "tsx --test \"src/test/unit/**/*.test.ts\"",
+		"test:integration": "npm run compile && npm run clean:test && tsc -p tsconfig.test.json && tsc-alias -p tsconfig.test.json && vscode-test",
+		"test:python": "uv run --with pytest --with tomlkit --with pyserial pytest resources/tools-bao/tests"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.3.0",
-		"@types/node": "^24.10.1",
-		"@types/vscode": "^1.106.1",
-		"@vscode/vsce": "^3.9.1",
-		"tsc-alias": "^1.8.16",
-		"typescript": "^5.5.0"
+		"@biomejs/biome": "^2.5.0",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "^24.13.2",
+		"@types/sinon": "^21.0.1",
+		"@types/vscode": "~1.106.1",
+		"@vscode/test-cli": "^0.0.15",
+		"@vscode/test-electron": "^3.0.0",
+		"@vscode/vsce": "^3.9.2",
+		"mocha": "^11.7.6",
+		"sinon": "^22.0.0",
+		"tsc-alias": "^1.8.17",
+		"tsx": "^4.22.4",
+		"typescript": "^6.0.3"
 	},
 	"dependencies": {
-		"@vscode/codicons": "^0.0.42"
+		"@vscode/codicons": "^0.0.45"
+	},
+	"overrides": {
+		"diff": "8.0.4",
+		"serialize-javascript": "7.0.6"
 	}
 }

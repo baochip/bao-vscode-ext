@@ -1,15 +1,20 @@
+import { Commands } from '@commands/commandIds';
+import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
-import { createBaoApp, isLikelyValidAppName } from '@services/appService';
-import { getBuildTarget, setXousAppName } from '@services/configService';
+import { createBaoApp } from '@services/appService';
+import { getBuildTargetOrDefault, setXousAppName } from '@services/configService';
+import { errorToast } from '@services/logService';
 import { scaffoldOutOfTreeApp } from '@services/outOfTreeScaffoldService';
-import { ensureXousCorePath } from '@services/pathService';
 import { getProjectMode } from '@services/projectModeService';
 import { ensureXousWorkspaceOpen, revealAppFolder } from '@services/workspaceService';
+import { resolveXousRootOrNotify } from '@services/xousCoreService';
+import { isLikelyValidAppName } from '@util/appName';
+import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
-export function registerCreateApp(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.createApp', async () => {
-		if ((getBuildTarget() || 'dabao') === 'baosec') {
+export function registerCreateApp() {
+	return withCommand(Commands.createApp, async () => {
+		if (getBuildTargetOrDefault() === 'baosec') {
 			vscode.window.showErrorMessage(vscode.l10n.t('baosec app creation is not yet supported.'));
 			return;
 		}
@@ -19,23 +24,19 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 			return;
 		}
 
-		let root: string;
-		try {
-			root = await ensureXousCorePath();
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(message || vscode.l10n.t('xous-core path not set'));
-			return;
-		}
+		const root = await resolveXousRootOrNotify();
+		if (!root) return;
 
-		const ok = await ensureXousWorkspaceOpen(root);
-		if (!ok) return;
+		// The user may adopt the currently-open folder here; operate on the returned root, not
+		// the configured one they might have just declined.
+		const effectiveRoot = await ensureXousWorkspaceOpen(root);
+		if (!effectiveRoot) return;
 
-		const target = getBuildTarget() || 'dabao';
+		const target = getBuildTargetOrDefault();
 		const appsDir = getAppsDir(target);
 
 		const nameInput = await vscode.window.showInputBox({
-			title: vscode.l10n.t('New Bao App Name'),
+			title: vscode.l10n.t('New Baochip App Name'),
 			prompt: vscode.l10n.t('Will be created under xous-core/{0}/<name>/', appsDir),
 			placeHolder: vscode.l10n.t('test_app'),
 			validateInput: (val) => {
@@ -52,21 +53,27 @@ export function registerCreateApp(_context: vscode.ExtensionContext) {
 
 		const progressOpts = {
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Creating app "{0}"…', name),
+			title: vscode.l10n.t('Creating app "{0}"...', name),
 		};
 		try {
-			await vscode.window.withProgress(progressOpts, async () => {
-				await createBaoApp(root, name, target);
-			});
+			const registered = await vscode.window.withProgress(progressOpts, () =>
+				createBaoApp(effectiveRoot, name, target),
+			);
 
 			await setXousAppName(name);
 			vscode.window.showInformationMessage(
-				vscode.l10n.t('Created {0}/{1} and added to workspace.', appsDir, name),
+				registered
+					? vscode.l10n.t('Created {0}/{1} and added to workspace.', appsDir, name)
+					: vscode.l10n.t(
+							'Created {0}/{1}. Add it to the workspace members manually.',
+							appsDir,
+							name,
+						),
 			);
-			await revealAppFolder(root, name, target);
+			await revealAppFolder(effectiveRoot, name, target);
 		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : String(e);
-			vscode.window.showErrorMessage(vscode.l10n.t('Create app failed: {0}', message));
+			const message = toMessage(e);
+			errorToast(vscode.l10n.t('Create app failed: {0}', message));
 		}
 	});
 }

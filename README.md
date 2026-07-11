@@ -13,8 +13,8 @@ This extension integrates building, flashing, and serial monitoring directly int
 
 ### Build Modes
 The extension auto-detects your workflow from the open workspace:
-- **In-tree** — develop apps inside a local `xous-core` checkout
-- **Out-of-tree** — develop standalone apps without a local `xous-core`; kernel files can be downloaded automatically or you can provide your own builds.
+- **In-tree** - develop apps inside a local `xous-core` checkout
+- **Out-of-tree** - develop standalone apps without a local `xous-core`; kernel files can be downloaded automatically or you can provide your own builds.
 
 ### Welcome Page
 A simple start screen with:
@@ -37,7 +37,7 @@ A simple start screen with:
 ### Serial Monitor
 - Raw mode (immediate keystroke passthrough)
 - Line mode with CRLF normalization
-- Run Mode ↔ Bootloader Mode option for ports
+- Run Mode <-> Bootloader Mode option for ports
 
 ### Combined Build/Flash/Monitor Command
 A single command that:
@@ -66,7 +66,7 @@ The extension user interface supports:
 ## Quickstart
 
 ### 1. Install Requirements
-- Python 3
+- Python 3 (optional - if none is found on your system, the extension installs a private copy for you)
 
 ### 2. Open your project
 
@@ -74,31 +74,31 @@ The extension user interface supports:
 ```sh
 git clone https://github.com/betrusted-io/xous-core
 ```
-Then, make a new app in 
+Then, use **Baochip: New App** to add an app to the tree (see step 4).
 
-**Out-of-tree:** Open any folder in VS Code — no `xous-core` required.  Use 'New app' to start from scratch.
+**Out-of-tree:** Open any folder in VS Code - no `xous-core` required. Use **Baochip: New App** to start from scratch.
 
-## 3. Configuring the extension
+### 3. Configuring the extension
 
 - Prompts for paths, serial ports, and flash locations will appear during normal workflows.
 - You can additionally configure settings ad-hoc from the commands list, toolbar, or from Settings
 
-## 4. Create or Select an App
+### 4. Create or Select an App
 
 Use the Welcome page or the command palette:
 
-    Baochip: Create App
+    Baochip: New App
     Baochip: Select App
 
 Applications live inside:
 
     xous-core/apps-dabao/
 
-## 5. Write code! 
+### 5. Write code!
 
-- Write code for your app inside the the apps location you have selected.
+- Write code for your app inside the apps location you have selected.
 
-## 6. Build, Flash, Monitor
+### 6. Build, Flash, Monitor
 
 You may use any of the following:
 
@@ -107,4 +107,26 @@ You may use any of the following:
 - Or the combined all-in-one command:
 
     Baochip: Build • Flash • Monitor
+
+---
+
+## Storage and disk space
+
+The extension installs its Python tooling into VS Code's own global storage - not into your project
+or onto your system PATH - so it is fully self-contained and is removed when you uninstall the
+extension. If a working `uv` is already installed on your machine, the extension reuses it instead of
+installing its own.
+
+`Baochip: Reset UV Setup` clears the saved setup and can delete the cached virtual environment (rebuilt
+on the next command); `Baochip: Re-run Extension Setup` deletes the private uv, Python, and virtual
+environment and reinstalls them from scratch.
+
+Approximate space used under VS Code global storage:
+
+- uv (installed automatically if not already present): ~35 MB
+- Python runtime (downloaded only if no system Python is found): ~150 MB
+- Python virtual environment and dependencies (pyserial, etc.): ~30 MB
+
+If no suitable Python is found on your system, the extension can download a self-contained Python for
+you, which uses roughly an additional 150 MB. Nothing is written outside VS Code's storage.
 

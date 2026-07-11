@@ -1,131 +1,108 @@
-import {
-	getBootloaderSerialPort,
-	getDefaultBaud,
-	getMonitorDefaultPort,
-	getRunSerialPort,
-} from '@services/configService';
+import { Commands } from '@commands/commandIds';
+import { getMonitorDefaultPort } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
+import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
 import * as vscode from 'vscode';
 
-export class BaoTreeProvider implements vscode.TreeDataProvider<TreeItem> {
-	private _onDidChangeTreeData = new vscode.EventEmitter<TreeItem | undefined>();
+export class BaoTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-	private monitorNode = new TreeItem(
-		vscode.l10n.t('Monitor'),
-		'baochip.openMonitor',
-		'vm',
-		vscode.TreeItemCollapsibleState.Collapsed,
+	// Section headers carry stable ids so VS Code persists each user's expand/collapse state.
+	private setupSection = new SectionItem('baochip.section.setup', vscode.l10n.t('Setup'));
+	private projectSection = new SectionItem('baochip.section.project', vscode.l10n.t('Project'));
+	private buildRunSection = new SectionItem(
+		'baochip.section.buildRun',
+		vscode.l10n.t('Build & Run'),
 	);
+
+	// A plain leaf: a collapsible item would make VS Code reserve twisty space for the whole
+	// section, pushing Build & Run's items out of alignment with the other sections.
+	private monitorNode = new TreeItem(vscode.l10n.t('Monitor'), Commands.openMonitor, 'vm');
 
 	refresh() {
 		this._onDidChangeTreeData.fire(undefined);
 	}
-	refreshMonitor() {
-		this._onDidChangeTreeData.fire(this.monitorNode);
+
+	dispose() {
+		this._onDidChangeTreeData.dispose();
 	}
 
-	getTreeItem(el: TreeItem) {
+	getTreeItem(el: vscode.TreeItem) {
 		// Dynamically update tooltip to show the chosen mode/port/baud
 		if (el === this.monitorNode) {
-			const def = getMonitorDefaultPort(); // "run" | "bootloader"
-			const port = def === 'run' ? getRunSerialPort() : getBootloaderSerialPort();
-			const baud = getDefaultBaud();
-			const modeLabel = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
-			if (port) {
-				el.tooltip = vscode.l10n.t(
-					'Open monitor on {0} port {1} @ {2}',
-					modeLabel,
-					port,
-					String(baud),
-				);
-			} else {
-				// lower-cased mode
-				const modeWord =
-					def === 'run' ? vscode.l10n.t('run mode') : vscode.l10n.t('bootloader mode');
-				el.tooltip = vscode.l10n.t('Open monitor ({0} port not set)', modeWord);
-			}
+			el.tooltip = monitorTooltip();
 		}
 		return el;
 	}
 
-	getChildren(element?: TreeItem) {
+	getChildren(element?: vscode.TreeItem) {
 		if (!element) {
-			const _welcome = new TreeItem(vscode.l10n.t('Welcome'), 'baochip.openWelcome', 'home');
-			const setBootloaderPort = new TreeItem(
-				vscode.l10n.t('Set bootloader mode serial port'),
-				'baochip.setBootloaderSerialPort',
-				'plug',
-			);
-			const setRunPort = new TreeItem(
-				vscode.l10n.t('Set run mode serial port'),
-				'baochip.setRunSerialPort',
-				'plug',
-			);
-			const setFlashLoc = new TreeItem(
-				vscode.l10n.t('Set baochip location'),
-				'baochip.setFlashLocation',
-				'chip',
-			);
-			const target = new TreeItem(
-				vscode.l10n.t('Select build target'),
-				'baochip.selectBuildTarget',
-				'target',
-			);
-			const mode = getProjectMode();
-			const modeItem = new TreeItem(
-				vscode.l10n.t('Build mode: {0}', mode),
-				'baochip.setBuildMode',
-				'circuit-board',
-			);
-			const newApp = new TreeItem(vscode.l10n.t('New app'), 'baochip.createApp', 'add');
-			const selectApp = new TreeItem(vscode.l10n.t('Select app'), 'baochip.selectApp', 'search');
-			const clean = new TreeItem(vscode.l10n.t('Clean (cargo clean)'), 'baochip.clean', 'trash');
-			const build = new TreeItem(
-				mode === 'xous-core'
-					? vscode.l10n.t('Build (cargo xtask)')
-					: vscode.l10n.t('Build (cargo build)'),
-				'baochip.build',
-				'tools',
-			);
-			const flash = new TreeItem(vscode.l10n.t('Flash device'), 'baochip.flash', 'rocket');
-			const bfm = new TreeItem(
-				vscode.l10n.t('Build • Flash • Monitor'),
-				'baochip.buildFlashMonitor',
-				'rocket',
-			);
-			const settings = new TreeItem(vscode.l10n.t('Open Settings'), 'baochip.openSettings', 'gear');
-
-			const items = [
-				setBootloaderPort,
-				setRunPort,
-				setFlashLoc,
-				target,
-				modeItem,
-				newApp,
-				...(mode === 'xous-core' ? [selectApp] : []),
-				clean,
-				build,
-				flash,
-				this.monitorNode,
-				bfm,
-				settings,
-			];
-			return Promise.resolve(items);
+			// Without a folder there is nothing to build or configure: yield no items so the
+			// viewsWelcome contribution renders its get-started content instead.
+			if ((vscode.workspace.workspaceFolders ?? []).length === 0) {
+				return Promise.resolve([]);
+			}
+			return Promise.resolve([this.setupSection, this.projectSection, this.buildRunSection]);
 		}
 
-		if (element === this.monitorNode) {
+		if (element === this.setupSection) {
 			const def = getMonitorDefaultPort();
-			const label = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
-			const defaultMonChild = new TreeItem(
-				vscode.l10n.t('Default monitor: {0}', label),
-				'baochip.setMonitorDefaultPort',
-				'gear',
-			);
-			return Promise.resolve([defaultMonChild]);
+			const defLabel = def === 'run' ? vscode.l10n.t('Run') : vscode.l10n.t('Bootloader');
+			return Promise.resolve([
+				new TreeItem(
+					vscode.l10n.t('Set bootloader mode serial port'),
+					Commands.setBootloaderSerialPort,
+					'plug',
+				),
+				new TreeItem(vscode.l10n.t('Set run mode serial port'), Commands.setRunSerialPort, 'plug'),
+				new TreeItem(
+					vscode.l10n.t('Default monitor: {0}', defLabel),
+					Commands.setMonitorDefaultPort,
+					'gear',
+				),
+				new TreeItem(vscode.l10n.t('Set baochip location'), Commands.setFlashLocation, 'chip'),
+				new TreeItem(vscode.l10n.t('Select build target'), Commands.selectBuildTarget, 'target'),
+				new TreeItem(
+					vscode.l10n.t('Build mode: {0}', getProjectMode()),
+					Commands.setBuildMode,
+					'circuit-board',
+				),
+			]);
+		}
+
+		if (element === this.projectSection) {
+			return Promise.resolve([
+				new TreeItem(vscode.l10n.t('New app'), Commands.createApp, 'add'),
+				...(getProjectMode() === 'xous-core'
+					? [new TreeItem(vscode.l10n.t('Select app'), Commands.selectApp, 'search')]
+					: []),
+			]);
+		}
+
+		if (element === this.buildRunSection) {
+			return Promise.resolve([
+				new TreeItem(vscode.l10n.t('Clean (cargo clean)'), Commands.clean, 'trash'),
+				new TreeItem(buildCommandLabel(getProjectMode()), Commands.build, 'tools'),
+				new TreeItem(vscode.l10n.t('Flash device'), Commands.flash, 'rocket'),
+				this.monitorNode,
+				new TreeItem(
+					vscode.l10n.t('Build • Flash • Monitor'),
+					Commands.buildFlashMonitor,
+					'rocket',
+				),
+			]);
 		}
 
 		return Promise.resolve([]);
+	}
+}
+
+/** Collapsible header with no icon and no command; groups the action items beneath it. */
+class SectionItem extends vscode.TreeItem {
+	constructor(id: string, label: string) {
+		super(label, vscode.TreeItemCollapsibleState.Expanded);
+		this.id = id;
 	}
 }
 

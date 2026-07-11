@@ -1,0 +1,7 @@
+{
+	"permissions": {
+		"allow": [
+			"PowerShell(npx biome format --write src/test/integration/flash.test.ts src/test/integration/toolchain.test.ts 2>&1)"
+		]
+	}
+}

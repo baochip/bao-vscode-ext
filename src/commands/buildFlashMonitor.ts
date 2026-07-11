@@ -1,20 +1,22 @@
+import { Commands } from '@commands/commandIds';
+import { withCommand } from '@commands/withCommand';
+import { runBaoCmd } from '@services/baoRunnerService';
 import { sendBoot } from '@services/bootService';
 import {
 	ensureBuildPrereqs,
 	runBuildAndWait,
 	runOutOfTreeBuildAndWait,
 } from '@services/buildService';
-import { getRunSerialPort } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
+import { errorToast } from '@services/logService';
 import { openMonitorTTY } from '@services/monitorService';
-import { runBaoCmd } from '@services/pathService';
-import { waitForPort } from '@services/portsService';
+import { ensureSerialPort, offerRepickMissingPort, waitForPort } from '@services/portsService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
-export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
-	return vscode.commands.registerCommand('baochip.buildFlashMonitor', async () => {
+export function registerBuildFlashMonitor() {
+	return withCommand(Commands.buildFlashMonitor, async () => {
 		// Gather/validate build prereqs (root/target/app)
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
@@ -29,12 +31,15 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 			pre.mode === 'out-of-tree'
 				? await runOutOfTreeBuildAndWait(pre.root)
 				: await runBuildAndWait(pre.root, pre.target, pre.app);
+		if (code === null) return; // cancelled by the user - not a failure, no error toast
 		if (code !== 0) {
-			vscode.window.showErrorMessage(vscode.l10n.t('Build failed.'));
+			// The cargo output for this pipeline streams to the Baochip channel (runCargoAndWait),
+			// so the toast's Show Output button lands on the compiler errors.
+			errorToast(vscode.l10n.t('Build failed.'));
 			return;
 		}
 
-		// 1.5) ELF→UF2 conversion (out-of-tree only)
+		// 1.5) ELF->UF2 conversion (out-of-tree only)
 		if (pre.mode === 'out-of-tree') {
 			const converted = await convertElfToUf2(pre.root);
 			if (!converted) return;
@@ -56,53 +61,49 @@ export function registerBuildFlashMonitor(_context: vscode.ExtensionContext) {
 		if (!ok) return;
 
 		// Ensure run-mode port is set; if not, prompt and re-check.
-		let runPort = getRunSerialPort();
+		const runPort = await ensureSerialPort('run');
 		if (!runPort) {
-			vscode.window.showInformationMessage(
-				vscode.l10n.t('No run mode serial port set. Pick one first.'),
+			vscode.window.showWarningMessage(
+				vscode.l10n.t('Run mode serial port is still not set. Aborting monitor.'),
 			);
-			await vscode.commands.executeCommand('baochip.setRunSerialPort');
-
-			// Re-check after the command returns.
-			runPort = getRunSerialPort();
-			if (!runPort) {
-				vscode.window.showWarningMessage(
-					vscode.l10n.t('Run mode serial port is still not set. Aborting monitor.'),
-				);
-				return;
-			}
+			return;
 		}
 
 		// 3) Monitor (wait for run port to appear)
-		await vscode.window.withProgress(
+		const portResult = await vscode.window.withProgress(
 			{
 				location: vscode.ProgressLocation.Notification,
-				title: vscode.l10n.t('Baochip: waiting for {0}…', runPort),
+				title: vscode.l10n.t('Baochip: waiting for {0}...', runPort),
 				cancellable: true,
 			},
 			async (progress, token) => {
 				// small grace period so the bootloader can drop cleanly
 				await new Promise((r) => setTimeout(r, 500));
 
-				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port…') });
-				const seen = await waitForPort(runBaoCmd, runPort, {
+				progress.report({ message: vscode.l10n.t('Waiting for run mode serial port...') });
+				const result = await waitForPort(runBaoCmd, runPort, {
 					timeoutMs: 20000,
 					intervalMs: 500,
 					token,
 				});
-
-				if (token.isCancellationRequested) return;
-
-				if (!seen) {
-					vscode.window.showWarningMessage(
-						vscode.l10n.t('Run mode port {0} didn’t appear in time. Trying anyway…', runPort),
-					);
-				}
-
-				// Brief stability delay — let the UART settle before the monitor connects
-				await new Promise((r) => setTimeout(r, 300));
-				await openMonitorTTY('run');
+				return token.isCancellationRequested ? 'cancelled' : result;
 			},
 		);
+
+		// A probe error means bao.py is broken (waitForPort already toasted the reason);
+		// opening the monitor would just fail again, so stop here.
+		if (portResult === 'cancelled' || portResult === 'error') return;
+
+		// The saved port may be a wrong-mode port that can never appear; opening a monitor at a
+		// port that is not there just spawns a dead terminal (plus VS Code's own misleading
+		// "terminal exited" toast), so offer to fix the port here instead.
+		if (portResult === 'timeout') {
+			const repicked = await offerRepickMissingPort('run', runPort);
+			if (!repicked) return;
+		}
+
+		// Brief stability delay - let the UART settle before the monitor connects
+		await new Promise((r) => setTimeout(r, 300));
+		await openMonitorTTY('run');
 	});
 }

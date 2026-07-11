@@ -1,18 +1,20 @@
-import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as https from 'node:https';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { XOUS_TARGET_TRIPLE } from '@constants';
+import { downloadFile, fetchJson } from '@services/httpService';
+import { describeRunFailure, runProcess } from '@services/procService';
+import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
 import * as vscode from 'vscode';
 
-const XOUS_TARGET = 'riscv32imac-unknown-xous-elf';
-const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
+// Exported for the real-world drift tests, which check the release list still parses.
+export const BETRUSTED_RUST_RELEASES = 'https://api.github.com/repos/betrusted-io/rust/releases';
 
 /** Check if the Xous target is already installed in the current rustc sysroot. */
-export function isXousToolkitInstalled(): boolean {
-	const r = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
+export async function isXousToolkitInstalled(): Promise<boolean> {
+	const r = await runProcess('rustc', ['--print', 'sysroot']);
 	if (!r.stdout) return false;
-	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET);
+	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
 	return fs.existsSync(xousDir);
 }
 
@@ -24,97 +26,40 @@ function hostTriple(): string {
 	return `${arch}-unknown-linux-gnu`;
 }
 
-/** Fetch JSON from a URL, following up to one redirect. */
-function fetchJson(url: string): Promise<unknown> {
-	return new Promise((resolve, reject) => {
-		const req = https.get(url, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-			if (res.statusCode === 301 || res.statusCode === 302) {
-				const location = res.headers.location;
-				if (!location) return reject(new Error(`Redirect with no Location from ${url}`));
-				res.resume();
-				fetchJson(location).then(resolve).catch(reject);
-				return;
-			}
-			let data = '';
-			res.on('data', (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			res.on('end', () => {
-				try {
-					resolve(JSON.parse(data));
-				} catch {
-					reject(new Error(`Failed to parse JSON from ${url}`));
-				}
-			});
-		});
-		req.on('error', reject);
-		req.setTimeout(15000, () => {
-			req.destroy();
-			reject(new Error('GitHub API request timed out.'));
-		});
-	});
+/** Extract a zip file into dest using the platform's native tools (async - a multi-hundred-MB
+ * extract must not block the extension host). */
+async function extractZip(zipPath: string, dest: string): Promise<void> {
+	const r =
+		process.platform === 'win32'
+			? // Pass paths via env vars (not string interpolation) so a crafted path can't inject PowerShell.
+				await runProcess(
+					'powershell',
+					[
+						'-NoProfile',
+						'-Command',
+						'Expand-Archive -LiteralPath $env:BAO_SRC -DestinationPath $env:BAO_DST -Force',
+					],
+					{ env: { ...process.env, BAO_SRC: zipPath, BAO_DST: dest } },
+				)
+			: await runProcess('unzip', ['-o', zipPath, '-d', dest]);
+	if (r.error || r.code !== 0) {
+		throw new Error(`Failed to extract ${zipPath} to ${dest}: ${describeRunFailure(r)}`);
+	}
 }
 
-/** Download a file to dest, following redirects. */
-function downloadFile(url: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const follow = (u: string) => {
-			https
-				.get(u, { headers: { 'User-Agent': 'bao-vscode-ext' } }, (res) => {
-					if (res.statusCode === 301 || res.statusCode === 302) {
-						const location = res.headers.location;
-						if (!location) {
-							reject(new Error(`Redirect with no Location`));
-							return;
-						}
-						res.resume();
-						follow(location);
-						return;
-					}
-					if (res.statusCode !== 200) {
-						reject(new Error(`HTTP ${res.statusCode} for ${u}`));
-						return;
-					}
-					const file = fs.createWriteStream(dest);
-					res.pipe(file);
-					file.on('finish', () => file.close(() => resolve()));
-					file.on('error', (err) => {
-						file.close();
-						try {
-							fs.unlinkSync(dest);
-						} catch {}
-						reject(err);
-					});
-				})
-				.on('error', reject);
-		};
-		follow(url);
-	});
-}
-
-/** Extract a zip file into dest using the platform's native tools. */
-function extractZip(zipPath: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		let r: ReturnType<typeof spawnSync>;
-		if (process.platform === 'win32') {
-			r = spawnSync(
-				'powershell',
-				[
-					'-NoProfile',
-					'-Command',
-					`Expand-Archive -Path "${zipPath}" -DestinationPath "${dest}" -Force`,
-				],
-				{ stdio: 'inherit' },
-			);
-		} else {
-			r = spawnSync('unzip', ['-o', zipPath, '-d', dest], { stdio: 'inherit' });
-		}
-		if (r.status !== 0) {
-			reject(new Error(`Failed to extract ${zipPath} to ${dest}`));
-		} else {
-			resolve();
-		}
-	});
+/** Verify the platform's archive-extraction tool is available, else throw an actionable error. */
+async function ensureExtractToolAvailable(): Promise<void> {
+	const isWin = process.platform === 'win32';
+	const tool = isWin ? 'powershell' : 'unzip';
+	const probe = await runProcess(tool, isWin ? ['-NoProfile', '-Command', 'exit 0'] : ['-v']);
+	if (probe.error) {
+		throw new Error(
+			vscode.l10n.t(
+				'"{0}" is required to install the Xous toolchain but was not found on your PATH. Please install it and try again.',
+				tool,
+			),
+		);
+	}
 }
 
 /**
@@ -124,24 +69,31 @@ function extractZip(zipPath: string, dest: string): Promise<void> {
  */
 export async function installXousToolkit(): Promise<void> {
 	// Get current rustc version and sysroot
-	const rustcVer = spawnSync('rustc', ['--version'], { encoding: 'utf8' });
-	const verMatch = rustcVer.stdout.match(/rustc (\d+\.\d+\.\d+)/);
-	if (!verMatch) throw new Error('Could not determine rustc version');
-	const rustVersion = verMatch[1]; // e.g. "1.87.0"
+	const rustcVer = await runProcess('rustc', ['--version']);
+	const rustVersion = parseRustcVersion(rustcVer.stdout ?? ''); // e.g. "1.87.0"
+	if (!rustVersion) throw new Error(vscode.l10n.t('Could not determine rustc version'));
 
-	const sysrootResult = spawnSync('rustc', ['--print', 'sysroot'], { encoding: 'utf8' });
-	const sysroot = sysrootResult.stdout.trim();
-	if (!sysroot) throw new Error('Could not determine rustc sysroot');
+	const sysrootResult = await runProcess('rustc', ['--print', 'sysroot']);
+	const sysroot = sysrootResult.stdout?.trim() ?? '';
+	if (!sysroot) throw new Error(vscode.l10n.t('Could not determine rustc sysroot'));
+
+	// Fail fast (before the large download) if we can't extract the archive.
+	await ensureExtractToolAvailable();
 
 	await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: vscode.l10n.t('Baochip: Installing Xous toolchain target…'),
+			title: vscode.l10n.t('Baochip: Installing Xous toolchain target...'),
 			cancellable: false,
 		},
 		async (progress) => {
-			progress.report({ message: vscode.l10n.t('Fetching release list…') });
-			const releases = (await fetchJson(BETRUSTED_RUST_RELEASES)) as Record<string, unknown>[];
+			progress.report({ message: vscode.l10n.t('Fetching release list...') });
+			// per_page=100: the API's default page holds only 30 releases, which can age the
+			// matching toolchain release off the first page entirely.
+			const releases = (await fetchJson(`${BETRUSTED_RUST_RELEASES}?per_page=100`)) as Record<
+				string,
+				unknown
+			>[];
 
 			// Find releases whose tag starts with the current rustc version
 			const matching = releases.filter((r) => {
@@ -150,51 +102,70 @@ export async function installXousToolkit(): Promise<void> {
 			});
 			if (matching.length === 0) {
 				throw new Error(
-					`No Xous toolchain release found for rustc ${rustVersion}. ` +
-						`You may need to update Rust or run 'cargo xtask install-toolkit' manually.`,
+					vscode.l10n.t(
+						"No Xous toolchain release found for rustc {0}. You may need to update Rust or run 'cargo xtask install-toolkit' manually.",
+						rustVersion,
+					),
 				);
 			}
 
-			// Use the last matching release (highest patch)
-			const release = matching[matching.length - 1];
+			// Pick the highest patch by its tag suffix - the API lists releases newest-first, so
+			// positional picks are ordering-dependent (last = oldest, the pre-fix bug).
+			const tags = matching.map((r) => String(r.tag_name));
+			const release = matching[pickHighestPatchIndex(tags, rustVersion)];
 			const assets = release.assets as Record<string, unknown>[];
 
 			const host = hostTriple();
 
-			// Prefer an asset matching the host triple; fall back to any xous-elf asset
-			const isXousAsset = (a: Record<string, unknown>) => {
+			// Require an asset matching the host triple - no wrong-host fallback (would install a broken toolchain).
+			const isXousAsset = (a: Record<string, unknown>) =>
+				typeof a.name === 'string' && a.name.startsWith(XOUS_TARGET_TRIPLE.split('-')[0]);
+			const hostAsset = assets.find((a) => {
 				const name = a.name;
-				return (
-					(typeof name === 'string' && name.split('_')[0] === XOUS_TARGET.split('-')[0]) ||
-					(typeof name === 'string' && name.startsWith('riscv32imac'))
-				);
-			};
-			const hostAsset =
-				assets.find((a) => {
-					const name = a.name;
-					return typeof name === 'string' && name.includes(host) && isXousAsset(a);
-				}) ?? assets.find(isXousAsset);
+				return typeof name === 'string' && name.includes(host) && isXousAsset(a);
+			});
 
 			if (!hostAsset) {
 				throw new Error(
-					`No Xous toolchain asset found for ${host} in release ${release.tag_name}. ` +
-						`Try running 'cargo xtask install-toolkit' manually.`,
+					vscode.l10n.t(
+						"No Xous toolchain asset found for {0} in release {1}. Try running 'cargo xtask install-toolkit' manually.",
+						host,
+						String(release.tag_name),
+					),
 				);
 			}
 
 			const downloadUrl = hostAsset.browser_download_url as string;
 			const assetName = hostAsset.name as string;
 
-			progress.report({ message: vscode.l10n.t('Downloading {0}…', assetName) });
-			const tmpZip = path.join(os.tmpdir(), assetName);
-			await downloadFile(downloadUrl, tmpZip);
-
-			progress.report({ message: vscode.l10n.t('Extracting toolchain…') });
-			await extractZip(tmpZip, sysroot);
-
+			progress.report({ message: vscode.l10n.t('Downloading {0}...', assetName) });
+			// Everything lands inside a private mkdtemp staging dir - no predictable path in the
+			// shared tmp dir for another process to pre-create or symlink. The zip keeps a fixed
+			// local filename, never the remote-controlled asset name (path traversal / injection).
+			const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'baochip-toolkit-'));
 			try {
-				fs.unlinkSync(tmpZip);
-			} catch {}
+				const tmpZip = path.join(stageDir, 'baochip-xous-toolkit.zip');
+				await downloadFile(downloadUrl, tmpZip);
+
+				progress.report({ message: vscode.l10n.t('Extracting toolchain...') });
+				// Extract to a staging subdir and validate the expected target layout before
+				// touching the sysroot, so a malformed/wrong archive can't corrupt the toolchain.
+				const extractDir = path.join(stageDir, 'extracted');
+				fs.mkdirSync(extractDir);
+				await extractZip(tmpZip, extractDir);
+				const stagedTarget = path.join(extractDir, 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
+				if (!fs.existsSync(stagedTarget)) {
+					throw new Error(
+						vscode.l10n.t(
+							'The downloaded toolchain archive did not contain the expected {0} target. Aborting install.',
+							XOUS_TARGET_TRIPLE,
+						),
+					);
+				}
+				fs.cpSync(extractDir, sysroot, { recursive: true });
+			} finally {
+				fs.rmSync(stageDir, { recursive: true, force: true });
+			}
 		},
 	);
 }
