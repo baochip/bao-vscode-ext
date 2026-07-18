@@ -67,6 +67,14 @@ Unit tests live in `src/test/unit/`, integration tests in `src/test/integration/
 - Exercise both **bootloader mode** and **run mode** flows if relevant.  
 - Confirm that expected settings or lack thereof are handled gracefully.
 
+**Windows Sandbox testing (optional)** — some flows are hard to exercise safely on your own machine: the uv/Python cold-start, and the Rust toolchain / Xous toolkit / `xous-tools` installs. A disposable [Windows Sandbox](https://learn.microsoft.com/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-overview) (Windows 11 Pro) gives you a clean box that is wiped on close, so you never touch your host setup.
+
+Keep a local kit in the gitignored `sandbox/` folder (not committed - it holds large installers). A `.wsb` config runs a logon script that installs VS Code, the packaged `.vsix`, and a full build toolchain, then opens VS Code ready to test. If you build one:
+- Package a fresh vsix first (`npm run package`).
+- Use the **GNU** Rust host (`rustup-init ... --default-host x86_64-pc-windows-gnu`) to skip the multi-hour Visual Studio Build Tools install, and put **MinGW-w64** on PATH so `cargo install xous-tools` can build (it needs `dlltool`).
+- Pre-stage the installers in the folder so launches skip slow downloads over the Sandbox's NAT.
+- The Sandbox blocks outbound ICMP, so check connectivity with an HTTP request, not `ping`.
+
 ---
 
 ## Submitting a PR
