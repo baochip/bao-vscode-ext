@@ -1,6 +1,7 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
+import { ensureCargoAvailable } from '@services/rustCheckService';
 import { ensureNamedTerminal } from '@services/terminalService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
@@ -18,6 +19,9 @@ export function registerCleanCommand() {
 			if (!resolved) return;
 			root = resolved;
 		}
+
+		// cargo clean needs cargo; without it, show the install guidance instead of a raw shell error.
+		if (!(await ensureCargoAvailable())) return;
 
 		// Modal: the status bar trash sits next to the constantly-clicked build/flash icons, and a
 		// stray cargo clean silently costs a full rebuild.

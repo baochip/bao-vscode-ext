@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import { downloadFile, fetchJson } from '@services/httpService';
 import { describeRunFailure, runProcess } from '@services/procService';
-import { parseRustcVersion, pickHighestPatchIndex } from '@util/rust';
+import { parseRustcVersion, pickHighestPatchIndex, selectXousToolkitAsset } from '@util/rust';
 import * as vscode from 'vscode';
 
 // Exported for the real-world drift tests, which check the release list still parses.
@@ -16,14 +16,6 @@ export async function isXousToolkitInstalled(): Promise<boolean> {
 	if (!r.stdout) return false;
 	const xousDir = path.join(r.stdout.trim(), 'lib', 'rustlib', XOUS_TARGET_TRIPLE);
 	return fs.existsSync(xousDir);
-}
-
-/** Derive the host rustup triple from Node's process info. */
-function hostTriple(): string {
-	const arch = process.arch === 'arm64' ? 'aarch64' : 'x86_64';
-	if (process.platform === 'win32') return `${arch}-pc-windows-msvc`;
-	if (process.platform === 'darwin') return `${arch}-apple-darwin`;
-	return `${arch}-unknown-linux-gnu`;
 }
 
 /** Extract a zip file into dest using the platform's native tools (async - a multi-hundred-MB
@@ -115,28 +107,21 @@ export async function installXousToolkit(): Promise<void> {
 			const release = matching[pickHighestPatchIndex(tags, rustVersion)];
 			const assets = release.assets as Record<string, unknown>[];
 
-			const host = hostTriple();
-
-			// Require an asset matching the host triple - no wrong-host fallback (would install a broken toolchain).
-			const isXousAsset = (a: Record<string, unknown>) =>
-				typeof a.name === 'string' && a.name.startsWith(XOUS_TARGET_TRIPLE.split('-')[0]);
-			const hostAsset = assets.find((a) => {
-				const name = a.name;
-				return typeof name === 'string' && name.includes(host) && isXousAsset(a);
-			});
-
-			if (!hostAsset) {
+			// betrusted-io/rust ships one host-independent zip per target (a target's rust-std is the
+			// same regardless of host OS), so select by the Xous target, not the host.
+			const asset = selectXousToolkitAsset(assets, XOUS_TARGET_TRIPLE);
+			if (!asset) {
 				throw new Error(
 					vscode.l10n.t(
 						"No Xous toolchain asset found for {0} in release {1}. Try running 'cargo xtask install-toolkit' manually.",
-						host,
+						XOUS_TARGET_TRIPLE,
 						String(release.tag_name),
 					),
 				);
 			}
 
-			const downloadUrl = hostAsset.browser_download_url as string;
-			const assetName = hostAsset.name as string;
+			const downloadUrl = asset.browser_download_url as string;
+			const assetName = asset.name as string;
 
 			progress.report({ message: vscode.l10n.t('Downloading {0}...', assetName) });
 			// Everything lands inside a private mkdtemp staging dir - no predictable path in the

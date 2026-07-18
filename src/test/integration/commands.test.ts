@@ -2,6 +2,7 @@ import * as assert from 'node:assert';
 import { Commands } from '@commands/commandIds';
 import * as appService from '@services/appService';
 import * as outOfTreeScaffoldService from '@services/outOfTreeScaffoldService';
+import * as procService from '@services/procService';
 import * as projectModeService from '@services/projectModeService';
 import * as terminalService from '@services/terminalService';
 import * as workspaceService from '@services/workspaceService';
@@ -129,5 +130,33 @@ suite('Command handlers (createApp, clean)', () => {
 
 		assert.ok(warnings.notCalled, 'no confirmation without a root');
 		assert.ok(ensureTerm.notCalled, 'no terminal opened without a root');
+	});
+
+	test('Clean shows the Rust-not-found toast and opens no terminal when cargo is unavailable', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(XOUS_ROOT);
+		// rustc probing fails, so the toolchain preflight aborts before any confirmation or terminal.
+		sandbox.stub(procService, 'runProcess').resolves({
+			code: null,
+			stdout: '',
+			stderr: '',
+			cancelled: false,
+			error: new Error('not found'),
+		});
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const ensureTerm = sandbox.stub(terminalService, 'ensureNamedTerminal');
+
+		await vscode.commands.executeCommand(Commands.clean);
+
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('Rust not found')),
+			'Rust-not-found toast shown',
+		);
+		assert.ok(warnings.notCalled, 'no clean confirmation without a toolchain');
+		assert.ok(ensureTerm.notCalled, 'no terminal opened without a toolchain');
 	});
 });

@@ -24,3 +24,33 @@ export function pickHighestPatchIndex(tags: string[], version: string): number {
 	}
 	return best;
 }
+
+/**
+ * Select the host-independent Xous `rust-std` asset from a release's asset list. The
+ * betrusted-io/rust releases publish one zip per target, named "<target>_<version>.zip" with the
+ * "-elf" suffix dropped (e.g. riscv32imac-unknown-xous_1.97.1.zip for riscv32imac-unknown-xous-elf).
+ * Returns undefined when no such asset is present.
+ */
+export function selectXousToolkitAsset<T extends { name?: unknown }>(
+	assets: T[],
+	target: string,
+): T | undefined {
+	const prefix = target.replace(/-elf$/, ''); // riscv32imac-unknown-xous
+	return assets.find(
+		(a) => typeof a.name === 'string' && a.name.startsWith(prefix) && a.name.endsWith('.zip'),
+	);
+}
+
+/**
+ * Classify a cargo/rustc build failure caused by a missing host C/C++ toolchain, from its output.
+ * The signatures are Windows-specific: `link.exe` is the MSVC linker (needs the Visual Studio C++
+ * Build Tools), while `dlltool`/`gcc.exe` belong to MinGW-w64 (the Rust GNU toolchain). Returns
+ * undefined when the failure is something else.
+ */
+export function detectHostToolchainGap(output: string): 'mingw' | 'msvc' | undefined {
+	const o = output.toLowerCase();
+	if (!o.includes('not found')) return undefined;
+	if (o.includes('dlltool') || o.includes('gcc.exe')) return 'mingw';
+	if (o.includes('link.exe')) return 'msvc';
+	return undefined;
+}

@@ -168,6 +168,8 @@
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip：ELF 转换为 UF2 失败。详情请查看输出。",
 	"Baochip: xous-tools installed successfully.": "Baochip：xous-tools 安装成功。",
 	"Baochip: Failed to install xous-tools. See output for details.": "Baochip：xous-tools 安装失败。详情请查看输出。",
+	"Baochip: Building xous-tools failed because the MSVC linker (link.exe) is missing. Install the Visual Studio C++ Build Tools, then try again. See the Baochip output for details.": "Baochip：由于缺少 MSVC 链接器 (link.exe)，xous-tools 构建失败。请安装 Visual Studio C++ 生成工具后重试。详情请查看 Baochip 输出。",
+	"Baochip: Building xous-tools failed because your Rust GNU toolchain is missing MinGW-w64 (dlltool). Install MinGW-w64 or switch to the MSVC toolchain, then try again. See the Baochip output for details.": "Baochip：由于 Rust GNU 工具链缺少 MinGW-w64 (dlltool)，xous-tools 构建失败。请安装 MinGW-w64 或切换到 MSVC 工具链后重试。详情请查看 Baochip 输出。",
 	"Baochip Build": "Baochip 构建",
 	"Baochip Clean": "Baochip 清理",
 	"Baochip Monitor ({0}: {1})": "Baochip 监视器（{0}: {1}）",

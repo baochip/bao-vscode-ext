@@ -2,11 +2,12 @@ import * as assert from 'node:assert';
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { XOUS_CORE_REPO } from '@constants';
+import { XOUS_CORE_REPO, XOUS_TARGET_TRIPLE } from '@constants';
 import * as appService from '@services/appService';
 import { fetchETag, fetchJson } from '@services/httpService';
 import { CI_BASE } from '@services/kernelService';
 import { BETRUSTED_RUST_RELEASES } from '@services/toolkitService';
+import { selectXousToolkitAsset } from '@util/rust';
 import { activateExtension, cleanupTmpDirs, tmpDir } from './helpers';
 
 /**
@@ -80,7 +81,7 @@ suite('Real-world drift (opt-in: BAO_TEST_REAL=1)', function () {
 		}
 	});
 
-	test('the toolchain release list still parses with riscv32imac assets', async function () {
+	test('a live betrusted-io/rust release exposes a selectable Xous toolkit asset', async function () {
 		let releases: Record<string, unknown>[];
 		try {
 			releases = (await fetchJson(BETRUSTED_RUST_RELEASES)) as Record<string, unknown>[];
@@ -93,12 +94,12 @@ suite('Real-world drift (opt-in: BAO_TEST_REAL=1)', function () {
 		assert.ok(Array.isArray(releases) && releases.length > 0, 'non-empty release list');
 		assert.ok(
 			releases.some((r) => {
-				const assets = r.assets as { name?: unknown }[] | undefined;
+				const assets = r.assets as Record<string, unknown>[] | undefined;
 				return (
-					Array.isArray(assets) && assets.some((a) => String(a.name).startsWith('riscv32imac'))
+					Array.isArray(assets) && selectXousToolkitAsset(assets, XOUS_TARGET_TRIPLE) !== undefined
 				);
 			}),
-			'at least one release carries riscv32imac assets',
+			`at least one release exposes a selectable ${XOUS_TARGET_TRIPLE} asset`,
 		);
 	});
 });

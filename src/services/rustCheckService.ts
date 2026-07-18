@@ -5,9 +5,9 @@ import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitSer
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
-/** verifies that `rustc` and `cargo` exist and report versions.
- *  also warns if riscv32imac-unknown-xous-elf is not installed. */
-export async function checkRustToolchain(): Promise<boolean> {
+/** Verifies that `rustc` and `cargo` exist and report versions. Shows the install toast and
+ *  returns false when either is missing. */
+export async function ensureCargoAvailable(): Promise<boolean> {
 	// 1) rustc
 	const rustc = await runProcess('rustc', ['--version']);
 	if (rustc.error) {
@@ -25,6 +25,14 @@ export async function checkRustToolchain(): Promise<boolean> {
 		);
 		return false;
 	}
+
+	return true;
+}
+
+/** verifies that `rustc` and `cargo` exist and report versions.
+ *  also warns if riscv32imac-unknown-xous-elf is not installed. */
+export async function checkRustToolchain(): Promise<boolean> {
+	if (!(await ensureCargoAvailable())) return false;
 
 	// 3a) check standard riscv32imac-unknown-none-elf target via rustup (non-fatal)
 	const targetCheck = await runProcess('rustup', ['target', 'list', '--installed']);

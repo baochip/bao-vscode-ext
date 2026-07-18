@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
+import { detectHostToolchainGap } from '@util/rust';
 import * as vscode from 'vscode';
 
 function isXousAppUf2Available(): boolean {
@@ -40,9 +41,20 @@ export async function checkXousAppUf2(): Promise<boolean> {
 				);
 				return true;
 			}
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.'),
-			);
+			const gap = detectHostToolchainGap(`${r.stdout}\n${r.stderr}`);
+			let message: string;
+			if (gap === 'mingw') {
+				message = vscode.l10n.t(
+					'Baochip: Building xous-tools failed because your Rust GNU toolchain is missing MinGW-w64 (dlltool). Install MinGW-w64 or switch to the MSVC toolchain, then try again. See the Baochip output for details.',
+				);
+			} else if (gap === 'msvc') {
+				message = vscode.l10n.t(
+					'Baochip: Building xous-tools failed because the MSVC linker (link.exe) is missing. Install the Visual Studio C++ Build Tools, then try again. See the Baochip output for details.',
+				);
+			} else {
+				message = vscode.l10n.t('Baochip: Failed to install xous-tools. See output for details.');
+			}
+			vscode.window.showErrorMessage(message);
 			return false;
 		},
 	);
