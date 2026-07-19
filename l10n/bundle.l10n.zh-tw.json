@@ -59,7 +59,7 @@
 	"Baochip flash failed: {0}": "Baochip 燒錄失敗：{0}",
 	"Flash failed: {0}": "燒錄失敗：{0}",
 	"Baochip location set to: {0}": "已設定 Baochip 位置：{0}",
-	"No UF2s found (loader/xous/apps). Build first, then flash.": "未找到 UF2 檔案（loader/xous/apps）。請先建置後再燒錄。",
+	"No UF2s found. Build first, then flash.": "未找到 UF2 檔案。請先建置後再燒錄。",
 	"Baochip: Flashing...": "Baochip：燒錄中...",
 	"You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.": "請選擇 baochip 掛載的磁碟。\n\n1) 確認 baochip 已插入。\n2) 若電腦未顯示 BAOCHIP 磁碟，請按 RESET 等待出現。",
 	"Select mounted baochip drive": "選擇已掛載的 baochip 磁碟",

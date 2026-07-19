@@ -216,12 +216,13 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 
 export async function gatherArtifacts(root: string) {
 	const images = scanArtifacts(root);
-	const byRole: Record<'loader' | 'xous' | 'apps', string | undefined> = {
+	const byRole: Record<'loader' | 'xous' | 'apps' | 'swap', string | undefined> = {
 		loader: images.find((artifact) => artifact.role === 'loader')?.path,
 		xous: images.find((artifact) => artifact.role === 'xous')?.path,
 		apps: images.find((artifact) => artifact.role === 'apps')?.path,
+		swap: images.find((artifact) => artifact.role === 'swap')?.path,
 	};
-	const all: string[] = (['loader', 'xous', 'apps'] as const)
+	const all: string[] = (['loader', 'xous', 'apps', 'swap'] as const)
 		.map((r) => byRole[r])
 		.filter((p): p is string => !!p);
 
@@ -345,9 +346,7 @@ export async function decideAndFlash(
 		// xous-core mode: discover artifacts from the build output
 		const { all } = await gatherArtifacts(root);
 		if (all.length === 0) {
-			vscode.window.showWarningMessage(
-				vscode.l10n.t('No UF2s found (loader/xous/apps). Build first, then flash.'),
-			);
+			vscode.window.showWarningMessage(vscode.l10n.t('No UF2s found. Build first, then flash.'));
 			return false;
 		}
 		files = all;

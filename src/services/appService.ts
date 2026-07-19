@@ -48,7 +48,7 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 		vscode.window.showWarningMessage(
 			vscode.l10n.t(
 				'No apps found under {0}. Create one first.',
-				`${effectiveRoot}/${getAppsDir(target)}`,
+				path.join(effectiveRoot, getAppsDir(target)),
 			),
 		);
 		return undefined;

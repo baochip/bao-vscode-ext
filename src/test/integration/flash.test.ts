@@ -220,6 +220,25 @@ suite('Flash service', () => {
 		assert.deepEqual(all, [path.join(releaseDir, 'xous.uf2')]);
 	});
 
+	test('gatherArtifacts includes swap.uf2 for baosec builds (no apps.uf2)', async () => {
+		const root = tmpDir();
+		const releaseDir = path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release');
+		fs.mkdirSync(releaseDir, { recursive: true });
+		for (const name of ['loader.uf2', 'xous.uf2', 'swap.uf2']) {
+			fs.writeFileSync(path.join(releaseDir, name), name, 'utf8');
+		}
+
+		const { byRole, all } = await flashService.gatherArtifacts(root);
+
+		assert.equal(byRole.swap, path.join(releaseDir, 'swap.uf2'));
+		assert.equal(byRole.apps, undefined, 'a baosec build has no apps.uf2');
+		assert.deepEqual(all, [
+			path.join(releaseDir, 'loader.uf2'),
+			path.join(releaseDir, 'xous.uf2'),
+			path.join(releaseDir, 'swap.uf2'),
+		]);
+	});
+
 	/* ------------------------------ decideAndFlash ------------------------------ */
 
 	test('decideAndFlash (xous-core) copies all artifacts and verifies by MD5', async () => {

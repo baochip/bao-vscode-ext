@@ -5,6 +5,7 @@ import { XOUS_TARGET_TRIPLE } from '@constants';
 import * as buildService from '@services/buildService';
 import * as logService from '@services/logService';
 import * as procService from '@services/procService';
+import * as projectModeService from '@services/projectModeService';
 import * as rustCheckService from '@services/rustCheckService';
 import * as terminalService from '@services/terminalService';
 import * as xousCoreService from '@services/xousCoreService';
@@ -357,6 +358,29 @@ suite('Build service', () => {
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);
+	});
+
+	/* ------------------------------ ensureBuildPrereqs ------------------------------ */
+
+	test('ensureBuildPrereqs: a missing app is reported with an OS-native apps path (no mixed slashes)', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { target: 'baosec', apps: ['vault2'] });
+		await setCfg('buildTarget', 'baosec');
+		await setCfg('xousAppName', 'dabao-console'); // not present under apps-baosec
+
+		sandbox.stub(rustCheckService, 'checkRustToolchain').resolves(true);
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(xousCoreService, 'ensureXousFolderOpen').resolves('ready');
+		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const result = await buildService.ensureBuildPrereqs();
+
+		assert.equal(result, undefined, 'build aborts on a missing app');
+		const msg = String(err.firstCall.args[0]);
+		assert.ok(
+			msg.includes(path.join(root, 'apps-baosec')),
+			`message uses the OS-native apps path: ${msg}`,
+		);
 	});
 
 	/* ------------------------------ runBuildInTerminal ------------------------------ */
