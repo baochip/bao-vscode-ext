@@ -4,13 +4,14 @@ import { isDirectory, isFile } from '@util/fsUtil';
 
 export type BaoArtifact = {
 	path: string;
-	role?: 'loader' | 'xous' | 'apps';
+	role?: 'loader' | 'xous' | 'apps' | 'swap';
 };
 
 const UF2_IMAGES: Array<{ fileName: string; role: NonNullable<BaoArtifact['role']> }> = [
 	{ fileName: 'loader.uf2', role: 'loader' },
 	{ fileName: 'xous.uf2', role: 'xous' },
 	{ fileName: 'apps.uf2', role: 'apps' },
+	{ fileName: 'swap.uf2', role: 'swap' },
 ];
 
 export function scanArtifacts(xousRoot: string): BaoArtifact[] {

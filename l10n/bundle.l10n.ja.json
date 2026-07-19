@@ -59,7 +59,7 @@
 	"Baochip flash failed: {0}": "Baochip のフラッシュに失敗しました: {0}",
 	"Flash failed: {0}": "フラッシュに失敗しました: {0}",
 	"Baochip location set to: {0}": "Baochip の場所を設定しました: {0}",
-	"No UF2s found (loader/xous/apps). Build first, then flash.": "UF2（loader/xous/apps）が見つかりません。ビルド後にフラッシュしてください。",
+	"No UF2s found. Build first, then flash.": "UF2 が見つかりません。ビルド後にフラッシュしてください。",
 	"Baochip: Flashing...": "Baochip: フラッシュ中...",
 	"You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.": "baochip がマウントされているドライブを選択する必要があります。\n\n1) baochip を接続してください。\n2) コンピューターに BAOCHIP ドライブが表示されない場合は、RESET ボタンを押して表示されるまでお待ちください。",
 	"Select mounted baochip drive": "マウントされた baochip ドライブを選択",

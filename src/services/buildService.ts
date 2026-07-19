@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
 import {
@@ -91,13 +92,13 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 				missing.length > 1
 					? vscode.l10n.t(
 							'These apps were not found under {0}: {1}',
-							`${root}/${getAppsDir(target)}`,
+							path.join(root, getAppsDir(target)),
 							missing.join(', '),
 						)
 					: vscode.l10n.t(
 							'App "{0}" was not found under {1}.',
 							missing[0] || app,
-							`${root}/${getAppsDir(target)}`,
+							path.join(root, getAppsDir(target)),
 						),
 			);
 			return;

@@ -8,6 +8,8 @@
   are routed to the right places
 - **Baochip: Re-run Extension Setup** reinstalls the self-contained Python tooling
 - Keybindings: Ctrl+Alt+F flashes, Ctrl+Alt+Shift+B runs Build • Flash • Monitor
+- In-tree **baosec** target support: select the baosec target to build and flash a
+  baosec app from your xous-core checkout, including its swap image (swap.uf2)
 
 ### Improved
 - Live serial port picker: refreshes automatically as you plug in or switch board modes,

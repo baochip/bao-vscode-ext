@@ -59,7 +59,7 @@
 	"Baochip flash failed: {0}": "Baochip-Flash fehlgeschlagen: {0}",
 	"Flash failed: {0}": "Flash fehlgeschlagen: {0}",
 	"Baochip location set to: {0}": "Baochip-Speicherort festgelegt: {0}",
-	"No UF2s found (loader/xous/apps). Build first, then flash.": "Keine UF2-Dateien gefunden (loader/xous/apps). Bitte zuerst bauen und dann flashen.",
+	"No UF2s found. Build first, then flash.": "Keine UF2-Dateien gefunden. Bitte zuerst bauen und dann flashen.",
 	"Baochip: Flashing...": "Baochip: Flashen...",
 	"You need to select the drive where your baochip is mounted.\n\n1) Make sure your baochip is plugged in.\n2) If you cannot see the BAOCHIP drive on your computer, press the RESET button and wait for the drive to appear.": "Bitte wählen Sie das Laufwerk aus, auf dem Ihr Baochip gemountet ist.\n\n1) Stellen Sie sicher, dass der Baochip eingesteckt ist.\n2) Wenn das BAOCHIP-Laufwerk nicht angezeigt wird, drücken Sie RESET und warten Sie, bis es erscheint.",
 	"Select mounted baochip drive": "Gemountetes Baochip-Laufwerk auswählen",
