@@ -1,0 +1,4 @@
+# NESSIE AES test vector tables: 15k lines of constants that would otherwise
+# dominate the repository language statistics.
+resources/templates/out-of-tree/dabao/src/cmds/aes_cmd/aes128tests.rs linguist-vendored
+resources/templates/out-of-tree/dabao/src/cmds/aes_cmd/aes256tests.rs linguist-vendored
