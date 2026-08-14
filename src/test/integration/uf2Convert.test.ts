@@ -7,7 +7,17 @@ import * as procService from '@services/procService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { activateExtension, cleanupTmpDirs, fakeChannel, tmpDir, useSandbox } from './helpers';
+import {
+	activateExtension,
+	cleanupTmpDirs,
+	DABAO_APP_START,
+	DABAO_APP_UF2_LIMIT,
+	fakeChannel,
+	resetBaochipConfig,
+	tmpDir,
+	useSandbox,
+	writeUf2,
+} from './helpers';
 
 /** A fake out-of-tree project: a Cargo.toml package name plus a built ELF for that package. */
 function fakeOotProject(pkgName: string): string {
@@ -26,7 +36,10 @@ suite('UF2 conversion', () => {
 		await activateExtension();
 	});
 
-	teardown(() => cleanupTmpDirs());
+	teardown(async () => {
+		await resetBaochipConfig();
+		cleanupTmpDirs();
+	});
 
 	test('convertElfToUf2 records a spawn failure in the output channel, not just a toast', async () => {
 		const root = fakeOotProject('my_oot_app');
@@ -66,5 +79,40 @@ suite('UF2 conversion', () => {
 		});
 
 		assert.equal(await convertElfToUf2(root), true);
+	});
+
+	test('convertElfToUf2 warns at build time when the app overflows the dabao app region', async () => {
+		const root = fakeOotProject('my_oot_app');
+		await vscode.workspace
+			.getConfiguration('baochip')
+			.update('buildTarget', 'dabao', vscode.ConfigurationTarget.Workspace);
+		sandbox.stub(procService, 'runProcess').callsFake(async () => {
+			writeUf2(path.join(root, 'apps.uf2'), DABAO_APP_START, DABAO_APP_UF2_LIMIT + 4096);
+			return { code: 0, stdout: '', stderr: '', cancelled: false };
+		});
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const ok = await convertElfToUf2(root);
+
+		assert.equal(ok, true, 'the conversion itself succeeded; the size warning is advisory');
+		assert.ok(
+			warnings
+				.getCalls()
+				.some((c) => String(c.args[0]).includes('4.0 KB over the 1.70 MB limit for dabao')),
+			`oversize warning shown: ${warnings.getCalls().map((c) => String(c.args[0]))}`,
+		);
+		assert.ok(
+			lines.some((l) =>
+				l.includes(
+					`apps.uf2: ${DABAO_APP_UF2_LIMIT + 4096} bytes (limit ${DABAO_APP_UF2_LIMIT} bytes)`,
+				),
+			),
+			`exact byte counts logged: ${lines.join(' | ')}`,
+		);
 	});
 });

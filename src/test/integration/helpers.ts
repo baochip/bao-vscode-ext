@@ -118,6 +118,26 @@ export function makeFakeXousCore(root: string, opts: FakeXousCoreOptions = {}): 
 	return { root, appsDir, releaseDir };
 }
 
+/** Start of the dabao detached-app region, and the largest apps.uf2 that fits it. */
+export const DABAO_APP_START = 0x602f_fd00;
+export const DABAO_APP_UF2_LIMIT = 1787392;
+
+/** Write a .uf2 whose first block targets `targetAddr`, grown to `totalSize` by truncation. */
+export function writeUf2(filePath: string, targetAddr: number, totalSize: number): void {
+	const head = Buffer.alloc(512);
+	head.writeUInt32LE(0x0a32_4655, 0);
+	head.writeUInt32LE(0x9e5d_5157, 4);
+	head.writeUInt32LE(0x2000, 8);
+	head.writeUInt32LE(targetAddr, 12);
+	head.writeUInt32LE(256, 16);
+	head.writeUInt32LE(0, 20);
+	head.writeUInt32LE(totalSize / 512, 24);
+	head.writeUInt32LE(0xa7d7_6373, 28);
+	head.writeUInt32LE(0x0ab1_6f30, 508);
+	fs.writeFileSync(filePath, head);
+	fs.truncateSync(filePath, totalSize);
+}
+
 const createdTmpDirs: string[] = [];
 
 /**

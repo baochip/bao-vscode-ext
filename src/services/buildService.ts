@@ -1,12 +1,14 @@
 import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, missingApps } from '@services/appService';
+import { appsUf2Path } from '@services/artifactsService';
 import {
 	getBuildTarget,
 	getExtraFeatures,
 	getXousAppName,
 	setBuildTarget,
 } from '@services/configService';
+import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
@@ -112,6 +114,44 @@ function outOfTreeFeatureArgs(): string[] {
 	return buildOutOfTreeFeatures(getBuildTarget(), getExtraFeatures());
 }
 
+type ShellExecutionEnd = { terminal: vscode.Terminal; exitCode: number | undefined };
+type ShellExecutionWindow = {
+	onDidEndTerminalShellExecution?: (listener: (e: ShellExecutionEnd) => void) => vscode.Disposable;
+};
+
+let pendingBuildWatch: (() => void) | undefined;
+
+/**
+ * Size-check the apps.uf2 a terminal build produces, once that build reports a clean exit.
+ * A terminal command has no completion callback of its own, so this rides on shell integration
+ * and simply does nothing where that is unavailable (the flash path still checks).
+ */
+function checkUf2SizeAfterBuild(term: vscode.Terminal, uf2Path: string): void {
+	const onDidEnd = (vscode.window as ShellExecutionWindow).onDidEndTerminalShellExecution;
+	if (!onDidEnd) return;
+
+	pendingBuildWatch?.();
+
+	const disposables: vscode.Disposable[] = [];
+	const stop = () => {
+		if (pendingBuildWatch === stop) pendingBuildWatch = undefined;
+		for (const d of disposables.splice(0)) d.dispose();
+	};
+
+	disposables.push(
+		onDidEnd((e) => {
+			if (e.terminal !== term) return;
+			stop();
+			// A failed build leaves the previous apps.uf2 in place; warning about it would be a lie.
+			if (e.exitCode === 0) checkUf2Size(uf2Path);
+		}),
+		vscode.window.onDidCloseTerminal((t) => {
+			if (t === term) stop();
+		}),
+	);
+	pendingBuildWatch = stop;
+}
+
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
 export function runOutOfTreeBuildInTerminal(root: string) {
 	// The build target is a workspace-controlled setting interpolated into `board-${target}` on
@@ -143,7 +183,9 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 				? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
 				: `${buildCmd} && ${uf2Cmd}`;
 		term.sendText(chainedCmd);
+		checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
 	} else {
+		// No UF2 step was chained, so this build produces no apps.uf2 to check.
 		term.sendText(buildCmd);
 	}
 
@@ -193,6 +235,7 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	term.sendText(
 		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
 	);
+	checkUf2SizeAfterBuild(term, appsUf2Path('xous-core', root));
 	term.show(true);
 }
 

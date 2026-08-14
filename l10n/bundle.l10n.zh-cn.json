@@ -282,5 +282,6 @@
 	"Created {0}/{1}. Add it to the workspace members manually.": "已创建 {0}/{1}。请手动将其添加到工作区成员。",
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 内核同步仅适用于 dabao 目标。对“{0}”请使用手动内核模式。",
 	"App directory already exists: {0}": "应用目录已存在: {0}",
-	"Ignoring invalid extra cargo features: {0}": "已忽略无效的额外 cargo 特性：{0}"
+	"Ignoring invalid extra cargo features: {0}": "已忽略无效的额外 cargo 特性：{0}",
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，无法在设备上运行。"
 }

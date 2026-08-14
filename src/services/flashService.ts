@@ -3,18 +3,30 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { scanArtifacts } from '@services/artifactsService';
-import { getFlashLocation, setFlashLocation } from '@services/configService';
+import {
+	getBuildTargetOrDefault,
+	getFlashLocation,
+	setFlashLocation,
+} from '@services/configService';
 import {
 	appendSeparator,
 	getBaochipChannel,
 	showErrorWithActions,
 	showOutputAction,
+	warn,
 } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { toMessage } from '@util/error';
 import { classifyWriteVerification } from '@util/flashVerify';
 import { isDirectory } from '@util/fsUtil';
 import { pollUntil } from '@util/poll';
+import {
+	BAOCHIP_UF2_FAMILY,
+	classifyUf2Fit,
+	formatBytes,
+	parseUf2FirstBlock,
+	UF2_BLOCK_BYTES,
+} from '@util/uf2Layout';
 import * as vscode from 'vscode';
 
 /** Scan the filesystem for mounted BAOCHIP UF2 drives by volume label. */
@@ -229,6 +241,44 @@ export async function gatherArtifacts(root: string) {
 	return { byRole, all };
 }
 
+/** Warn when a .uf2 overflows the dabao region it targets; records its exact size either way. */
+export function checkUf2Size(filePath: string): void {
+	if (getBuildTargetOrDefault() !== 'dabao') return;
+
+	const head = Buffer.alloc(UF2_BLOCK_BYTES);
+	let size: number;
+	try {
+		size = fs.statSync(filePath).size;
+		const fd = fs.openSync(filePath, 'r');
+		try {
+			fs.readSync(fd, head, 0, UF2_BLOCK_BYTES, 0);
+		} finally {
+			fs.closeSync(fd);
+		}
+	} catch {
+		return;
+	}
+
+	const header = parseUf2FirstBlock(head);
+	if (!header || header.familyId !== BAOCHIP_UF2_FAMILY) return;
+
+	const fit = classifyUf2Fit(header.targetAddr, size);
+	if (fit.kind === 'unknown') return;
+
+	const fileName = path.basename(filePath);
+	getBaochipChannel().appendLine(`[bao] ${fileName}: ${size} bytes (limit ${fit.limit} bytes)`);
+	if (fit.kind === 'over') {
+		warn(
+			vscode.l10n.t(
+				'Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.',
+				fileName,
+				formatBytes(fit.over),
+				formatBytes(fit.limit),
+			),
+		);
+	}
+}
+
 export async function flashFiles(dest: string, files: string[]): Promise<boolean> {
 	return vscode.window.withProgress(
 		{
@@ -242,6 +292,9 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 				const chan = getBaochipChannel();
 				appendSeparator(chan, 'Flash');
 				chan.show(true);
+
+				// Size-check every image up front so any warning lands before the device is written to.
+				for (const srcPath of files) checkUf2Size(srcPath);
 
 				for (const srcPath of files) {
 					if (token.isCancellationRequested) break;

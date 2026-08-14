@@ -282,5 +282,6 @@
 	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} wurde erstellt. Fügen Sie es den Workspace-Membern manuell hinzu.",
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "Die CI-Kernel-Synchronisierung ist nur für das dabao-Ziel verfügbar. Verwenden Sie für \"{0}\" den manuellen Kernel-Modus.",
 	"App directory already exists: {0}": "Das App-Verzeichnis existiert bereits: {0}",
-	"Ignoring invalid extra cargo features: {0}": "Ungültige zusätzliche Cargo-Features werden ignoriert: {0}"
+	"Ignoring invalid extra cargo features: {0}": "Ungültige zusätzliche Cargo-Features werden ignoriert: {0}",
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} liegt {1} über dem dabao-Limit von {2}. Die Datei wird auf dem Gerät nicht ausgeführt."
 }

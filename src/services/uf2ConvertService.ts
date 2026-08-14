@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { readCargoPackageName } from '@util/cargo';
@@ -38,7 +39,10 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 				onStdout: (s) => chan.append(s),
 				onStderr: (s) => chan.append(s),
 			});
-			if (!r.error && r.code === 0) return true;
+			if (!r.error && r.code === 0) {
+				checkUf2Size(path.join(root, 'apps.uf2'));
+				return true;
+			}
 			if (r.error) {
 				// A spawn failure (e.g. xous-app-uf2 not on PATH) never streams to the channel, so the
 				// "See output" toast would point at an empty channel; record the reason here.

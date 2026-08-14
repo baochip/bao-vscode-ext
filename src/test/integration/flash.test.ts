@@ -16,11 +16,14 @@ import * as vscode from 'vscode';
 import {
 	activateExtension,
 	cleanupTmpDirs,
+	DABAO_APP_START,
+	DABAO_APP_UF2_LIMIT,
 	fakeChannel,
 	makeFakeXousCore,
 	resetBaochipConfig,
 	tmpDir,
 	useSandbox,
+	writeUf2,
 } from './helpers';
 
 // NOTE: these tests assume no real BAOCHIP volume is mounted while they run - the flash
@@ -381,6 +384,87 @@ suite('Flash service', () => {
 		assert.ok(
 			lines.some((l) => l.includes('Flash failed')),
 			`failure recorded in the Baochip channel: ${lines.join(' | ')}`,
+		);
+	});
+
+	/* ------------------------------ UF2 size guard ------------------------------ */
+
+	test('flashFiles warns when an image overflows its region, and flashes it anyway', async () => {
+		await setCfg('buildTarget', 'dabao');
+		const srcFile = path.join(tmpDir(), 'apps.uf2');
+		writeUf2(srcFile, DABAO_APP_START, DABAO_APP_UF2_LIMIT + 512);
+		const dest = tmpDir();
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const ok = await flashService.flashFiles(dest, [srcFile]);
+
+		assert.equal(ok, true, 'the flash still completes');
+		assert.ok(fs.existsSync(path.join(dest, 'apps.uf2')), 'the image was copied anyway');
+		assert.ok(
+			warnings
+				.getCalls()
+				.some((c) => String(c.args[0]).includes('512 bytes over the 1.70 MB limit for dabao')),
+			`oversize warning shown: ${warnings.getCalls().map((c) => String(c.args[0]))}`,
+		);
+		assert.ok(
+			lines.some((l) =>
+				l.includes(
+					`apps.uf2: ${DABAO_APP_UF2_LIMIT + 512} bytes (limit ${DABAO_APP_UF2_LIMIT} bytes)`,
+				),
+			),
+			`exact byte counts logged: ${lines.join(' | ')}`,
+		);
+	});
+
+	test('flashFiles does not warn for an image that exactly fills its region', async () => {
+		await setCfg('buildTarget', 'dabao');
+		const srcFile = path.join(tmpDir(), 'apps.uf2');
+		writeUf2(srcFile, DABAO_APP_START, DABAO_APP_UF2_LIMIT);
+		const dest = tmpDir();
+		const { chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const ok = await flashService.flashFiles(dest, [srcFile]);
+
+		assert.equal(ok, true);
+		assert.ok(
+			!warnings.getCalls().some((c) => String(c.args[0]).includes('over the')),
+			`no oversize warning: ${warnings.getCalls().map((c) => String(c.args[0]))}`,
+		);
+	});
+
+	test('flashFiles skips the size check for a non-dabao target', async () => {
+		// The region table is dabao-specific; baosec has no app region and its kernel may run past
+		// APP_RRAM_START, so checking it there would warn about nothing.
+		await setCfg('buildTarget', 'baosec');
+		const srcFile = path.join(tmpDir(), 'apps.uf2');
+		writeUf2(srcFile, DABAO_APP_START, DABAO_APP_UF2_LIMIT + 512);
+		const dest = tmpDir();
+		const { chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+
+		const ok = await flashService.flashFiles(dest, [srcFile]);
+
+		assert.equal(ok, true);
+		assert.ok(
+			!warnings.getCalls().some((c) => String(c.args[0]).includes('over the')),
+			`no oversize warning off dabao: ${warnings.getCalls().map((c) => String(c.args[0]))}`,
 		);
 	});
 });
