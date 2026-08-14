@@ -101,6 +101,7 @@
 	"Python selection cancelled.": "已取消选择 Python。",
 	"Cargo not found. Make sure Rust is installed correctly and in PATH.": "未找到 Cargo。请确保 Rust 已正确安装并在 PATH 中。",
 	"Rust not found. Please install Rust from https://rustup.rs before building.": "未找到 Rust。请先从 https://rustup.rs 安装。",
+	"Baochip supports stable Rust only. rustc reports {0}. Switch with: rustup default stable": "Baochip 仅支持稳定版 Rust。rustc 报告 {0}。切换方式: rustup default stable",
 	"Failed to install target; please run manually:\n rustup target add riscv32imac-unknown-none-elf": "目标安装失败，请手动运行：\n rustup target add riscv32imac-unknown-none-elf",
 	"Target installed successfully.": "目标安装成功。",
 	"Baochip: Installing Xous toolchain target...": "Baochip：正在安装 Xous 工具链目标...",

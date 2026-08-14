@@ -17,6 +17,7 @@ import { runProcess } from '@services/procService';
 import { getProjectMode } from '@services/projectModeService';
 import { isXousToolkitInstalled } from '@services/toolkitService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
+import { parseRustcChannel, parseRustcVersion } from '@util/rust';
 import * as vscode from 'vscode';
 
 const EXT_ID = 'baochip.bao-vscode-ext';
@@ -128,7 +129,15 @@ export async function buildDiagnosticsReport(): Promise<string> {
 						});
 					return ports.length ? `${ports.length} found: ${ports.join(', ')}` : 'none found';
 				}),
-				probe('rustc', () => toolVersion('rustc')),
+				probe('rustc', async () => {
+					const line = await toolVersion('rustc');
+					const version = parseRustcVersion(line);
+					const channel = parseRustcChannel(line);
+					if (version && channel && channel !== 'stable') {
+						throw new Error(`${version}-${channel} - Baochip supports stable Rust only`);
+					}
+					return line;
+				}),
 				probe('cargo', () => toolVersion('cargo')),
 				probe('riscv target (rustup)', async () => {
 					// The rustup-managed bare-metal target, matching rustCheckService's setup check.

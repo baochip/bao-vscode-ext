@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
 	detectHostToolchainGap,
+	parseRustcChannel,
 	parseRustcVersion,
 	pickHighestPatchIndex,
 	selectXousToolkitAsset,
@@ -18,6 +19,21 @@ test('parseRustcVersion: reads a nightly version (stops before the channel suffi
 test('parseRustcVersion: returns null for empty or unrecognized output', () => {
 	assert.equal(parseRustcVersion(''), null);
 	assert.equal(parseRustcVersion("'rustc' is not recognized as a command"), null);
+});
+
+test('parseRustcChannel: a plain release is stable', () => {
+	assert.equal(parseRustcChannel('rustc 1.87.0 (17067e9ac 2025-05-09)'), 'stable');
+});
+
+test('parseRustcChannel: reads the nightly, beta, and dev suffixes', () => {
+	assert.equal(parseRustcChannel('rustc 1.92.0-nightly (abc1234 2026-06-01)'), 'nightly');
+	assert.equal(parseRustcChannel('rustc 1.91.0-beta.2 (abc1234 2026-05-01)'), 'beta.2');
+	assert.equal(parseRustcChannel('rustc 1.92.0-dev'), 'dev');
+});
+
+test('parseRustcChannel: returns null for empty or unrecognized output', () => {
+	assert.equal(parseRustcChannel(''), null);
+	assert.equal(parseRustcChannel("'rustc' is not recognized as a command"), null);
 });
 
 test('pickHighestPatchIndex: picks the highest patch from a newest-first list', () => {

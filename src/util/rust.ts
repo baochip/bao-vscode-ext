@@ -4,6 +4,14 @@ export function parseRustcVersion(stdout: string): string | null {
 	return m ? m[1] : null;
 }
 
+/** Release channel from `rustc --version` output: "stable" when there is no suffix, else the
+ *  suffix itself ("nightly", "beta.2", "dev"). Null if no version line is found. */
+export function parseRustcChannel(stdout: string): string | null {
+	const m = stdout.match(/rustc \d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?/);
+	if (!m) return null;
+	return m[1] ? m[1].slice(1) : 'stable';
+}
+
 /**
  * Index of the release tag with the highest numeric patch suffix after `version`
  * (e.g. "1.87.0.2" beats "1.87.0.1" for version "1.87.0"; a bare "1.87.0" counts as patch 0).

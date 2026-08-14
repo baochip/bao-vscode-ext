@@ -106,6 +106,28 @@ suite('Rust toolchain checks', () => {
 		);
 	});
 
+	test('checkRustToolchain warns but continues when rustc is not a stable build', async () => {
+		const sysroot = fakeSysroot(true);
+		stubRunProcess((cmd, args) => {
+			if (cmd === 'rustc' && args.includes('--print')) return { stdout: sysroot };
+			if (cmd === 'rustc') return { stdout: 'rustc 1.92.0-nightly (abc1234 2026-06-01)' };
+			if (cmd === 'cargo') return { stdout: 'cargo 1.92.0-nightly' };
+			if (cmd === 'rustup') return { stdout: 'riscv32imac-unknown-none-elf' };
+			return {};
+		});
+		const warn = sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub;
+		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const ok = await checkRustToolchain();
+
+		assert.equal(ok, true, 'a non-stable toolchain is warned about, never blocked');
+		assert.ok(
+			warn.getCalls().some((c) => String(c.args[0]).includes('1.92.0-nightly')),
+			'the warning names the version rustc reported',
+		);
+		assert.ok(err.notCalled, 'no error toast');
+	});
+
 	test('checkRustToolchain prompts to install a missing rustup target and continues when dismissed', async () => {
 		// none-elf target absent from the rustup list; the xous toolkit is present so only one prompt.
 		stubRunProcess((cmd, args) => {

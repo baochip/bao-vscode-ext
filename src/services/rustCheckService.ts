@@ -3,6 +3,7 @@ import { appendSeparator, errorToast, getBaochipChannel } from '@services/logSer
 import { runProcess } from '@services/procService';
 import { installXousToolkit, isXousToolkitInstalled } from '@services/toolkitService';
 import { toMessage } from '@util/error';
+import { parseRustcChannel, parseRustcVersion } from '@util/rust';
 import * as vscode from 'vscode';
 
 /** Verifies that `rustc` and `cargo` exist and report versions. Shows the install toast and
@@ -15,6 +16,18 @@ export async function ensureCargoAvailable(): Promise<boolean> {
 			vscode.l10n.t('Rust not found. Please install Rust from https://rustup.rs before building.'),
 		);
 		return false;
+	}
+
+	// 1b) stable-only: a non-stable toolchain warns, never blocks
+	const version = parseRustcVersion(rustc.stdout ?? '');
+	const channel = parseRustcChannel(rustc.stdout ?? '');
+	if (version && channel && channel !== 'stable') {
+		vscode.window.showWarningMessage(
+			vscode.l10n.t(
+				'Baochip supports stable Rust only. rustc reports {0}. Switch with: rustup default stable',
+				`${version}-${channel}`,
+			),
+		);
 	}
 
 	// 2) cargo

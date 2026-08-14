@@ -33,10 +33,11 @@ this when you are modifying `xous-core` itself or building targets such as `baos
 
 ### Requirements
 
-**Rust** (via [rustup](https://rustup.rs)) is the only thing you install yourself. The first time you
-build, the extension asks before installing anything else it needs (the RISC-V target, Xous toolchain,
-and related tools). Its Python tooling goes in VS Code's own storage and is removed when you uninstall
-the extension (see Storage and disk space below).
+**Rust** (stable, via [rustup](https://rustup.rs)) is the only thing you install yourself; nightly and
+beta toolchains are not supported. The first time you build, the extension asks before installing
+anything else it needs (the RISC-V target, Xous toolchain, and related tools). Its Python tooling goes
+in VS Code's own storage and is removed when you uninstall the extension (see Storage and disk space
+below).
 
 ### Out-of-tree (recommended)
 
