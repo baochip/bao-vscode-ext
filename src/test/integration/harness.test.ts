@@ -1,5 +1,6 @@
 import * as assert from 'node:assert';
 import { sendBoot } from '@services/bootService';
+import * as portsService from '@services/portsService';
 import * as procService from '@services/procService';
 import * as uvService from '@services/uvService';
 import type * as sinon from 'sinon';
@@ -50,6 +51,8 @@ suite('Harness canary', () => {
 
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
+		// Port gone = boot took, so bao.py is invoked once and the count below stays exact.
+		sandbox.stub(portsService, 'isPortPresent').resolves(false);
 		const runStub = sandbox
 			.stub(procService, 'runProcess')
 			.resolves({ code: 0, stdout: '', stderr: '', cancelled: false });

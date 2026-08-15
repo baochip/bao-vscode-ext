@@ -2,6 +2,7 @@
 pinning down the line-state handling and the exact bytes sent to the bootloader."""
 
 import argparse
+import time
 
 import pytest
 import serial
@@ -70,6 +71,19 @@ class FakeSerial:
 
 
 @pytest.fixture
+def no_sleep(monkeypatch, fake_serial):
+    """Record (duration, writes so far) instead of sleeping, so timing order is assertable."""
+    calls = []
+
+    def record(seconds):
+        written = len(fake_serial[0].written) if fake_serial else 0
+        calls.append((seconds, written))
+
+    monkeypatch.setattr(time, "sleep", record)
+    return calls
+
+
+@pytest.fixture
 def fake_serial(monkeypatch):
     created = []
 
@@ -121,15 +135,45 @@ def test_safe_close_tolerates_none_and_close_errors():
     safe_close(Exploding())  # swallowed
 
 
-def test_cmd_boot_sends_the_boot_command_and_flushes(fake_serial, capsys):
+def test_cmd_boot_sends_the_boot_command_and_flushes(fake_serial, no_sleep, capsys):
     code = boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000))
 
     assert code == 0
     ser = fake_serial[0]
-    assert ser.written == [b"boot\r\n"], "the exact bootloader payload"
-    assert ser.flush_count == 1
+    assert ser.written == [b"\r\n", b"boot\r\n"], "line terminator, then the bootloader payload"
+    assert ser.flush_count == 2
     assert ser.closed, "port closed after sending"
     assert "sent 'boot' on COM9" in capsys.readouterr().out
+
+
+def test_cmd_boot_releases_the_control_lines(fake_serial, no_sleep):
+    boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000))
+
+    ser = fake_serial[0]
+    assert ser.dtr is False and ser.rts is False, "DTR/RTS released, as the monitor does"
+    assert ser.input_resets == 1 and ser.output_resets == 1, "pending bytes cleared"
+
+
+def test_cmd_boot_settles_after_opening_before_it_writes(fake_serial, no_sleep):
+    boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000))
+
+    # (duration, writes issued so far) - the settle must land before the payload
+    assert no_sleep == [(boot.DEFAULT_SETTLE_S, 0), (0.1, 2)]
+
+
+def test_cmd_boot_settle_is_configurable_and_skippable(fake_serial, no_sleep):
+    boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000, settle=1.5))
+    assert no_sleep[0] == (1.5, 0)
+
+    no_sleep.clear()
+    boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000, settle=0))
+    assert no_sleep[0][0] == 0.1, "no settle sleep at all, straight to the grace period"
+
+
+def test_cmd_boot_clamps_a_negative_settle(fake_serial, no_sleep):
+    boot.cmd_boot(argparse.Namespace(port="COM9", baud=1000000, settle=-5))
+
+    assert no_sleep[0][0] == 0.1, "negative settle behaves as none"
 
 
 def test_cmd_boot_returns_2_when_the_port_cannot_be_opened(monkeypatch):

@@ -777,6 +777,8 @@ suite('Ports, monitor, and boot', () => {
 
 	test('sendBoot ensures Python deps before running bao.py', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
+		// Port gone = boot took, so the send is not repeated and this stays a one-invocation test.
+		sandbox.stub(portsService, 'isPortPresent').resolves(false);
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		const deps = sandbox.stub(uvService, 'ensureBaoPythonDeps').resolves();
 		const run = sandbox
@@ -794,6 +796,7 @@ suite('Ports, monitor, and boot', () => {
 
 	test('sendBoot still boots when the deps check fails', async () => {
 		sandbox.stub(portsService, 'ensureSerialPort').resolves('COM7');
+		sandbox.stub(portsService, 'isPortPresent').resolves(false);
 		sandbox.stub(uvService, 'getBaoRunner').resolves({ cmd: 'uv', args: ['run', 'python'] });
 		sandbox.stub(uvService, 'ensureBaoPythonDeps').rejects(new Error('uv install failed'));
 		const run = sandbox

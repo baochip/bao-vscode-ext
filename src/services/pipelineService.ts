@@ -10,6 +10,9 @@ import { errorToast } from '@services/logService';
 import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
+/** Time the device gets to commit the written images before boot is sent. */
+const FLASH_SETTLE_MS = 500;
+
 /**
  * Build the project, flash it to the device, and tell the device to run the new firmware.
  *
@@ -55,6 +58,10 @@ export async function runBuildFlashBoot(): Promise<boolean> {
 	// 2) Flash
 	const flashed = await decideAndFlash(pre.root, kernelFiles ?? undefined);
 	if (!flashed) return false;
+
+	// A copy that reached the drive is not an image the device has finished committing, and a
+	// boot sent into that window is ignored.
+	await new Promise((r) => setTimeout(r, FLASH_SETTLE_MS));
 
 	// 2.5) Tell device to exit bootloader and run firmware
 	return await sendBoot();
