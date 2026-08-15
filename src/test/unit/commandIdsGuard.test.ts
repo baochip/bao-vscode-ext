@@ -85,7 +85,7 @@ test('keybindings: every binding names a contributed command, each with a distin
 	const bindings = manifest().contributes.keybindings;
 	assert.ok(
 		bindings.length >= 3,
-		`sanity: expected the build/flash/B-F-M bindings, found ${bindings.length}`,
+		`sanity: expected the build/flash/B-F-B-M bindings, found ${bindings.length}`,
 	);
 	const unknown = bindings.filter((b) => !declared.has(b.command)).map((b) => b.command);
 	assert.deepEqual(unknown, [], 'keybindings referencing undeclared commands');

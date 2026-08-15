@@ -1,64 +1,16 @@
 import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { runBaoCmd } from '@services/baoRunnerService';
-import { sendBoot } from '@services/bootService';
-import {
-	ensureBuildPrereqs,
-	runBuildAndWait,
-	runOutOfTreeBuildAndWait,
-} from '@services/buildService';
-import { decideAndFlash } from '@services/flashService';
-import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
-import { errorToast } from '@services/logService';
 import { openMonitorTTY } from '@services/monitorService';
+import { runBuildFlashBoot } from '@services/pipelineService';
 import { ensureSerialPort, offerRepickMissingPort, waitForPort } from '@services/portsService';
-import { convertElfToUf2 } from '@services/uf2ConvertService';
 import * as vscode from 'vscode';
 
 export function registerBuildFlashMonitor() {
 	return withCommand(Commands.buildFlashMonitor, async () => {
-		// Gather/validate build prereqs (root/target/app)
-		const pre = await ensureBuildPrereqs();
-		if (!pre) return;
-
-		if (pre.mode === 'out-of-tree') {
-			const ok = await ensureOutOfTreeBuildSetup(pre.root);
-			if (!ok) return;
-		}
-
-		// 1) Build
-		const code =
-			pre.mode === 'out-of-tree'
-				? await runOutOfTreeBuildAndWait(pre.root)
-				: await runBuildAndWait(pre.root, pre.target, pre.app);
-		if (code === null) return; // cancelled by the user - not a failure, no error toast
-		if (code !== 0) {
-			// The cargo output for this pipeline streams to the Baochip channel (runCargoAndWait),
-			// so the toast's Show Output button lands on the compiler errors.
-			errorToast(vscode.l10n.t('Build failed.'));
-			return;
-		}
-
-		// 1.5) ELF->UF2 conversion (out-of-tree only)
-		if (pre.mode === 'out-of-tree') {
-			const converted = await convertElfToUf2(pre.root);
-			if (!converted) return;
-		}
-
-		// Resolve kernel files for flashing (out-of-tree only)
-		let kernelFiles: { loader: string; xous: string } | null = null;
-		if (pre.mode === 'out-of-tree') {
-			kernelFiles = await resolveKernelFiles();
-			if (!kernelFiles) return;
-		}
-
-		// 2) Flash
-		const flashed = await decideAndFlash(pre.root, kernelFiles ?? undefined);
-		if (!flashed) return;
-
-		// 2.5) Tell device to exit bootloader and run firmware
-		const ok = await sendBoot();
-		if (!ok) return;
+		// 1) Build, 2) flash, 2.5) boot
+		const booted = await runBuildFlashBoot();
+		if (!booted) return;
 
 		// Ensure run-mode port is set; if not, prompt and re-check.
 		const runPort = await ensureSerialPort('run');

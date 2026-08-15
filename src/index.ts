@@ -1,4 +1,5 @@
 import { registerBuildCommand } from '@commands/build';
+import { registerBuildFlashBoot } from '@commands/buildFlashBoot';
 import { registerBuildFlashMonitor } from '@commands/buildFlashMonitor';
 import { registerCleanCommand } from '@commands/clean';
 import { registerCollectDiagnostics } from '@commands/collectDiagnostics';
@@ -37,6 +38,7 @@ export function registerCommands(context: vscode.ExtensionContext) {
 		registerCleanCommand(),
 		registerFlashCommand(),
 		registerBuildFlashMonitor(),
+		registerBuildFlashBoot(),
 		registerOpenSettings(),
 		withCommand(Commands.openWelcome, () => WelcomePanel.show(context)),
 		withCommand(Commands.resetUvSetup, () => resetUvSetup()),

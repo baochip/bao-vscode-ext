@@ -4,6 +4,7 @@
  */
 export const Commands = {
 	build: 'baochip.build',
+	buildFlashBoot: 'baochip.buildFlashBoot',
 	buildFlashMonitor: 'baochip.buildFlashMonitor',
 	clean: 'baochip.clean',
 	collectDiagnostics: 'baochip.collectDiagnostics',

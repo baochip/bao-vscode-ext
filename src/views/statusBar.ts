@@ -13,6 +13,7 @@ export interface StatusBarItems {
 	flash: vscode.StatusBarItem;
 	monitor: vscode.StatusBarItem;
 	buildFlashMonitor: vscode.StatusBarItem;
+	buildFlashBoot: vscode.StatusBarItem;
 	buildMode: vscode.StatusBarItem;
 	settings: vscode.StatusBarItem;
 }
@@ -61,9 +62,14 @@ export function createStatusBarItems(context: vscode.ExtensionContext): StatusBa
 		buildFlashMonitor: makeStatusItem(
 			91,
 			Commands.buildFlashMonitor,
-			vscode.l10n.t('Baochip: Build • Flash • Monitor'),
+			vscode.l10n.t('Baochip: Build • Flash • Boot • Monitor'),
 		),
-		buildMode: makeStatusItem(90, Commands.setBuildMode, vscode.l10n.t('Baochip: Build Mode')),
-		settings: makeStatusItem(89, Commands.openSettings, vscode.l10n.t('Baochip: Settings')),
+		buildFlashBoot: makeStatusItem(
+			90,
+			Commands.buildFlashBoot,
+			vscode.l10n.t('Baochip: Build • Flash • Boot'),
+		),
+		buildMode: makeStatusItem(89, Commands.setBuildMode, vscode.l10n.t('Baochip: Build Mode')),
+		settings: makeStatusItem(88, Commands.openSettings, vscode.l10n.t('Baochip: Settings')),
 	};
 }

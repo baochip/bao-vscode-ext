@@ -138,10 +138,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		items.flash.tooltip = vscode.l10n.t('Flash to device');
 		items.flash.show();
 
-		// Status bar: B-F-M
-		items.buildFlashMonitor.text = '$(rocket) B•F•M';
-		items.buildFlashMonitor.tooltip = vscode.l10n.t('Build • Flash • Monitor'); // reuse tree label
+		// Status bar: B-F-B-M
+		items.buildFlashMonitor.text = '$(rocket) B•F•B•M';
+		// reuse tree label
+		items.buildFlashMonitor.tooltip = vscode.l10n.t('Build • Flash • Boot • Monitor');
 		items.buildFlashMonitor.show();
+
+		// Status bar: B-F-B (the same pipeline, stopping once the device boots)
+		items.buildFlashBoot.text = '$(zap) B•F•B';
+		items.buildFlashBoot.tooltip = vscode.l10n.t('Build • Flash • Boot'); // reuse tree label
+		items.buildFlashBoot.show();
 
 		// Status bar: Settings
 		items.settings.text = '$(gear)';

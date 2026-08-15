@@ -3,15 +3,15 @@ import { createStatusBarItems } from '@views/statusBar';
 import type * as vscode from 'vscode';
 
 suite('Status bar items', () => {
-	test('creates twelve items, each named, command-wired, and tracked for disposal', () => {
+	test('creates thirteen items, each named, command-wired, and tracked for disposal', () => {
 		const subscriptions: { dispose(): unknown }[] = [];
 		const ctx = { subscriptions } as unknown as vscode.ExtensionContext;
 
 		const items = createStatusBarItems(ctx);
 		try {
 			const all = Object.values(items);
-			assert.equal(all.length, 12, 'twelve status bar items');
-			assert.equal(subscriptions.length, 12, 'every item is pushed to context.subscriptions');
+			assert.equal(all.length, 13, 'thirteen status bar items');
+			assert.equal(subscriptions.length, 13, 'every item is pushed to context.subscriptions');
 
 			// Each name identifies its entry in the status bar context menu and to screen readers,
 			// so every item must carry one, prefixed with the extension name, with no duplicates.

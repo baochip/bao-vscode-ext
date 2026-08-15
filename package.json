@@ -131,6 +131,11 @@
 				"title": "%cmd.buildFlashMonitor%"
 			},
 			{
+				"command": "baochip.buildFlashBoot",
+				"category": "Baochip",
+				"title": "%cmd.buildFlashBoot%"
+			},
+			{
 				"command": "baochip.resetUvSetup",
 				"category": "Baochip",
 				"title": "%cmd.resetUvSetup%"
