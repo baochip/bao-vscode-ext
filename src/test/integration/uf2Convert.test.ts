@@ -19,13 +19,12 @@ import {
 	writeUf2,
 } from './helpers';
 
-/** A fake out-of-tree project: a Cargo.toml package name plus a built ELF for that package. */
-function fakeOotProject(pkgName: string): string {
+/** A fake out-of-tree project with a built ELF for each named crate. */
+function fakeOotProject(crates: string[]): string {
 	const root = tmpDir();
-	fs.writeFileSync(path.join(root, 'Cargo.toml'), `[package]\nname = "${pkgName}"\n`, 'utf8');
 	const releaseDir = path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release');
 	fs.mkdirSync(releaseDir, { recursive: true });
-	fs.writeFileSync(path.join(releaseDir, pkgName), 'ELF', 'utf8');
+	for (const crate of crates) fs.writeFileSync(path.join(releaseDir, crate), 'ELF', 'utf8');
 	return root;
 }
 
@@ -42,7 +41,7 @@ suite('UF2 conversion', () => {
 	});
 
 	test('convertElfToUf2 records a spawn failure in the output channel, not just a toast', async () => {
-		const root = fakeOotProject('my_oot_app');
+		const root = fakeOotProject(['my_oot_app']);
 		// A spawn failure never streams stdout/stderr, so the "See output" toast would otherwise
 		// point at a channel with no failure detail.
 		sandbox.stub(procService, 'runProcess').resolves({
@@ -56,7 +55,7 @@ suite('UF2 conversion', () => {
 		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await convertElfToUf2(root, ['hello']);
+		const ok = await convertElfToUf2(root, ['my_oot_app']);
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -70,7 +69,7 @@ suite('UF2 conversion', () => {
 	});
 
 	test('convertElfToUf2 returns true on a successful conversion', async () => {
-		const root = fakeOotProject('my_oot_app');
+		const root = fakeOotProject(['my_oot_app']);
 		sandbox.stub(procService, 'runProcess').resolves({
 			code: 0,
 			stdout: '',
@@ -78,11 +77,11 @@ suite('UF2 conversion', () => {
 			cancelled: false,
 		});
 
-		assert.equal(await convertElfToUf2(root, ['hello']), true);
+		assert.equal(await convertElfToUf2(root, ['my_oot_app']), true);
 	});
 
 	test('convertElfToUf2 warns at build time when the app overflows the dabao app region', async () => {
-		const root = fakeOotProject('my_oot_app');
+		const root = fakeOotProject(['my_oot_app']);
 		await vscode.workspace
 			.getConfiguration('baochip')
 			.update('buildTarget', 'dabao', vscode.ConfigurationTarget.Workspace);
@@ -97,7 +96,7 @@ suite('UF2 conversion', () => {
 			'showWarningMessage',
 		) as unknown as sinon.SinonStub;
 
-		const ok = await convertElfToUf2(root, ['hello']);
+		const ok = await convertElfToUf2(root, ['my_oot_app']);
 
 		assert.equal(ok, true, 'the conversion itself succeeded; the size warning is advisory');
 		assert.ok(

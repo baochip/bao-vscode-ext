@@ -29,11 +29,13 @@ const setCfg = (key: string, value: unknown) =>
 /** A successful, empty runProcess result. */
 const okRun = { code: 0, stdout: '', stderr: '', cancelled: false };
 
-/** A fake terminal capturing sendText calls, castable to vscode.Terminal. */
+/** A fake terminal capturing commands, castable to vscode.Terminal. Carries shell integration
+ * so runInTerminal resolves at once rather than waiting out its timeout. */
 function fakeTerminal() {
 	const sent: string[] = [];
 	const term = {
 		sendText: (t: string) => sent.push(t),
+		shellIntegration: { executeCommand: (t: string) => sent.push(t) },
 		show: () => {},
 	};
 	return { sent, term: term as unknown as vscode.Terminal };
@@ -169,16 +171,17 @@ suite('Build service', () => {
 		assert.ok(msg.includes('ghost, phantom'), `plural message lists all missing apps: ${msg}`);
 	});
 
-	test('ensureBuildPrereqs: out-of-tree mode returns the first workspace folder', async () => {
+	test('ensureBuildPrereqs: out-of-tree mode returns the folder and the selected crates', async () => {
 		sandbox.stub(rustCheckService, 'checkRustToolchain').resolves(true);
 		sandbox.stub(xousToolsService, 'checkXousAppUf2').resolves(true);
 		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'alpha zeta');
 
 		const pre = await buildService.ensureBuildPrereqs();
 
 		const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 		assert.ok(wsRoot, 'test host has a workspace folder');
-		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot, crates: ['hello'] });
+		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot, crates: ['alpha', 'zeta'] });
 	});
 
 	/* ------------------------------ runBuildAndWait / runOutOfTreeBuildAndWait ------------------------------ */
@@ -264,6 +267,8 @@ suite('Build service', () => {
 			'--release',
 			'--target',
 			XOUS_TARGET_TRIPLE,
+			'-p',
+			'hello',
 			'--features',
 			'board-dabao',
 			'--features',
@@ -285,13 +290,13 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(ensure.firstCall.args[1], root, 'terminal cwd set via the API, not a typed cd');
 		assert.equal(sent.length, 1, `one chained command: ${sent.join(' | ')}`);
 		assert.ok(sent[0].includes(`cargo build --release --target ${XOUS_TARGET_TRIPLE}`));
 		assert.ok(sent[0].includes('; if ($LASTEXITCODE -eq 0) {'), 'PowerShell 5.x-safe chain');
-		assert.ok(sent[0].includes(`xous-app-uf2 --elf target/${XOUS_TARGET_TRIPLE}/release/myapp`));
+		assert.ok(sent[0].includes(`xous-app-uf2 --elf target/${XOUS_TARGET_TRIPLE}/release/hello`));
 	});
 
 	test('runOutOfTreeBuildInTerminal on POSIX chains build and UF2 via &&', async () => {
@@ -301,36 +306,37 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes(' && xous-app-uf2 --elf '), `POSIX && chain: ${sent[0]}`);
 	});
 
-	test('runOutOfTreeBuildInTerminal without a readable package name sends the build only', async () => {
-		const root = tmpDir(); // no Cargo.toml at all
+	test('runOutOfTreeBuildInTerminal passes one --elf per selected crate', async () => {
+		const root = tmpDir();
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(root, ['alpha', 'zeta']);
 
 		assert.equal(sent.length, 1);
-		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
-		assert.ok(!sent[0].includes('xous-app-uf2'), 'no UF2 chain without a package name');
+		assert.ok(sent[0].includes('-p alpha'), `alpha selected: ${sent[0]}`);
+		assert.ok(sent[0].includes('-p zeta'), `zeta selected: ${sent[0]}`);
+		assert.ok(sent[0].includes(`--elf target/${XOUS_TARGET_TRIPLE}/release/alpha`));
+		assert.ok(sent[0].includes(`--elf target/${XOUS_TARGET_TRIPLE}/release/zeta`));
 	});
 
-	test('runOutOfTreeBuildInTerminal skips the UF2 chain for a malformed crate name', async () => {
-		const root = tmpDir();
-		fs.writeFileSync(path.join(root, 'Cargo.toml'), '[package]\nname = "my;app $(x)"\n', 'utf8');
-		const { sent, term } = fakeTerminal();
-		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+	test('runOutOfTreeBuildInTerminal rejects a malformed crate name before any terminal work', async () => {
+		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(tmpDir(), ['my;app $(x)']);
 
-		assert.equal(sent.length, 1);
-		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
-		assert.ok(!sent[0].includes('my;app'), 'malformed name never reaches the terminal');
-		assert.ok(!sent[0].includes('xous-app-uf2'), 'no UF2 chain');
+		assert.ok(ensure.notCalled, 'no terminal opened');
+		assert.ok(
+			err.getCalls().some((c) => String(c.args[0]).includes('Invalid crate name')),
+			'the malformed name is reported',
+		);
 	});
 
 	test('runOutOfTreeBuildInTerminal rejects a shell-active build target before any terminal work', async () => {
@@ -338,7 +344,7 @@ suite('Build service', () => {
 		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runOutOfTreeBuildInTerminal(tmpDir(), ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(tmpDir(), ['hello']);
 
 		assert.ok(err.calledOnce, 'invalid target is surfaced to the user');
 		assert.ok(
@@ -354,7 +360,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+		await buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);
@@ -390,7 +396,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello world');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello world');
 
 		assert.deepEqual(sent, ['cargo xtask dabao hello world']);
 	});
@@ -399,7 +405,7 @@ suite('Build service', () => {
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
 		assert.ok(String(errors.firstCall.args[0]).includes('Invalid build target'));
@@ -409,7 +415,7 @@ suite('Build service', () => {
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello $(evil)');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello $(evil)');
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
 		assert.ok(String(errors.firstCall.args[0]).includes('Invalid app name'));

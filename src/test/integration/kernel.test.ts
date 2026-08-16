@@ -1,6 +1,7 @@
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_CORE_REPO } from '@constants';
 import * as baoRunnerService from '@services/baoRunnerService';
 import * as httpService from '@services/httpService';
 import * as kernelService from '@services/kernelService';
@@ -30,6 +31,22 @@ function kernelCacheDir(): string {
 
 function wipeKernelCache(): void {
 	fs.rmSync(kernelCacheDir(), { recursive: true, force: true });
+}
+
+/** An out-of-tree root whose manifest pins xous-core, so the rev sync has something to update. */
+function ootRootWithXousDep(): string {
+	const root = tmpDir();
+	fs.writeFileSync(
+		path.join(root, 'Cargo.toml'),
+		`[package]
+name = "hello"
+
+[dependencies]
+bao1x-api = { git = "${XOUS_CORE_REPO}", rev = "old" }
+`,
+		'utf8',
+	);
+	return root;
 }
 
 suite('Kernel files service', () => {
@@ -455,7 +472,7 @@ suite('Kernel files service', () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
-		const root = tmpDir();
+		const root = ootRootWithXousDep();
 
 		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['hello']);
 
@@ -494,7 +511,7 @@ suite('Kernel files service', () => {
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('no dependency found'));
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(ootRootWithXousDep(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -515,7 +532,7 @@ suite('Kernel files service', () => {
 			.resolves({ code: 2, stdout: '', stderr: 'no dependency found', cancelled: false });
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(ootRootWithXousDep(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.equal(
