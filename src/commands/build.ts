@@ -12,9 +12,9 @@ export function registerBuildCommand() {
 		const pre = await ensureBuildPrereqs();
 		if (!pre) return;
 		if (pre.mode === 'out-of-tree') {
-			const ok = await ensureOutOfTreeBuildSetup(pre.root);
+			const ok = await ensureOutOfTreeBuildSetup(pre.root, pre.crates);
 			if (!ok) return;
-			runOutOfTreeBuildInTerminal(pre.root);
+			runOutOfTreeBuildInTerminal(pre.root, pre.crates);
 		} else {
 			runBuildInTerminal(pre.root, pre.target, pre.app);
 		}

@@ -168,7 +168,6 @@
 	"Failed to update xous-core rev in Cargo.toml: {0}": "xous-core-Rev in Cargo.toml konnte nicht aktualisiert werden: {0}",
 	"apps.uf2 not found in {0}. Run a build first.": "apps.uf2 nicht gefunden in {0}. Bitte zuerst einen Build durchführen.",
 	"Baochip: Converting ELF to UF2...": "Baochip: ELF wird in UF2 konvertiert...",
-	"Could not read package name from Cargo.toml.": "Paketname konnte nicht aus Cargo.toml gelesen werden.",
 	"ELF not found at {0}. Has the build completed successfully?": "ELF-Datei nicht gefunden unter {0}. Wurde der Build erfolgreich abgeschlossen?",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip: ELF-zu-UF2-Konvertierung fehlgeschlagen. Details im Ausgabefenster.",
 	"Baochip: xous-tools installed successfully.": "Baochip: xous-tools erfolgreich installiert.",
@@ -294,5 +293,6 @@
 	"Select crate": "Crate auswaehlen",
 	"These workspace members have no readable Cargo.toml: {0}": "Diese Workspace-Mitglieder haben keine lesbare Cargo.toml: {0}",
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "Workspace-Mitglieder mit \"*\" werden nicht unterstuetzt: {0}. Bitte jeden Crate-Ordner einzeln auflisten.",
-	"Click to select the crate to build": "Klicken, um die zu bauende Crate auszuwaehlen"
+	"Click to select the crate to build": "Klicken, um die zu bauende Crate auszuwaehlen",
+	"Invalid crate name: {0}": "Ungueltiger Crate-Name: {0}"
 }

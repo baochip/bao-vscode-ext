@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_CORE_REPO } from '@constants';
 import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getBuildTargetOrDefault,
@@ -12,6 +13,7 @@ import {
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { errorToast } from '@services/logService';
 import { getGlobalVenvRoot } from '@services/uvService';
+import { discoverOutOfTreeCrates } from '@util/cargo';
 import { toMessage } from '@util/error';
 import * as vscode from 'vscode';
 
@@ -252,7 +254,7 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
  * the latest xous-core rev to Cargo.toml before building.
  * Returns false if the user cancels or any step fails.
  */
-export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> {
+export async function ensureOutOfTreeBuildSetup(root: string, crates: string[]): Promise<boolean> {
 	const kernelMode = await ensureKernelModeConfigured();
 	if (!kernelMode) return false;
 
@@ -264,18 +266,34 @@ export async function ensureOutOfTreeBuildSetup(root: string): Promise<boolean> 
 			toastRevFetchFailed(e);
 			return false;
 		}
-		try {
-			// quiet: this caller shows its own specific error toast below; without it runBaoCmd
-			// would also toast on failure, giving two toasts for one failed update-rev.
-			await runBaoCmd(
-				['app', 'update-rev', '--file', path.join(root, 'Cargo.toml'), '--rev', rev],
-				undefined,
-				{ quiet: true },
-			);
-		} catch (e: unknown) {
-			const message = toMessage(e);
-			errorToast(vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message));
-			return false;
+		// The root too: a workspace keeps its [patch] table there, where cargo honors it, and
+		// leaving it behind would drift the patched revision away from the members'.
+		const candidates = [
+			path.join(root, 'Cargo.toml'),
+			...discoverOutOfTreeCrates(root)
+				.crates.filter((crate) => crates.includes(crate.name))
+				.map((crate) => crate.manifestPath),
+		];
+		// update-rev errors on a manifest with no xous-core dependency, so skip those.
+		const manifests = [...new Set(candidates)].filter((manifest) => {
+			try {
+				return fs.readFileSync(manifest, 'utf8').includes(XOUS_CORE_REPO);
+			} catch {
+				return false;
+			}
+		});
+
+		for (const manifest of manifests) {
+			try {
+				// quiet: the caller's own toast below would otherwise be doubled
+				await runBaoCmd(['app', 'update-rev', '--file', manifest, '--rev', rev], undefined, {
+					quiet: true,
+				});
+			} catch (e: unknown) {
+				const message = toMessage(e);
+				errorToast(vscode.l10n.t('Failed to update xous-core rev in Cargo.toml: {0}', message));
+				return false;
+			}
 		}
 	}
 

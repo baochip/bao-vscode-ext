@@ -4,20 +4,19 @@ import { XOUS_TARGET_TRIPLE } from '@constants';
 import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
-import { readCargoPackageName } from '@util/cargo';
 import * as vscode from 'vscode';
 
-export async function convertElfToUf2(root: string): Promise<boolean> {
-	const pkgName = readCargoPackageName(root);
-	if (!pkgName) {
-		vscode.window.showErrorMessage(vscode.l10n.t('Could not read package name from Cargo.toml.'));
-		return false;
-	}
-
-	const elfPath = path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release', pkgName);
-	if (!fs.existsSync(elfPath)) {
+export async function convertElfToUf2(root: string, crates: string[]): Promise<boolean> {
+	const elfPaths = crates.map((crate) =>
+		path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release', crate),
+	);
+	const missing = elfPaths.filter((elf) => !fs.existsSync(elf));
+	if (missing.length > 0) {
 		vscode.window.showErrorMessage(
-			vscode.l10n.t('ELF not found at {0}. Has the build completed successfully?', elfPath),
+			vscode.l10n.t(
+				'ELF not found at {0}. Has the build completed successfully?',
+				missing.join(', '),
+			),
 		);
 		return false;
 	}
@@ -34,11 +33,15 @@ export async function convertElfToUf2(root: string): Promise<boolean> {
 			cancellable: false,
 		},
 		async () => {
-			const r = await runProcess('xous-app-uf2', ['--elf', elfPath], {
-				cwd: root,
-				onStdout: (s) => chan.append(s),
-				onStderr: (s) => chan.append(s),
-			});
+			const r = await runProcess(
+				'xous-app-uf2',
+				elfPaths.flatMap((elf) => ['--elf', elf]),
+				{
+					cwd: root,
+					onStdout: (s) => chan.append(s),
+					onStderr: (s) => chan.append(s),
+				},
+			);
 			if (!r.error && r.code === 0) {
 				checkUf2Size(path.join(root, 'apps.uf2'));
 				return true;
