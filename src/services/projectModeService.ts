@@ -28,13 +28,18 @@ export function findXousCoreInWorkspace(): string | undefined {
  * Returns the root path of the first workspace folder for out-of-tree mode,
  * or shows an error and returns undefined if no folder is open.
  */
+/** The out-of-tree project root, or undefined. Quiet; use getOutOfTreeRoot to also report it. */
+export function findOutOfTreeRoot(): string | undefined {
+	return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
 export function getOutOfTreeRoot(): string | undefined {
-	const folder = vscode.workspace.workspaceFolders?.[0];
-	if (!folder) {
+	const root = findOutOfTreeRoot();
+	if (!root) {
 		vscode.window.showErrorMessage(vscode.l10n.t('No workspace folder open.'));
 		return undefined;
 	}
-	return folder.uri.fsPath;
+	return root;
 }
 
 /**

@@ -294,5 +294,6 @@
 	"These workspace members have no readable Cargo.toml: {0}": "Diese Workspace-Mitglieder haben keine lesbare Cargo.toml: {0}",
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "Workspace-Mitglieder mit \"*\" werden nicht unterstuetzt: {0}. Bitte jeden Crate-Ordner einzeln auflisten.",
 	"Click to select the crate to build": "Klicken, um die zu bauende Crate auszuwaehlen",
-	"Invalid crate name: {0}": "Ungueltiger Crate-Name: {0}"
+	"Invalid crate name: {0}": "Ungueltiger Crate-Name: {0}",
+	"Not found in this project: {0}": "In diesem Projekt nicht gefunden: {0}"
 }

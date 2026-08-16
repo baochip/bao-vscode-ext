@@ -294,5 +294,6 @@
 	"These workspace members have no readable Cargo.toml: {0}": "下列工作區成員沒有可讀取的 Cargo.toml: {0}",
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "不支援使用 \"*\" 的工作區成員: {0}。請逐一列出每個 crate 資料夾。",
 	"Click to select the crate to build": "按一下以選擇要建置的 crate",
-	"Invalid crate name: {0}": "無效的 crate 名稱: {0}"
+	"Invalid crate name: {0}": "無效的 crate 名稱: {0}",
+	"Not found in this project: {0}": "在此專案中找不到: {0}"
 }

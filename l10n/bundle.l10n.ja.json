@@ -294,5 +294,6 @@
 	"These workspace members have no readable Cargo.toml: {0}": "次のワークスペースメンバーには読み取り可能な Cargo.toml がありません: {0}",
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "\"*\" を使うワークスペースメンバーはサポートされていません: {0}。各クレートのフォルダーを個別に指定してください。",
 	"Click to select the crate to build": "ビルドするクレートを選択するにはクリックしてください",
-	"Invalid crate name: {0}": "無効なクレート名: {0}"
+	"Invalid crate name: {0}": "無効なクレート名: {0}",
+	"Not found in this project: {0}": "このプロジェクトに見つかりません: {0}"
 }

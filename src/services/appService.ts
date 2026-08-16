@@ -1,9 +1,20 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Commands } from '@commands/commandIds';
 import { BUILD_TARGETS, getAppsDir } from '@constants';
-import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
+import {
+	getBuildTargetOrDefault,
+	getXousAppName,
+	getXousCorePath,
+	setXousAppName,
+} from '@services/configService';
 import { warn } from '@services/logService';
-import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
+import {
+	findOutOfTreeRoot,
+	findXousCoreInWorkspace,
+	getOutOfTreeRoot,
+	getProjectMode,
+} from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
@@ -22,9 +33,27 @@ import * as vscode from 'vscode';
 /** Whether there is a crate worth choosing between. Quiet: the status bar calls it on every refresh. */
 export function hasCrateChoice(): boolean {
 	if (getProjectMode() === 'xous-core') return true;
-	const folder = vscode.workspace.workspaceFolders?.[0];
-	if (!folder) return false;
-	return discoverOutOfTreeCrates(folder.uri.fsPath).crates.length > 1;
+	const root = findOutOfTreeRoot();
+	if (!root) return false;
+	return discoverOutOfTreeCrates(root).crates.length > 1;
+}
+
+/** Names in the setting matching no crate here. Empty when the crates cannot be determined. */
+export function unknownAppNames(): string[] {
+	const names = splitAppNames(getXousAppName());
+	if (names.length === 0) return [];
+
+	if (getProjectMode() === 'out-of-tree') {
+		const root = findOutOfTreeRoot();
+		if (!root) return [];
+		const known = discoverOutOfTreeCrates(root).crates.map((crate) => crate.name);
+		if (known.length === 0) return [];
+		return names.filter((name) => !known.includes(name));
+	}
+
+	const root = findXousCoreInWorkspace() || getXousCorePath();
+	if (!root) return [];
+	return missingApps(root, getXousAppName(), getBuildTargetOrDefault());
 }
 
 /** Crate names an out-of-tree project can build, warning about members it had to skip. */
@@ -122,6 +151,20 @@ async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
  * Returns undefined if nothing is available or the user cancels.
  */
 export async function promptAndSaveApp(): Promise<string | undefined> {
+	// picking would overwrite a setting the user may have meant
+	const unknown = unknownAppNames();
+	if (unknown.length > 0) {
+		const settingsLabel = vscode.l10n.t('Open Baochip Settings');
+		const choice = await vscode.window.showWarningMessage(
+			vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
+			settingsLabel,
+		);
+		if (choice === settingsLabel) {
+			await vscode.commands.executeCommand(Commands.openSettings);
+		}
+		return undefined;
+	}
+
 	if (getProjectMode() === 'out-of-tree') return promptAndSaveOutOfTreeCrate();
 
 	const root = await resolveXousRootOrNotify();

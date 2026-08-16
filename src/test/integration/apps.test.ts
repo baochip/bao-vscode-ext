@@ -158,6 +158,36 @@ suite('App service and scaffolding', () => {
 		assert.equal(cfg().get<string>('xousAppName'), 'alpha zeta', 'selection not cleared');
 	});
 
+	test('promptAndSaveApp refuses to open when the setting names an unknown crate', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, undefined);
+		assert.ok(pick.notCalled, 'the picker never opens, so the setting is not overwritten');
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('ghost')),
+			'the unknown name is reported',
+		);
+		assert.equal(cfg().get<string>('xousAppName'), 'one ghost', 'setting left untouched');
+	});
+
+	test('unknownAppNames stays quiet when the crates cannot be determined', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'anything');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(undefined);
+
+		assert.deepEqual(appService.unknownAppNames(), [], 'no folder means no verdict');
+	});
+
 	test('promptAndSaveApp lists apps from the adopted workspace root, not the configured one', async () => {
 		// The user adopts the currently-open folder; app listing must follow the returned root.
 		const { root: configuredRoot } = makeFakeXousCore(tmpDir(), { apps: ['configured_app'] });
