@@ -34,6 +34,7 @@ function fakeTerminal() {
 	const sent: string[] = [];
 	const term = {
 		sendText: (t: string) => sent.push(t),
+		shellIntegration: { executeCommand: (t: string) => sent.push(t) },
 		show: () => {},
 	};
 	return { sent, term: term as unknown as vscode.Terminal };
@@ -285,7 +286,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		await buildService.runOutOfTreeBuildInTerminal(root);
 
 		assert.equal(ensure.firstCall.args[1], root, 'terminal cwd set via the API, not a typed cd');
 		assert.equal(sent.length, 1, `one chained command: ${sent.join(' | ')}`);
@@ -301,7 +302,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		await buildService.runOutOfTreeBuildInTerminal(root);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes(' && xous-app-uf2 --elf '), `POSIX && chain: ${sent[0]}`);
@@ -312,7 +313,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		await buildService.runOutOfTreeBuildInTerminal(root);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
@@ -325,7 +326,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		await buildService.runOutOfTreeBuildInTerminal(root);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
@@ -338,7 +339,7 @@ suite('Build service', () => {
 		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runOutOfTreeBuildInTerminal(tmpDir());
+		await buildService.runOutOfTreeBuildInTerminal(tmpDir());
 
 		assert.ok(err.calledOnce, 'invalid target is surfaced to the user');
 		assert.ok(
@@ -354,7 +355,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		await buildService.runOutOfTreeBuildInTerminal(root);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);
@@ -390,7 +391,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello world');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello world');
 
 		assert.deepEqual(sent, ['cargo xtask dabao hello world']);
 	});
@@ -399,7 +400,7 @@ suite('Build service', () => {
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
 		assert.ok(String(errors.firstCall.args[0]).includes('Invalid build target'));
@@ -409,7 +410,7 @@ suite('Build service', () => {
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello $(evil)');
+		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao', 'hello $(evil)');
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
 		assert.ok(String(errors.firstCall.args[0]).includes('Invalid app name'));
