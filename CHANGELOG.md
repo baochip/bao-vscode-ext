@@ -2,57 +2,40 @@
 
 ### Added
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
-- Warning when a built or flashed .uf2 is too big for its dabao flash region (oversized
-  images are silently truncated and leave the board running no app)
-- Warning when rustc is not a stable build; nightly, beta, and dev toolchains are
-  unsupported and now say so up front rather than failing in the toolchain download
+- Warning when a built or flashed .uf2 is too big for its dabao flash region (oversized images are silently truncated and leave the board running no app)
+- Warning when rustc is not a stable build; nightly, beta, and dev toolchains are unsupported and now say so up front rather than failing in the toolchain download
 
 ### Changed
-- **Build • Flash • Monitor** is now called **Build • Flash • Boot • Monitor** - it always
-  booted the board after flashing
+- **Build • Flash • Monitor** is now called **Build • Flash • Boot • Monitor** - it always booted the board after flashing
 
 ### Fixed
-- Boot after flashing sometimes did nothing while the log claimed success; it is now
-  confirmed and resent if the board is still in the bootloader
-- New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch
-  and failed to build
-- Builds and cleans now wait for the terminal to be ready, so a Python environment
-  activating in it can no longer kill them on startup
+- Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
+- New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch and failed to build
+- Builds and cleans now wait for the terminal to be ready, so a Python environment activating in it can no longer kill them on startup
 
 ---
 
 ## [1.1.0] - 2026-07-11
 
 ### Added
-- **Baochip: Collect Diagnostics** - one command gathers versions, settings, ports, and
-  toolchain checks into a report, with copy-to-clipboard and GitHub issue reporting;
-  nothing is sent automatically
-- GitHub bug-report form with diagnostics instructions; hardware and Xous OS questions
-  are routed to the right places
+- **Baochip: Collect Diagnostics** - one command gathers versions, settings, ports, and toolchain checks into a report, with copy-to-clipboard and GitHub issue reporting; nothing is sent automatically
+- GitHub bug-report form with diagnostics instructions; hardware and Xous OS questions are routed to the right places
 - **Baochip: Re-run Extension Setup** reinstalls the self-contained Python tooling
 - Keybindings: Ctrl+Alt+F flashes, Ctrl+Alt+Shift+B runs Build • Flash • Monitor
-- In-tree **baosec** target support: select the baosec target to build and flash a
-  baosec app from your xous-core checkout, including its swap image (swap.uf2)
+- In-tree **baosec** target support: select the baosec target to build and flash a baosec app from your xous-core checkout, including its swap image (swap.uf2)
 
 ### Improved
-- Live serial port picker: refreshes automatically as you plug in or switch board modes,
-  with PROG/RESET instructions on screen; a missing saved port offers "Pick a different
-  port" instead of failing
-- The monitor runs in your regular shell again: Ctrl+C returns to your prompt at the
-  project root, exits are always clean (no "terminated with exit code" notifications),
-  and garbled device output can no longer corrupt the terminal
-- Sidebar grouped into Setup / Project / Build & Run, with Welcome and Settings title
-  icons and a get-started view when no folder is open
+- Live serial port picker: refreshes automatically as you plug in or switch board modes, with PROG/RESET instructions on screen; a missing saved port offers "Pick a different port" instead of failing
+- The monitor runs in your regular shell again: Ctrl+C returns to your prompt at the project root, exits are always clean (no "terminated with exit code" notifications), and garbled device output can no longer corrupt the terminal
+- Sidebar grouped into Setup / Project / Build & Run, with Welcome and Settings title icons and a get-started view when no folder is open
 - The status bar row and Welcome auto-open appear only in Baochip-related workspaces
 - Error notifications offer "Show Output" instead of opening the Output panel themselves
 - Welcome page shows again for returning users; links and keyboard focus improved
 
 ### Fixed
-- Builds failing with "aborted" while fetching the latest xous-core revision when certain
-  other extensions are installed
+- Builds failing with "aborted" while fetching the latest xous-core revision when certain other extensions are installed
 - A monitor crash on Ctrl+C on Windows
-- Many small fixes and hardening, now backed by a new automated test suite (unit,
-  integration)
+- Many small fixes and hardening, now backed by a new automated test suite (unit, integration)
 
 ---
 
