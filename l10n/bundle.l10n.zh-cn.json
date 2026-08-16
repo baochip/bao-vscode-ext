@@ -289,5 +289,10 @@
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 内核同步仅适用于 dabao 目标。对“{0}”请使用手动内核模式。",
 	"App directory already exists: {0}": "应用目录已存在: {0}",
 	"Ignoring invalid extra cargo features: {0}": "已忽略无效的额外 cargo 特性：{0}",
-	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，无法在设备上运行。"
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，无法在设备上运行。",
+	"No crates found in {0}.": "在 {0} 中未找到 crate。",
+	"Select crate": "选择 crate",
+	"These workspace members have no readable Cargo.toml: {0}": "以下工作区成员没有可读取的 Cargo.toml: {0}",
+	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "不支持使用 \"*\" 的工作区成员: {0}。请逐个列出每个 crate 文件夹。",
+	"Click to select the crate to build": "点击选择要构建的 crate"
 }

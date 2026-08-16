@@ -289,5 +289,10 @@
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI カーネル同期は dabao ターゲットでのみ利用できます。\"{0}\" には手動カーネルモードを使用してください。",
 	"App directory already exists: {0}": "アプリディレクトリは既に存在します: {0}",
 	"Ignoring invalid extra cargo features: {0}": "無効な追加 cargo フィーチャーを無視します: {0}",
-	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} は dabao の上限 {2} を {1} 超えています。デバイス上では実行されません。"
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} は dabao の上限 {2} を {1} 超えています。デバイス上では実行されません。",
+	"No crates found in {0}.": "{0} にクレートが見つかりません。",
+	"Select crate": "クレートを選択",
+	"These workspace members have no readable Cargo.toml: {0}": "次のワークスペースメンバーには読み取り可能な Cargo.toml がありません: {0}",
+	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "\"*\" を使うワークスペースメンバーはサポートされていません: {0}。各クレートのフォルダーを個別に指定してください。",
+	"Click to select the crate to build": "ビルドするクレートを選択するにはクリックしてください"
 }

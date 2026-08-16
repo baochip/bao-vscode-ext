@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ALL_APPS_DIRS } from '@constants';
 import { getBuildMode } from '@services/configService';
+import { discoverOutOfTreeCrates } from '@util/cargo';
 import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
@@ -81,11 +82,18 @@ export function isBaochipWorkspace(): boolean {
 	}
 
 	for (const folder of folders) {
-		const cargo = path.join(folder.uri.fsPath, 'Cargo.toml');
-		try {
-			if (fs.existsSync(cargo) && fs.readFileSync(cargo, 'utf8').includes('xous')) return true;
-		} catch {
-			// an unreadable Cargo.toml is not a relevance marker
+		const root = folder.uri.fsPath;
+		// A workspace root has no dependencies of its own; only the members mention xous.
+		const manifests = [
+			path.join(root, 'Cargo.toml'),
+			...discoverOutOfTreeCrates(root).crates.map((crate) => crate.manifestPath),
+		];
+		for (const cargo of manifests) {
+			try {
+				if (fs.existsSync(cargo) && fs.readFileSync(cargo, 'utf8').includes('xous')) return true;
+			} catch {
+				// an unreadable Cargo.toml is not a relevance marker
+			}
 		}
 	}
 	return false;

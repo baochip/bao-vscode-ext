@@ -2,12 +2,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir } from '@constants';
 import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
-import { getProjectMode } from '@services/projectModeService';
+import { warn } from '@services/logService';
+import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import {
 	addWorkspaceMemberToToml,
+	discoverOutOfTreeCrates,
 	parseWorkspaceMembers,
 	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
@@ -15,6 +17,58 @@ import {
 } from '@util/cargo';
 import { hasCargoToml, isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
+
+/** Whether there is a crate worth choosing between. Quiet: the status bar calls it on every refresh. */
+export function hasCrateChoice(): boolean {
+	if (getProjectMode() === 'xous-core') return true;
+	const folder = vscode.workspace.workspaceFolders?.[0];
+	if (!folder) return false;
+	return discoverOutOfTreeCrates(folder.uri.fsPath).crates.length > 1;
+}
+
+/** Crate names an out-of-tree project can build, warning about members it had to skip. */
+export function listOutOfTreeCrates(root: string): string[] {
+	const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+
+	if (wildcardMembers.length > 0) {
+		warn(
+			vscode.l10n.t(
+				'Workspace members using "*" are not supported: {0}. List each crate folder individually.',
+				wildcardMembers.join(', '),
+			),
+		);
+	}
+	if (unreadableMembers.length > 0) {
+		warn(
+			vscode.l10n.t(
+				'These workspace members have no readable Cargo.toml: {0}',
+				unreadableMembers.join(', '),
+			),
+		);
+	}
+
+	return crates.map((crate) => crate.name);
+}
+
+/** Selected crates for an out-of-tree build; a lone crate is filled in without prompting. */
+export async function ensureOutOfTreeAppSelection(root: string): Promise<string[] | undefined> {
+	const selected = getXousAppName().trim();
+	if (selected) return selected.split(/\s+/).filter(Boolean);
+
+	const available = listOutOfTreeCrates(root);
+	if (available.length === 0) {
+		vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		return undefined;
+	}
+
+	if (available.length === 1) {
+		await setXousAppName(available[0]);
+		return available;
+	}
+
+	const picked = await promptAndSaveApp();
+	return picked ? picked.split(/\s+/).filter(Boolean) : undefined;
+}
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
@@ -27,12 +81,38 @@ export async function listBaoApps(xousRoot: string, target: string): Promise<str
 		.sort((a, b) => a.localeCompare(b));
 }
 
+/** Pick one out-of-tree crate. Multi-select arrives with the picker rework. */
+async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
+	const root = getOutOfTreeRoot();
+	if (!root) return undefined;
+
+	const crates = listOutOfTreeCrates(root);
+	if (crates.length === 0) {
+		vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		return undefined;
+	}
+
+	const current = getXousAppName();
+	const pick = await vscode.window.showQuickPick(
+		crates.map((name) => ({
+			label: name,
+			description: name === current ? vscode.l10n.t('current') : undefined,
+		})),
+		{ placeHolder: vscode.l10n.t('Select crate') },
+	);
+	if (!pick) return undefined;
+
+	await setXousAppName(pick.label);
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
+	return pick.label;
+}
+
 /**
- * Prompt the user to pick an app for the current xous-core workspace, persist it, and return it.
- * Returns undefined in out-of-tree mode, if no apps exist, or if the user cancels.
+ * Prompt the user to pick an app for the current project, persist it, and return it.
+ * Returns undefined if nothing is available or the user cancels.
  */
 export async function promptAndSaveApp(): Promise<string | undefined> {
-	if (getProjectMode() === 'out-of-tree') return undefined;
+	if (getProjectMode() === 'out-of-tree') return promptAndSaveOutOfTreeCrate();
 
 	const root = await resolveXousRootOrNotify();
 	if (!root) return undefined;
