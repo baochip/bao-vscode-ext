@@ -1,4 +1,4 @@
-## [1.2.0] - 2026-08-15
+## [1.2.0] - 2026-08-16
 
 ### Added
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
@@ -14,6 +14,8 @@
 ### Fixed
 - Boot after flashing sometimes did nothing while the log claimed success; it is now
   confirmed and resent if the board is still in the bootloader
+- New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch
+  and failed to build
 
 ---
 
