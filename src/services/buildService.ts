@@ -13,7 +13,7 @@ import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
-import { ensureNamedTerminal } from '@services/terminalService';
+import { ensureNamedTerminal, runInTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { isLikelyValidAppName } from '@util/appName';
@@ -153,7 +153,7 @@ function checkUf2SizeAfterBuild(term: vscode.Terminal, uf2Path: string): void {
 }
 
 /** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
-export function runOutOfTreeBuildInTerminal(root: string) {
+export async function runOutOfTreeBuildInTerminal(root: string) {
 	// The build target is a workspace-controlled setting interpolated into `board-${target}` on
 	// a shell command line; allow only known values so shell metacharacters never reach the
 	// terminal (quoteArg cannot make $ or backtick inert inside PowerShell double quotes).
@@ -182,11 +182,11 @@ export function runOutOfTreeBuildInTerminal(root: string) {
 			process.platform === 'win32'
 				? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
 				: `${buildCmd} && ${uf2Cmd}`;
-		term.sendText(chainedCmd);
+		await runInTerminal(term, chainedCmd);
 		checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
 	} else {
 		// No UF2 step was chained, so this build produces no apps.uf2 to check.
-		term.sendText(buildCmd);
+		await runInTerminal(term, buildCmd);
 	}
 
 	term.show(true);
@@ -207,7 +207,7 @@ function announceBuilding(target: string, appArgs: string[]) {
 }
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
-export function runBuildInTerminal(root: string, target: string, app?: string) {
+export async function runBuildInTerminal(root: string, target: string, app?: string) {
 	const appArgs = splitAppArgs(app);
 
 	// Target and app names are workspace-controlled settings interpolated into a shell command
@@ -227,12 +227,14 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 
 	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
-		term.sendText(
-			`echo [bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`,
+		await runInTerminal(
+			term,
+			`echo ${quoteArg(`[bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`)}`,
 		);
 	}
 
-	term.sendText(
+	await runInTerminal(
+		term,
 		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
 	);
 	checkUf2SizeAfterBuild(term, appsUf2Path('xous-core', root));

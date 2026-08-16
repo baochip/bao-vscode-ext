@@ -16,6 +16,8 @@
   confirmed and resent if the board is still in the bootloader
 - New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch
   and failed to build
+- Builds and cleans now wait for the terminal to be ready, so a Python environment
+  activating in it can no longer kill them on startup
 
 ---
 

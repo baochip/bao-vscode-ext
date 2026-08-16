@@ -1,13 +1,13 @@
 import { buildBaoArgs, ensureBaoDepsQuietly, resolveBaoPy } from '@services/baoRunnerService';
 import { getDefaultBaud, getMonitorDefaultPort, getMonitorFlags } from '@services/configService';
 import { ensureSerialPort, isPortPresent, offerRepickMissingPort } from '@services/portsService';
+import { waitForShellIntegration } from '@services/terminalService';
 import { getBaoRunner, getGlobalVenvRoot, uvEnv } from '@services/uvService';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
 // How long to wait for the terminal's shell integration before falling back to a typed command.
 // Integration normally activates well under a second; cmd never activates it at all.
-const SHELL_INTEGRATION_TIMEOUT_MS = 2000;
 
 let monitorTerm: vscode.Terminal | undefined;
 let monitorTermListener: vscode.Disposable | undefined;
@@ -24,44 +24,6 @@ function closeMonitorTerminal(): void {
 	monitorTerm = undefined;
 	monitorTermListener?.dispose(); // otherwise the onDidCloseTerminal handler leaks
 	monitorTermListener = undefined;
-}
-
-// The shell-integration API is newer than the pinned @types/vscode, so it is reached through
-// these minimal structural types plus a runtime guard; when the API is absent the monitor
-// simply takes the typed-command fallback.
-interface ShellIntegration {
-	executeCommand(executable: string, args: string[]): unknown;
-}
-type IntegrationChange = { terminal: vscode.Terminal; shellIntegration: ShellIntegration };
-type IntegrationWindow = {
-	onDidChangeTerminalShellIntegration?: (
-		listener: (e: IntegrationChange) => void,
-	) => vscode.Disposable;
-};
-
-/**
- * Resolve the terminal's shell integration once it activates, or undefined on timeout
- * (cmd has no shell integration, and users can disable it).
- */
-function waitForShellIntegration(term: vscode.Terminal): Promise<ShellIntegration | undefined> {
-	const existing = (term as vscode.Terminal & { shellIntegration?: ShellIntegration })
-		.shellIntegration;
-	if (existing) return Promise.resolve(existing);
-	const onDidChange = (vscode.window as IntegrationWindow).onDidChangeTerminalShellIntegration;
-	if (!onDidChange) return Promise.resolve(undefined);
-	return new Promise((resolve) => {
-		const timer = setTimeout(() => {
-			listener.dispose();
-			resolve(undefined);
-		}, SHELL_INTEGRATION_TIMEOUT_MS);
-		const listener = onDidChange((e) => {
-			if (e.terminal === term) {
-				clearTimeout(timer);
-				listener.dispose();
-				resolve(e.shellIntegration);
-			}
-		});
-	});
 }
 
 /**

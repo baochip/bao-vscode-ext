@@ -14,9 +14,9 @@ export function registerBuildCommand() {
 		if (pre.mode === 'out-of-tree') {
 			const ok = await ensureOutOfTreeBuildSetup(pre.root);
 			if (!ok) return;
-			runOutOfTreeBuildInTerminal(pre.root);
+			await runOutOfTreeBuildInTerminal(pre.root);
 		} else {
-			runBuildInTerminal(pre.root, pre.target, pre.app);
+			await runBuildInTerminal(pre.root, pre.target, pre.app);
 		}
 	});
 }
