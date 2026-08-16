@@ -1,13 +1,27 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Commands } from '@commands/commandIds';
 import { BUILD_TARGETS, getAppsDir } from '@constants';
-import { getBuildTargetOrDefault, getXousAppName, setXousAppName } from '@services/configService';
-import { getProjectMode } from '@services/projectModeService';
+import {
+	getBuildTargetOrDefault,
+	getXousAppName,
+	getXousCorePath,
+	setXousAppName,
+} from '@services/configService';
+import { warn } from '@services/logService';
+import {
+	findOutOfTreeRoot,
+	findXousCoreInWorkspace,
+	getOutOfTreeRoot,
+	getProjectMode,
+} from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
+import { splitAppNames } from '@util/appName';
 import {
 	addWorkspaceMemberToToml,
+	discoverOutOfTreeCrates,
 	parseWorkspaceMembers,
 	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
@@ -15,6 +29,92 @@ import {
 } from '@util/cargo';
 import { hasCargoToml, isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
+
+/** Whether there is a crate worth choosing between. Quiet: the status bar calls it on every refresh. */
+export function hasCrateChoice(): boolean {
+	if (getProjectMode() === 'xous-core') return true;
+	const root = findOutOfTreeRoot();
+	if (!root) return false;
+	const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+	// Members we could not resolve still mean a choice exists - just one we cannot offer yet.
+	return crates.length > 1 || wildcardMembers.length > 0 || unreadableMembers.length > 0;
+}
+
+/** Names in the setting matching no crate here. Empty when the crates cannot be determined. */
+export function unknownAppNames(): string[] {
+	const names = splitAppNames(getXousAppName());
+	if (names.length === 0) return [];
+
+	if (getProjectMode() === 'out-of-tree') {
+		const root = findOutOfTreeRoot();
+		if (!root) return [];
+		const known = discoverOutOfTreeCrates(root).crates.map((crate) => crate.name);
+		if (known.length === 0) return [];
+		return names.filter((name) => !known.includes(name));
+	}
+
+	const root = findXousCoreInWorkspace() || getXousCorePath();
+	if (!root) return [];
+	return missingApps(root, getXousAppName(), getBuildTargetOrDefault());
+}
+
+/** Crate names an out-of-tree project can build, warning about members it had to skip. */
+export function listOutOfTreeCrates(root: string): string[] {
+	const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+
+	if (wildcardMembers.length > 0) {
+		warn(
+			vscode.l10n.t(
+				'Workspace members using "*" are not supported: {0}. List each crate folder individually.',
+				wildcardMembers.join(', '),
+			),
+		);
+	}
+	if (unreadableMembers.length > 0) {
+		warn(
+			vscode.l10n.t(
+				'These workspace members have no readable Cargo.toml: {0}',
+				unreadableMembers.join(', '),
+			),
+		);
+	}
+
+	return crates.map((crate) => crate.name);
+}
+
+/** Selected crates for an out-of-tree build; a lone crate is filled in without prompting. */
+export async function ensureOutOfTreeAppSelection(root: string): Promise<string[] | undefined> {
+	const selected = splitAppNames(getXousAppName());
+	if (selected.length > 0) {
+		// Checked here so a stale name gets this message rather than cargo's package-ID error.
+		const unknown = unknownAppNames();
+		if (unknown.length > 0) {
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
+			);
+			return undefined;
+		}
+		return selected;
+	}
+
+	const available = listOutOfTreeCrates(root);
+	if (available.length === 0) {
+		// listOutOfTreeCrates already said why when it could; only add the vague message otherwise.
+		const { wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+		if (wildcardMembers.length === 0 && unreadableMembers.length === 0) {
+			vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		}
+		return undefined;
+	}
+
+	if (available.length === 1) {
+		await setXousAppName(available[0]);
+		return available;
+	}
+
+	const picked = await promptAndSaveApp();
+	return picked ? splitAppNames(picked) : undefined;
+}
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
@@ -28,11 +128,60 @@ export async function listBaoApps(xousRoot: string, target: string): Promise<str
 }
 
 /**
- * Prompt the user to pick an app for the current xous-core workspace, persist it, and return it.
- * Returns undefined in out-of-tree mode, if no apps exist, or if the user cancels.
+ * Multi-select over `available`, pre-checked from the current setting and saved back
+ * space-separated. Selecting nothing leaves the setting alone rather than clearing it.
+ */
+async function pickAndSaveApps(
+	available: string[],
+	placeHolder: string,
+): Promise<string | undefined> {
+	const current = splitAppNames(getXousAppName());
+	const picked = await vscode.window.showQuickPick(
+		available.map((name) => ({ label: name, picked: current.includes(name) })),
+		{ placeHolder, canPickMany: true },
+	);
+	if (!picked || picked.length === 0) return undefined;
+
+	const selection = picked.map((item) => item.label).join(' ');
+	await setXousAppName(selection);
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', selection));
+	return selection;
+}
+
+/** Pick which crates an out-of-tree project builds. */
+async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
+	const root = getOutOfTreeRoot();
+	if (!root) return undefined;
+
+	const crates = listOutOfTreeCrates(root);
+	if (crates.length === 0) {
+		vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		return undefined;
+	}
+
+	return pickAndSaveApps(crates, vscode.l10n.t('Select crate'));
+}
+
+/**
+ * Prompt the user to pick an app for the current project, persist it, and return it.
+ * Returns undefined if nothing is available or the user cancels.
  */
 export async function promptAndSaveApp(): Promise<string | undefined> {
-	if (getProjectMode() === 'out-of-tree') return undefined;
+	// picking would overwrite a setting the user may have meant
+	const unknown = unknownAppNames();
+	if (unknown.length > 0) {
+		const settingsLabel = vscode.l10n.t('Open Baochip Settings');
+		const choice = await vscode.window.showWarningMessage(
+			vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
+			settingsLabel,
+		);
+		if (choice === settingsLabel) {
+			await vscode.commands.executeCommand(Commands.openSettings);
+		}
+		return undefined;
+	}
+
+	if (getProjectMode() === 'out-of-tree') return promptAndSaveOutOfTreeCrate();
 
 	const root = await resolveXousRootOrNotify();
 	if (!root) return undefined;
@@ -54,31 +203,15 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	const current = getXousAppName();
-	const pick = await vscode.window.showQuickPick(
-		apps.map((a) => ({
-			label: a,
-			description: a === current ? vscode.l10n.t('current') : undefined,
-		})),
-		{ placeHolder: vscode.l10n.t('Select app') },
-	);
-	if (!pick) return undefined;
-
-	await setXousAppName(pick.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
-	return pick.label;
+	return pickAndSaveApps(apps, vscode.l10n.t('Select app'));
 }
 
 export function missingApps(xousRoot: string, appNames: string, target: string): string[] {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
-	return appNames
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean)
-		.filter((n) => {
-			const dir = path.join(appsDir, n);
-			return !(isDirectory(dir) && hasCargoToml(dir));
-		});
+	return splitAppNames(appNames).filter((n) => {
+		const dir = path.join(appsDir, n);
+		return !(isDirectory(dir) && hasCargoToml(dir));
+	});
 }
 
 export function appExists(xousRoot: string, appNames: string, target: string): boolean {

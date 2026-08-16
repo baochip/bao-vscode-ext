@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
-import { appExists, missingApps } from '@services/appService';
+import { appExists, ensureOutOfTreeAppSelection, missingApps } from '@services/appService';
 import { appsUf2Path } from '@services/artifactsService';
 import {
 	getBuildTarget,
@@ -16,14 +16,14 @@ import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal, runInTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
-import { isLikelyValidAppName } from '@util/appName';
-import { buildOutOfTreeFeatures, isValidCrateName, readCargoPackageName } from '@util/cargo';
+import { isLikelyValidAppName, splitAppNames } from '@util/appName';
+import { buildOutOfTreeFeatures, isValidCrateName } from '@util/cargo';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
 
 export type BuildPrereqs =
 	| { mode: 'xous-core'; root: string; target: string; app?: string }
-	| { mode: 'out-of-tree'; root: string };
+	| { mode: 'out-of-tree'; root: string; crates: string[] };
 
 /** Return the configured build target, prompting to select one if unset. Returns undefined if the user declines. */
 export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
@@ -68,7 +68,10 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 		const root = getOutOfTreeRoot();
 		if (!root) return;
-		return { mode: 'out-of-tree', root };
+
+		const crates = await ensureOutOfTreeAppSelection(root);
+		if (!crates || crates.length === 0) return;
+		return { mode: 'out-of-tree', root, crates };
 	}
 
 	const root = await resolveXousRootOrNotify();
@@ -152,49 +155,49 @@ function checkUf2SizeAfterBuild(term: vscode.Terminal, uf2Path: string): void {
 	pendingBuildWatch = stop;
 }
 
-/** Out-of-tree standalone build: open a terminal, build, then convert ELF to UF2. */
-export async function runOutOfTreeBuildInTerminal(root: string) {
-	// The build target is a workspace-controlled setting interpolated into `board-${target}` on
-	// a shell command line; allow only known values so shell metacharacters never reach the
-	// terminal (quoteArg cannot make $ or backtick inert inside PowerShell double quotes).
-	// Empty is fine: it becomes the default board feature downstream.
+/** cargo args selecting only the crates to build, leaving other members alone. */
+function cratePackageArgs(crates: string[]): string[] {
+	return crates.flatMap((crate) => ['-p', crate]);
+}
+
+/** Each crate's ELF, relative to the root - a workspace shares one target directory. */
+function crateElfPaths(crates: string[]): string[] {
+	return crates.map((crate) => `target/${XOUS_TARGET_TRIPLE}/release/${crate}`);
+}
+
+/** Out-of-tree build in a terminal, chaining the UF2 conversion. */
+export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
+	// Target and crate names reach a shell command line; allow only known-safe values, since
+	// quoteArg cannot make $ or backtick inert inside PowerShell double quotes.
 	const target = getBuildTarget();
 	if (target && !BUILD_TARGETS.includes(target)) {
 		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
 		return;
 	}
+	const badCrate = crates.find((crate) => !isValidCrateName(crate));
+	if (badCrate !== undefined) {
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid crate name: {0}', badCrate));
+		return;
+	}
 
 	const term = ensureNamedTerminal(vscode.l10n.t('Baochip Build'), root);
 
-	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${outOfTreeFeatureArgs()
+	const buildArgs = [...cratePackageArgs(crates), ...outOfTreeFeatureArgs()];
+	const buildCmd = `cargo build --release --target ${XOUS_TARGET_TRIPLE} ${buildArgs
 		.map((a) => quoteArg(a))
 		.join(' ')}`;
 
-	// Read package name to construct ELF path for xous-app-uf2
-	const pkgName = readCargoPackageName(root);
-	// Only chain the UF2 step for a well-formed crate name: the value comes straight from
-	// the workspace's Cargo.toml, so anything else must not reach the command line.
-	if (pkgName && isValidCrateName(pkgName)) {
-		const elfPath = `target/${XOUS_TARGET_TRIPLE}/release/${pkgName}`;
-		const uf2Cmd = `xous-app-uf2 --elf ${quoteArg(elfPath)}`;
-		// PowerShell 5.x (shipped with Windows) does not support &&
-		const chainedCmd =
-			process.platform === 'win32'
-				? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
-				: `${buildCmd} && ${uf2Cmd}`;
-		await runInTerminal(term, chainedCmd);
-		checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
-	} else {
-		// No UF2 step was chained, so this build produces no apps.uf2 to check.
-		await runInTerminal(term, buildCmd);
-	}
+	const uf2Args = crateElfPaths(crates).flatMap((elf) => ['--elf', elf]);
+	const uf2Cmd = `xous-app-uf2 ${uf2Args.map((a) => quoteArg(a)).join(' ')}`;
+	// PowerShell 5.x does not support &&
+	const chainedCmd =
+		process.platform === 'win32'
+			? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
+			: `${buildCmd} && ${uf2Cmd}`;
+	await runInTerminal(term, chainedCmd);
+	checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
 
 	term.show(true);
-}
-
-/** Split a whitespace-separated app string into individual app names (empty when none given). */
-function splitAppArgs(app?: string): string[] {
-	return app ? app.trim().split(/\s+/).filter(Boolean) : [];
 }
 
 /** Toast which target is being built, and whether any apps are included. */
@@ -208,7 +211,7 @@ function announceBuilding(target: string, appArgs: string[]) {
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export async function runBuildInTerminal(root: string, target: string, app?: string) {
-	const appArgs = splitAppArgs(app);
+	const appArgs = splitAppNames(app);
 
 	// Target and app names are workspace-controlled settings interpolated into a shell command
 	// line; allow only known/identifier-like values so shell metacharacters never reach the
@@ -227,6 +230,7 @@ export async function runBuildInTerminal(root: string, target: string, app?: str
 
 	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
+		// quoted: PowerShell's echo prints each unquoted word on its own line
 		await runInTerminal(
 			term,
 			`echo ${quoteArg(`[bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`)}`,
@@ -293,8 +297,18 @@ async function runCargoAndWait(
 }
 
 /** Out-of-tree build: cargo build with fixed Baochip target and features. Returns exit code, or null when cancelled. */
-export async function runOutOfTreeBuildAndWait(root: string): Promise<number | null> {
-	const args = ['build', '--release', '--target', XOUS_TARGET_TRIPLE, ...outOfTreeFeatureArgs()];
+export async function runOutOfTreeBuildAndWait(
+	root: string,
+	crates: string[],
+): Promise<number | null> {
+	const args = [
+		'build',
+		'--release',
+		'--target',
+		XOUS_TARGET_TRIPLE,
+		...cratePackageArgs(crates),
+		...outOfTreeFeatureArgs(),
+	];
 	return runCargoAndWait(root, args);
 }
 
@@ -304,7 +318,7 @@ export async function runBuildAndWait(
 	target: string,
 	app?: string,
 ): Promise<number | null> {
-	const appArgs = splitAppArgs(app);
+	const appArgs = splitAppNames(app);
 	const args = ['xtask', target, ...appArgs];
 
 	announceBuilding(target, appArgs);

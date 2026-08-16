@@ -168,7 +168,6 @@
 	"Failed to update xous-core rev in Cargo.toml: {0}": "更新 Cargo.toml 中的 xous-core rev 失敗：{0}",
 	"apps.uf2 not found in {0}. Run a build first.": "{0} 中找不到 apps.uf2。請先執行建置。",
 	"Baochip: Converting ELF to UF2...": "Baochip：正在將 ELF 轉換為 UF2...",
-	"Could not read package name from Cargo.toml.": "無法從 Cargo.toml 讀取套件名稱。",
 	"ELF not found at {0}. Has the build completed successfully?": "{0} 處找不到 ELF 檔案。建置是否已成功完成？",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip：ELF 轉換為 UF2 失敗。詳情請查看輸出。",
 	"Baochip: xous-tools installed successfully.": "Baochip：xous-tools 安裝成功。",
@@ -289,5 +288,12 @@
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 核心同步僅適用於 dabao 目標。對「{0}」請使用手動核心模式。",
 	"App directory already exists: {0}": "應用程式目錄已存在: {0}",
 	"Ignoring invalid extra cargo features: {0}": "已忽略無效的額外 cargo 特性：{0}",
-	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，無法在裝置上執行。"
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，無法在裝置上執行。",
+	"No crates found in {0}.": "在 {0} 中找不到 crate。",
+	"Select crate": "選擇 crate",
+	"These workspace members have no readable Cargo.toml: {0}": "下列工作區成員沒有可讀取的 Cargo.toml: {0}",
+	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "不支援使用 \"*\" 的工作區成員: {0}。請逐一列出每個 crate 資料夾。",
+	"Click to select the crate to build": "按一下以選擇要建置的 crate",
+	"Invalid crate name: {0}": "無效的 crate 名稱: {0}",
+	"Not found in this project: {0}": "在此專案中找不到: {0}"
 }

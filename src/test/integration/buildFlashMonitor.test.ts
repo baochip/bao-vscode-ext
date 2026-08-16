@@ -185,7 +185,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 
 	test('out-of-tree happy path adds kernel setup, UF2 convert, and kernel files to flash', async () => {
 		const p = stubPipeline(sandbox);
-		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT });
+		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT, crates: ['hello'] });
 
 		await runPipeline(clock);
 
@@ -199,7 +199,7 @@ suite('Build-Flash-Monitor pipeline', () => {
 
 	test('out-of-tree: a failed UF2 conversion stops before flash', async () => {
 		const p = stubPipeline(sandbox);
-		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT });
+		p.prereqs.resolves({ mode: 'out-of-tree', root: OOT_ROOT, crates: ['hello'] });
 		p.convert.resolves(false);
 
 		await runPipeline(clock);

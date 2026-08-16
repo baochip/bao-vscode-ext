@@ -1,6 +1,7 @@
 import * as assert from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { XOUS_CORE_REPO } from '@constants';
 import * as baoRunnerService from '@services/baoRunnerService';
 import * as httpService from '@services/httpService';
 import * as kernelService from '@services/kernelService';
@@ -30,6 +31,22 @@ function kernelCacheDir(): string {
 
 function wipeKernelCache(): void {
 	fs.rmSync(kernelCacheDir(), { recursive: true, force: true });
+}
+
+/** An out-of-tree root whose manifest pins xous-core, so the rev sync has something to update. */
+function ootRootWithXousDep(): string {
+	const root = tmpDir();
+	fs.writeFileSync(
+		path.join(root, 'Cargo.toml'),
+		`[package]
+name = "hello"
+
+[dependencies]
+bao1x-api = { git = "${XOUS_CORE_REPO}", rev = "old" }
+`,
+		'utf8',
+	);
+	return root;
 }
 
 suite('Kernel files service', () => {
@@ -445,7 +462,7 @@ suite('Kernel files service', () => {
 		const fetchJson = sandbox.stub(httpService, 'fetchJson');
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, true);
 		assert.ok(fetchJson.notCalled && runBao.notCalled, 'no rev fetch or Cargo.toml update');
@@ -455,9 +472,9 @@ suite('Kernel files service', () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
-		const root = tmpDir();
+		const root = ootRootWithXousDep();
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(root);
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['hello']);
 
 		assert.equal(ok, true);
 		assert.deepEqual(runBao.firstCall.args[0], [
@@ -470,13 +487,61 @@ suite('Kernel files service', () => {
 		]);
 	});
 
+	test('ensureOutOfTreeBuildSetup (ci-sync) updates only the selected crates', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
+
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'Cargo.toml'), `[workspace]\nmembers = ["a", "b"]\n`, 'utf8');
+		for (const name of ['a', 'b']) {
+			fs.mkdirSync(path.join(root, name), { recursive: true });
+			fs.writeFileSync(
+				path.join(root, name, 'Cargo.toml'),
+				`[package]
+name = "${name}"
+
+[dependencies]
+bao1x-api = { git = "${XOUS_CORE_REPO}", rev = "old" }
+`,
+				'utf8',
+			);
+		}
+
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['a']);
+
+		assert.equal(ok, true);
+		const files = runBao.getCalls().map((c) => (c.args[0] as string[])[3]);
+		assert.deepEqual(files, [path.join(root, 'a', 'Cargo.toml')], 'only the selected crate');
+	});
+
+	test('ensureOutOfTreeBuildSetup (ci-sync) skips a crate with no xous-core dependency', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
+
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'Cargo.toml'), `[workspace]\nmembers = ["plain"]\n`, 'utf8');
+		fs.mkdirSync(path.join(root, 'plain'), { recursive: true });
+		fs.writeFileSync(
+			path.join(root, 'plain', 'Cargo.toml'),
+			`[package]\nname = "plain"\n\n[dependencies]\nlog = "0.4"\n`,
+			'utf8',
+		);
+
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['plain']);
+
+		assert.equal(ok, true, 'nothing to update is success, not failure');
+		assert.ok(runBao.notCalled, 'update-rev would error on a manifest with no xous-core dep');
+	});
+
 	test('ensureOutOfTreeBuildSetup (ci-sync) fails when the rev fetch fails', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		sandbox.stub(httpService, 'fetchJson').rejects(new Error('offline'));
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(runBao.notCalled, 'no Cargo.toml update after a failed fetch');
@@ -494,7 +559,7 @@ suite('Kernel files service', () => {
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('no dependency found'));
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(ootRootWithXousDep(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -515,7 +580,7 @@ suite('Kernel files service', () => {
 			.resolves({ code: 2, stdout: '', stderr: 'no dependency found', cancelled: false });
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(ootRootWithXousDep(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.equal(

@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ALL_APPS_DIRS } from '@constants';
 import { getBuildMode } from '@services/configService';
+import { discoverOutOfTreeCrates } from '@util/cargo';
 import { isDirectory } from '@util/fsUtil';
 import * as vscode from 'vscode';
 
@@ -27,13 +28,18 @@ export function findXousCoreInWorkspace(): string | undefined {
  * Returns the root path of the first workspace folder for out-of-tree mode,
  * or shows an error and returns undefined if no folder is open.
  */
+/** The out-of-tree project root, or undefined. Quiet; use getOutOfTreeRoot to also report it. */
+export function findOutOfTreeRoot(): string | undefined {
+	return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
 export function getOutOfTreeRoot(): string | undefined {
-	const folder = vscode.workspace.workspaceFolders?.[0];
-	if (!folder) {
+	const root = findOutOfTreeRoot();
+	if (!root) {
 		vscode.window.showErrorMessage(vscode.l10n.t('No workspace folder open.'));
 		return undefined;
 	}
-	return folder.uri.fsPath;
+	return root;
 }
 
 /**
@@ -81,11 +87,18 @@ export function isBaochipWorkspace(): boolean {
 	}
 
 	for (const folder of folders) {
-		const cargo = path.join(folder.uri.fsPath, 'Cargo.toml');
-		try {
-			if (fs.existsSync(cargo) && fs.readFileSync(cargo, 'utf8').includes('xous')) return true;
-		} catch {
-			// an unreadable Cargo.toml is not a relevance marker
+		const root = folder.uri.fsPath;
+		// A workspace root has no dependencies of its own; only the members mention xous.
+		const manifests = [
+			path.join(root, 'Cargo.toml'),
+			...discoverOutOfTreeCrates(root).crates.map((crate) => crate.manifestPath),
+		];
+		for (const cargo of manifests) {
+			try {
+				if (fs.existsSync(cargo) && fs.readFileSync(cargo, 'utf8').includes('xous')) return true;
+			} catch {
+				// an unreadable Cargo.toml is not a relevance marker
+			}
 		}
 	}
 	return false;

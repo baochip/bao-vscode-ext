@@ -118,6 +118,30 @@ export function makeFakeXousCore(root: string, opts: FakeXousCoreOptions = {}): 
 	return { root, appsDir, releaseDir };
 }
 
+/**
+ * An out-of-tree cargo workspace: a virtual root listing `crates`, each under apps/.
+ * Members are written in the given order, which is the order discovery returns them in.
+ */
+export function makeFakeWorkspace(root: string, crates: string[]): string {
+	for (const crate of crates) {
+		const dir = path.join(root, 'apps', crate);
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(
+			path.join(dir, 'Cargo.toml'),
+			`[package]\nname = "${crate}"\nversion = "0.1.0"\nedition = "2021"\n`,
+			'utf8',
+		);
+	}
+
+	const members = crates.map((c) => `  "apps/${c}",`).join('\n');
+	fs.writeFileSync(
+		path.join(root, 'Cargo.toml'),
+		`[workspace]\nmembers = [\n${members}\n]\n`,
+		'utf8',
+	);
+	return root;
+}
+
 /** Start of the dabao detached-app region, and the largest apps.uf2 that fits it. */
 export const DABAO_APP_START = 0x602f_fd00;
 export const DABAO_APP_UF2_LIMIT = 1787392;

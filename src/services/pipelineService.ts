@@ -25,14 +25,14 @@ export async function runBuildFlashBoot(): Promise<boolean> {
 	if (!pre) return false;
 
 	if (pre.mode === 'out-of-tree') {
-		const ok = await ensureOutOfTreeBuildSetup(pre.root);
+		const ok = await ensureOutOfTreeBuildSetup(pre.root, pre.crates);
 		if (!ok) return false;
 	}
 
 	// 1) Build
 	const code =
 		pre.mode === 'out-of-tree'
-			? await runOutOfTreeBuildAndWait(pre.root)
+			? await runOutOfTreeBuildAndWait(pre.root, pre.crates)
 			: await runBuildAndWait(pre.root, pre.target, pre.app);
 	if (code === null) return false; // cancelled by the user - not a failure, no error toast
 	if (code !== 0) {
@@ -44,7 +44,7 @@ export async function runBuildFlashBoot(): Promise<boolean> {
 
 	// 1.5) ELF->UF2 conversion (out-of-tree only)
 	if (pre.mode === 'out-of-tree') {
-		const converted = await convertElfToUf2(pre.root);
+		const converted = await convertElfToUf2(pre.root, pre.crates);
 		if (!converted) return false;
 	}
 

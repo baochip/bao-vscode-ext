@@ -168,7 +168,6 @@
 	"Failed to update xous-core rev in Cargo.toml: {0}": "Cargo.toml の xous-core リビジョンの更新に失敗しました: {0}",
 	"apps.uf2 not found in {0}. Run a build first.": "{0} に apps.uf2 が見つかりません。先にビルドを実行してください。",
 	"Baochip: Converting ELF to UF2...": "Baochip: ELF を UF2 に変換中...",
-	"Could not read package name from Cargo.toml.": "Cargo.toml からパッケージ名を読み取れませんでした。",
 	"ELF not found at {0}. Has the build completed successfully?": "{0} に ELF ファイルが見つかりません。ビルドは正常に完了しましたか？",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip: ELF から UF2 への変換に失敗しました。詳細は出力を確認してください。",
 	"Baochip: xous-tools installed successfully.": "Baochip: xous-tools のインストールが完了しました。",
@@ -289,5 +288,12 @@
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI カーネル同期は dabao ターゲットでのみ利用できます。\"{0}\" には手動カーネルモードを使用してください。",
 	"App directory already exists: {0}": "アプリディレクトリは既に存在します: {0}",
 	"Ignoring invalid extra cargo features: {0}": "無効な追加 cargo フィーチャーを無視します: {0}",
-	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} は dabao の上限 {2} を {1} 超えています。デバイス上では実行されません。"
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} は dabao の上限 {2} を {1} 超えています。デバイス上では実行されません。",
+	"No crates found in {0}.": "{0} にクレートが見つかりません。",
+	"Select crate": "クレートを選択",
+	"These workspace members have no readable Cargo.toml: {0}": "次のワークスペースメンバーには読み取り可能な Cargo.toml がありません: {0}",
+	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "\"*\" を使うワークスペースメンバーはサポートされていません: {0}。各クレートのフォルダーを個別に指定してください。",
+	"Click to select the crate to build": "ビルドするクレートを選択するにはクリックしてください",
+	"Invalid crate name: {0}": "無効なクレート名: {0}",
+	"Not found in this project: {0}": "このプロジェクトに見つかりません: {0}"
 }

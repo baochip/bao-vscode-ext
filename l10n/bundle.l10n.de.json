@@ -168,7 +168,6 @@
 	"Failed to update xous-core rev in Cargo.toml: {0}": "xous-core-Rev in Cargo.toml konnte nicht aktualisiert werden: {0}",
 	"apps.uf2 not found in {0}. Run a build first.": "apps.uf2 nicht gefunden in {0}. Bitte zuerst einen Build durchführen.",
 	"Baochip: Converting ELF to UF2...": "Baochip: ELF wird in UF2 konvertiert...",
-	"Could not read package name from Cargo.toml.": "Paketname konnte nicht aus Cargo.toml gelesen werden.",
 	"ELF not found at {0}. Has the build completed successfully?": "ELF-Datei nicht gefunden unter {0}. Wurde der Build erfolgreich abgeschlossen?",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip: ELF-zu-UF2-Konvertierung fehlgeschlagen. Details im Ausgabefenster.",
 	"Baochip: xous-tools installed successfully.": "Baochip: xous-tools erfolgreich installiert.",
@@ -289,5 +288,12 @@
 	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "Die CI-Kernel-Synchronisierung ist nur für das dabao-Ziel verfügbar. Verwenden Sie für \"{0}\" den manuellen Kernel-Modus.",
 	"App directory already exists: {0}": "Das App-Verzeichnis existiert bereits: {0}",
 	"Ignoring invalid extra cargo features: {0}": "Ungültige zusätzliche Cargo-Features werden ignoriert: {0}",
-	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} liegt {1} über dem dabao-Limit von {2}. Die Datei wird auf dem Gerät nicht ausgeführt."
+	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} liegt {1} über dem dabao-Limit von {2}. Die Datei wird auf dem Gerät nicht ausgeführt.",
+	"No crates found in {0}.": "Keine Crates in {0} gefunden.",
+	"Select crate": "Crate auswaehlen",
+	"These workspace members have no readable Cargo.toml: {0}": "Diese Workspace-Mitglieder haben keine lesbare Cargo.toml: {0}",
+	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "Workspace-Mitglieder mit \"*\" werden nicht unterstuetzt: {0}. Bitte jeden Crate-Ordner einzeln auflisten.",
+	"Click to select the crate to build": "Klicken, um die zu bauende Crate auszuwaehlen",
+	"Invalid crate name: {0}": "Ungueltiger Crate-Name: {0}",
+	"Not found in this project: {0}": "In diesem Projekt nicht gefunden: {0}"
 }

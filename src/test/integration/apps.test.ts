@@ -5,6 +5,7 @@ import { XOUS_CORE_REPO } from '@constants';
 import * as appService from '@services/appService';
 import * as kernelService from '@services/kernelService';
 import * as outOfTreeScaffoldService from '@services/outOfTreeScaffoldService';
+import * as projectModeService from '@services/projectModeService';
 import * as uvService from '@services/uvService';
 import * as workspaceService from '@services/workspaceService';
 import * as xousCoreService from '@services/xousCoreService';
@@ -14,6 +15,7 @@ import * as vscode from 'vscode';
 import {
 	activateExtension,
 	cleanupTmpDirs,
+	makeFakeWorkspace,
 	makeFakeXousCore,
 	resetBaochipConfig,
 	tmpDir,
@@ -65,14 +67,23 @@ suite('App service and scaffolding', () => {
 
 	/* ------------------------------ promptAndSaveApp ------------------------------ */
 
-	test('promptAndSaveApp returns undefined immediately in out-of-tree mode', async () => {
+	test('promptAndSaveApp offers the workspace crates in out-of-tree mode', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
 		await setCfg('buildMode', 'out-of-tree');
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([{ label: 'one' }, { label: 'two' }]);
 
 		const result = await appService.promptAndSaveApp();
 
-		assert.equal(result, undefined);
-		assert.ok(pick.notCalled, 'no picker in out-of-tree mode');
+		assert.equal(result, 'one two', 'both crates saved space-separated');
+		assert.equal(cfg().get<string>('xousAppName'), 'one two');
+		const items = pick.firstCall.args[0] as { label: string }[];
+		assert.deepEqual(
+			items.map((i) => i.label),
+			['one', 'two'],
+		);
 	});
 
 	test('promptAndSaveApp warns when no apps exist', async () => {
@@ -94,7 +105,7 @@ suite('App service and scaffolding', () => {
 		);
 	});
 
-	test('promptAndSaveApp saves the pick and marks the current app', async () => {
+	test('promptAndSaveApp saves the pick and pre-checks the configured app', async () => {
 		const { root } = makeFakeXousCore(tmpDir(), { apps: ['zeta', 'alpha'] });
 		await setCfg('buildMode', 'xous-core');
 		await setCfg('xousAppName', 'zeta');
@@ -102,18 +113,79 @@ suite('App service and scaffolding', () => {
 		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
-		pick.resolves({ label: 'alpha' });
+		pick.resolves([{ label: 'alpha' }]);
 
 		const result = await appService.promptAndSaveApp();
 
 		assert.equal(result, 'alpha');
 		assert.equal(cfg().get<string>('xousAppName'), 'alpha');
-		const items = pick.firstCall.args[0] as { label: string; description?: string }[];
+		const items = pick.firstCall.args[0] as { label: string; picked?: boolean }[];
 		assert.deepEqual(
 			items.map((i) => i.label),
 			['alpha', 'zeta'],
 		);
-		assert.equal(items[1].description, 'current', 'configured app marked current');
+		assert.equal(items[1].picked, true, 'configured app starts checked');
+		assert.equal(pick.firstCall.args[1].canPickMany, true, 'multi-select');
+	});
+
+	test('promptAndSaveApp saves several apps space-separated', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: ['alpha', 'zeta'] });
+		await setCfg('buildMode', 'xous-core');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([{ label: 'alpha' }, { label: 'zeta' }]);
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, 'alpha zeta');
+		assert.equal(cfg().get<string>('xousAppName'), 'alpha zeta');
+	});
+
+	test('promptAndSaveApp leaves the setting alone when nothing is picked', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: ['alpha', 'zeta'] });
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('xousAppName', 'alpha zeta');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([]);
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, undefined);
+		assert.equal(cfg().get<string>('xousAppName'), 'alpha zeta', 'selection not cleared');
+	});
+
+	test('promptAndSaveApp refuses to open when the setting names an unknown crate', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, undefined);
+		assert.ok(pick.notCalled, 'the picker never opens, so the setting is not overwritten');
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('ghost')),
+			'the unknown name is reported',
+		);
+		assert.equal(cfg().get<string>('xousAppName'), 'one ghost', 'setting left untouched');
+	});
+
+	test('unknownAppNames stays quiet when the crates cannot be determined', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'anything');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(undefined);
+
+		assert.deepEqual(appService.unknownAppNames(), [], 'no folder means no verdict');
 	});
 
 	test('promptAndSaveApp lists apps from the adopted workspace root, not the configured one', async () => {
@@ -135,6 +207,95 @@ suite('App service and scaffolding', () => {
 			['adopted_app'],
 			'apps come from the adopted root, not the configured checkout',
 		);
+	});
+
+	/* ------------------------------ crate selection ------------------------------ */
+
+	test('ensureOutOfTreeAppSelection fills in a lone crate without prompting', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['solo']);
+		await setCfg('buildMode', 'out-of-tree');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['solo']);
+		assert.equal(cfg().get<string>('xousAppName'), 'solo', 'written to the setting');
+		assert.ok(pick.notCalled, 'nothing to choose between, so nothing is asked');
+	});
+
+	test('ensureOutOfTreeAppSelection prompts when the project has several crates', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([{ label: 'two' }]);
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['two']);
+		assert.ok(pick.calledOnce, 'the choice is put to the user');
+	});
+
+	test('ensureOutOfTreeAppSelection keeps a selection that is already set', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one two');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['one', 'two']);
+		assert.ok(pick.notCalled, 'an existing selection is not re-asked');
+	});
+
+	test('ensureOutOfTreeAppSelection rejects a configured crate that does not exist', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.equal(crates, undefined, 'the build stops before cargo sees the bad name');
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('ghost')),
+			'our message, not cargo package-ID error',
+		);
+	});
+
+	test('hasCrateChoice is true when a member cannot be resolved', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		const root = tmpDir();
+		fs.writeFileSync(
+			path.join(root, 'Cargo.toml'),
+			`[workspace]
+members = ["crates/*"]
+`,
+			'utf8',
+		);
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+
+		assert.equal(
+			appService.hasCrateChoice(),
+			true,
+			'an unresolvable member still means the item should show, so the reason can be surfaced',
+		);
+	});
+
+	test('hasCrateChoice only where there is more than one crate', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		const solo = makeFakeWorkspace(tmpDir(), ['solo']);
+		const several = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		const root = sandbox.stub(projectModeService, 'findOutOfTreeRoot');
+
+		root.returns(solo);
+		assert.equal(appService.hasCrateChoice(), false, 'one crate needs no picker');
+
+		root.returns(several);
+		assert.equal(appService.hasCrateChoice(), true);
 	});
 
 	/* ------------------------------ createBaoApp (real bundled template) ------------------------------ */

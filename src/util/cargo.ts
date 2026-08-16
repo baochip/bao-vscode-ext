@@ -17,6 +17,21 @@ export function readCargoPackageName(root: string): string | null {
 	}
 }
 
+/** Strip line comments so a table header inside a comment is not mistaken for a real one. */
+function stripTomlComments(toml: string): string {
+	return toml.replace(/#[^\n]*/g, '');
+}
+
+/** Whether a Cargo.toml declares a `[workspace]` table. */
+export function hasWorkspaceTable(toml: string): boolean {
+	return /^[ \t]*\[workspace\][ \t]*$/m.test(stripTomlComments(toml));
+}
+
+/** Whether a Cargo.toml declares a `[package]` table (absent in a workspace with no root crate). */
+export function hasPackageTable(toml: string): boolean {
+	return /^[ \t]*\[package\][ \t]*$/m.test(stripTomlComments(toml));
+}
+
 /** Extract the workspace member paths from a Cargo.toml's `members = [...]` array. */
 export function parseWorkspaceMembers(toml: string): string[] {
 	// Drop line comments first so a commented-out "member" (or a `]` inside a comment) neither
@@ -25,6 +40,66 @@ export function parseWorkspaceMembers(toml: string): string[] {
 	const m = withoutComments.match(/^members\s*=\s*\[([\s\S]*?)\]/m);
 	if (!m) return [];
 	return [...m[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+}
+
+/** A crate an out-of-tree project can build: its cargo package name and the manifest that declares it. */
+export type OutOfTreeCrate = {
+	/** Package name - what `cargo build -p` takes, and the filename of the built ELF. */
+	name: string;
+	/** Absolute path to this crate's Cargo.toml (the rev sync rewrites this file). */
+	manifestPath: string;
+};
+
+/**
+ * List the crates an out-of-tree project can build: the one `[package]`, or every `[workspace]`
+ * member plus the root crate when there is one. Members written with a `*`, and members whose
+ * manifest is missing, are reported separately rather than dropped.
+ */
+export function discoverOutOfTreeCrates(root: string): {
+	crates: OutOfTreeCrate[];
+	wildcardMembers: string[];
+	unreadableMembers: string[];
+} {
+	const rootManifest = path.join(root, 'Cargo.toml');
+	const crates: OutOfTreeCrate[] = [];
+	const wildcardMembers: string[] = [];
+	const unreadableMembers: string[] = [];
+
+	let content: string;
+	try {
+		content = fs.readFileSync(rootManifest, 'utf8');
+	} catch {
+		return { crates, wildcardMembers, unreadableMembers }; // not a cargo project
+	}
+
+	// Gated on [package]: a workspace-only manifest can carry a `name` under another table.
+	if (hasPackageTable(content)) {
+		const name = parseCargoPackageName(content);
+		if (name) crates.push({ name, manifestPath: rootManifest });
+	}
+
+	if (hasWorkspaceTable(content)) {
+		for (const member of parseWorkspaceMembers(content)) {
+			if (member.includes('*')) {
+				wildcardMembers.push(member);
+				continue;
+			}
+			const memberDir = path.join(root, member);
+			const name = readCargoPackageName(memberDir);
+			if (name) crates.push({ name, manifestPath: path.join(memberDir, 'Cargo.toml') });
+			else unreadableMembers.push(member);
+		}
+	}
+
+	// A root crate listed in its own `members` would otherwise appear twice.
+	const seen = new Set<string>();
+	const deduped = crates.filter((crate) => {
+		if (seen.has(crate.name)) return false;
+		seen.add(crate.name);
+		return true;
+	});
+
+	return { crates: deduped, wildcardMembers, unreadableMembers };
 }
 
 /**

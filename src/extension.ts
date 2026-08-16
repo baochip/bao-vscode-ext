@@ -1,4 +1,5 @@
 import { Commands } from '@commands/commandIds';
+import { hasCrateChoice, unknownAppNames } from '@services/appService';
 import {
 	getBootloaderSerialPort,
 	getBuildTargetOrDefault,
@@ -114,10 +115,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		items.buildTarget.tooltip = vscode.l10n.t('Click to select build target');
 		items.buildTarget.show();
 
-		// App name - only relevant in xous-core mode
-		if (mode === 'xous-core') {
-			items.app.text = app ? `$(package) ${app}` : `$(package) ${vscode.l10n.t('App: (not set)')}`;
-			items.app.tooltip = vscode.l10n.t('Click to select xous-core app');
+		// Which crates get built - hidden only when there is nothing to choose and nothing wrong
+		const unknownApps = unknownAppNames();
+		if (hasCrateChoice() || unknownApps.length > 0) {
+			if (unknownApps.length > 0) {
+				items.app.text = `$(warning) ${app}`;
+				items.app.tooltip = vscode.l10n.t('Not found in this project: {0}', unknownApps.join(', '));
+			} else {
+				items.app.text = app
+					? `$(package) ${app}`
+					: `$(package) ${vscode.l10n.t('App: (not set)')}`;
+				items.app.tooltip =
+					mode === 'xous-core'
+						? vscode.l10n.t('Click to select xous-core app')
+						: vscode.l10n.t('Click to select the crate to build');
+			}
 			items.app.show();
 		} else {
 			items.app.hide();

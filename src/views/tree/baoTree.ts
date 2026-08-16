@@ -1,4 +1,5 @@
 import { Commands } from '@commands/commandIds';
+import { hasCrateChoice } from '@services/appService';
 import { getMonitorDefaultPort } from '@services/configService';
 import { getProjectMode } from '@services/projectModeService';
 import { buildCommandLabel, monitorTooltip } from '@views/uiLabels';
@@ -74,8 +75,16 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem>
 		if (element === this.projectSection) {
 			return Promise.resolve([
 				new TreeItem(vscode.l10n.t('New app'), Commands.createApp, 'add'),
-				...(getProjectMode() === 'xous-core'
-					? [new TreeItem(vscode.l10n.t('Select app'), Commands.selectApp, 'search')]
+				...(hasCrateChoice()
+					? [
+							new TreeItem(
+								getProjectMode() === 'xous-core'
+									? vscode.l10n.t('Select app')
+									: vscode.l10n.t('Select crate'),
+								Commands.selectApp,
+								'search',
+							),
+						]
 					: []),
 			]);
 		}

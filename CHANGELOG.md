@@ -4,9 +4,12 @@
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
 - Warning when a built or flashed .uf2 is too big for its dabao flash region (oversized images are silently truncated and leave the board running no app)
 - Warning when rustc is not a stable build; nightly, beta, and dev toolchains are unsupported and now say so up front rather than failing in the toolchain download
+- Out-of-tree projects can be a cargo workspace: pick which crates to build and they are built together into one apps.uf2. A project with a single crate needs no picking
 
 ### Changed
 - **Build • Flash • Monitor** is now called **Build • Flash • Boot • Monitor** - it always booted the board after flashing
+- The app picker now selects several apps at once, starting from what is already set; previously it replaced the whole setting with one app
+- The app setting shows a warning when it names something the project does not have, rather than silently building without it
 
 ### Fixed
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
