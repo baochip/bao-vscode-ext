@@ -77,6 +77,17 @@ Keep a local kit in the gitignored `sandbox/` folder (not committed - it holds l
 
 ---
 
+## AI Usage Guidelines
+
+Using AI to write bug fixes, tests, or new features is not a problem. Please adhere to these rules:
+
+- Read and understand every line before you submit it. Do not submit vibecode you cannot explain.
+- Keep the PR reviewable. A human reviews every change, so split a large AI-generated PR into multiple well-scoped PRs.
+- Write the PR description yourself, **not** with AI. It is your proof that you understand the changes and can communicate them concisely.
+- Note your AI usage in the PR description.
+
+---
+
 ## Submitting a PR
 
 **Required Checklist**
@@ -85,7 +96,8 @@ Keep a local kit in the gitignored `sandbox/` folder (not committed - it holds l
 - [ ] `npm run test:integration` passes  
 - [ ] You verified the flows you touched (manual checks)  
 - [ ] PR description explains **what changed** and **why**  
-- [ ] Screenshots/Videos for UI changes (if applicable)
+- [ ] Screenshots/Videos for UI changes (if applicable)  
+- [ ] AI usage (if any) noted in the PR description
 
 **Review process**
 - A maintainer will review for scope, clarity, and UX consistency.  
