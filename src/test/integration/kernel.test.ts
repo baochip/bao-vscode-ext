@@ -487,6 +487,54 @@ suite('Kernel files service', () => {
 		]);
 	});
 
+	test('ensureOutOfTreeBuildSetup (ci-sync) updates only the selected crates', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
+
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'Cargo.toml'), `[workspace]\nmembers = ["a", "b"]\n`, 'utf8');
+		for (const name of ['a', 'b']) {
+			fs.mkdirSync(path.join(root, name), { recursive: true });
+			fs.writeFileSync(
+				path.join(root, name, 'Cargo.toml'),
+				`[package]
+name = "${name}"
+
+[dependencies]
+bao1x-api = { git = "${XOUS_CORE_REPO}", rev = "old" }
+`,
+				'utf8',
+			);
+		}
+
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['a']);
+
+		assert.equal(ok, true);
+		const files = runBao.getCalls().map((c) => (c.args[0] as string[])[3]);
+		assert.deepEqual(files, [path.join(root, 'a', 'Cargo.toml')], 'only the selected crate');
+	});
+
+	test('ensureOutOfTreeBuildSetup (ci-sync) skips a crate with no xous-core dependency', async () => {
+		await setCfg('outOfTree.kernelMode', 'ci-sync');
+		sandbox.stub(httpService, 'fetchJson').resolves({ sha: SHA });
+		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
+
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'Cargo.toml'), `[workspace]\nmembers = ["plain"]\n`, 'utf8');
+		fs.mkdirSync(path.join(root, 'plain'), { recursive: true });
+		fs.writeFileSync(
+			path.join(root, 'plain', 'Cargo.toml'),
+			`[package]\nname = "plain"\n\n[dependencies]\nlog = "0.4"\n`,
+			'utf8',
+		);
+
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['plain']);
+
+		assert.equal(ok, true, 'nothing to update is success, not failure');
+		assert.ok(runBao.notCalled, 'update-rev would error on a manifest with no xous-core dep');
+	});
+
 	test('ensureOutOfTreeBuildSetup (ci-sync) fails when the rev fetch fails', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		sandbox.stub(httpService, 'fetchJson').rejects(new Error('offline'));

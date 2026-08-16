@@ -209,6 +209,60 @@ suite('App service and scaffolding', () => {
 		);
 	});
 
+	/* ------------------------------ crate selection ------------------------------ */
+
+	test('ensureOutOfTreeAppSelection fills in a lone crate without prompting', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['solo']);
+		await setCfg('buildMode', 'out-of-tree');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['solo']);
+		assert.equal(cfg().get<string>('xousAppName'), 'solo', 'written to the setting');
+		assert.ok(pick.notCalled, 'nothing to choose between, so nothing is asked');
+	});
+
+	test('ensureOutOfTreeAppSelection prompts when the project has several crates', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([{ label: 'two' }]);
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['two']);
+		assert.ok(pick.calledOnce, 'the choice is put to the user');
+	});
+
+	test('ensureOutOfTreeAppSelection keeps a selection that is already set', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one two');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.deepEqual(crates, ['one', 'two']);
+		assert.ok(pick.notCalled, 'an existing selection is not re-asked');
+	});
+
+	test('hasCrateChoice only where there is more than one crate', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		const solo = makeFakeWorkspace(tmpDir(), ['solo']);
+		const several = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		const root = sandbox.stub(projectModeService, 'findOutOfTreeRoot');
+
+		root.returns(solo);
+		assert.equal(appService.hasCrateChoice(), false, 'one crate needs no picker');
+
+		root.returns(several);
+		assert.equal(appService.hasCrateChoice(), true);
+	});
+
 	/* ------------------------------ createBaoApp (real bundled template) ------------------------------ */
 
 	/** Every xous-core crate the dabao template depends on via git. */
