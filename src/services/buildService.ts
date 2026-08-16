@@ -13,7 +13,7 @@ import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { checkRustToolchain } from '@services/rustCheckService';
-import { ensureNamedTerminal } from '@services/terminalService';
+import { ensureNamedTerminal, runInTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
 import { isLikelyValidAppName } from '@util/appName';
@@ -166,7 +166,7 @@ function crateElfPaths(crates: string[]): string[] {
 }
 
 /** Out-of-tree build in a terminal, chaining the UF2 conversion. */
-export function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
+export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
 	// Target and crate names reach a shell command line; allow only known-safe values, since
 	// quoteArg cannot make $ or backtick inert inside PowerShell double quotes.
 	const target = getBuildTarget();
@@ -194,7 +194,7 @@ export function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
 		process.platform === 'win32'
 			? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
 			: `${buildCmd} && ${uf2Cmd}`;
-	term.sendText(chainedCmd);
+	await runInTerminal(term, chainedCmd);
 	checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
 
 	term.show(true);
@@ -215,7 +215,7 @@ function announceBuilding(target: string, appArgs: string[]) {
 }
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
-export function runBuildInTerminal(root: string, target: string, app?: string) {
+export async function runBuildInTerminal(root: string, target: string, app?: string) {
 	const appArgs = splitAppArgs(app);
 
 	// Target and app names are workspace-controlled settings interpolated into a shell command
@@ -236,12 +236,14 @@ export function runBuildInTerminal(root: string, target: string, app?: string) {
 	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
 		// quoted: PowerShell's echo prints each unquoted word on its own line
-		term.sendText(
+		await runInTerminal(
+			term,
 			`echo ${quoteArg(`[bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`)}`,
 		);
 	}
 
-	term.sendText(
+	await runInTerminal(
+		term,
 		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
 	);
 	checkUf2SizeAfterBuild(term, appsUf2Path('xous-core', root));

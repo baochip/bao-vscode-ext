@@ -2,7 +2,7 @@ import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { ensureCargoAvailable } from '@services/rustCheckService';
-import { ensureNamedTerminal } from '@services/terminalService';
+import { ensureNamedTerminal, runInTerminal } from '@services/terminalService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
 import * as vscode from 'vscode';
 
@@ -40,7 +40,7 @@ export function registerCleanCommand() {
 		if (clicked !== cleanLabel) return;
 
 		const term = ensureNamedTerminal(vscode.l10n.t('Baochip Clean'), root);
-		term.sendText('cargo clean');
+		await runInTerminal(term, 'cargo clean');
 		term.show(true);
 	});
 }
