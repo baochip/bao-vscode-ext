@@ -56,7 +56,7 @@ suite('UF2 conversion', () => {
 		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await convertElfToUf2(root);
+		const ok = await convertElfToUf2(root, ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -78,7 +78,7 @@ suite('UF2 conversion', () => {
 			cancelled: false,
 		});
 
-		assert.equal(await convertElfToUf2(root), true);
+		assert.equal(await convertElfToUf2(root, ['hello']), true);
 	});
 
 	test('convertElfToUf2 warns at build time when the app overflows the dabao app region', async () => {
@@ -97,7 +97,7 @@ suite('UF2 conversion', () => {
 			'showWarningMessage',
 		) as unknown as sinon.SinonStub;
 
-		const ok = await convertElfToUf2(root);
+		const ok = await convertElfToUf2(root, ['hello']);
 
 		assert.equal(ok, true, 'the conversion itself succeeded; the size warning is advisory');
 		assert.ok(

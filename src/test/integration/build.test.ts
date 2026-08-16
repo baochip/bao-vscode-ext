@@ -178,7 +178,7 @@ suite('Build service', () => {
 
 		const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 		assert.ok(wsRoot, 'test host has a workspace folder');
-		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot });
+		assert.deepEqual(pre, { mode: 'out-of-tree', root: wsRoot, crates: ['hello'] });
 	});
 
 	/* ------------------------------ runBuildAndWait / runOutOfTreeBuildAndWait ------------------------------ */
@@ -254,7 +254,7 @@ suite('Build service', () => {
 		await setCfg('buildTarget', 'dabao');
 		await setCfg('outOfTree.extraFeatures', ['foo', 'not a feature!']);
 
-		const code = await buildService.runOutOfTreeBuildAndWait('C:\\fake\\oot');
+		const code = await buildService.runOutOfTreeBuildAndWait('C:\\fake\\oot', ['hello']);
 
 		assert.equal(code, 0);
 		const [cmd, args, opts] = run.firstCall.args;
@@ -285,7 +285,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(ensure.firstCall.args[1], root, 'terminal cwd set via the API, not a typed cd');
 		assert.equal(sent.length, 1, `one chained command: ${sent.join(' | ')}`);
@@ -301,7 +301,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes(' && xous-app-uf2 --elf '), `POSIX && chain: ${sent[0]}`);
@@ -312,7 +312,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
@@ -325,7 +325,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('cargo build --release'), 'build command still sent');
@@ -338,7 +338,7 @@ suite('Build service', () => {
 		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
-		buildService.runOutOfTreeBuildInTerminal(tmpDir());
+		buildService.runOutOfTreeBuildInTerminal(tmpDir(), ['hello']);
 
 		assert.ok(err.calledOnce, 'invalid target is surfaced to the user');
 		assert.ok(
@@ -354,7 +354,7 @@ suite('Build service', () => {
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
 
-		buildService.runOutOfTreeBuildInTerminal(root);
+		buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
 
 		assert.equal(sent.length, 1);
 		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);

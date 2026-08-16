@@ -7,6 +7,7 @@ import { getOutOfTreeRoot, getProjectMode } from '@services/projectModeService';
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
+import { splitAppNames } from '@util/appName';
 import {
 	addWorkspaceMemberToToml,
 	discoverOutOfTreeCrates,
@@ -52,8 +53,8 @@ export function listOutOfTreeCrates(root: string): string[] {
 
 /** Selected crates for an out-of-tree build; a lone crate is filled in without prompting. */
 export async function ensureOutOfTreeAppSelection(root: string): Promise<string[] | undefined> {
-	const selected = getXousAppName().trim();
-	if (selected) return selected.split(/\s+/).filter(Boolean);
+	const selected = splitAppNames(getXousAppName());
+	if (selected.length > 0) return selected;
 
 	const available = listOutOfTreeCrates(root);
 	if (available.length === 0) {
@@ -67,7 +68,7 @@ export async function ensureOutOfTreeAppSelection(root: string): Promise<string[
 	}
 
 	const picked = await promptAndSaveApp();
-	return picked ? picked.split(/\s+/).filter(Boolean) : undefined;
+	return picked ? splitAppNames(picked) : undefined;
 }
 
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
@@ -81,7 +82,28 @@ export async function listBaoApps(xousRoot: string, target: string): Promise<str
 		.sort((a, b) => a.localeCompare(b));
 }
 
-/** Pick one out-of-tree crate. Multi-select arrives with the picker rework. */
+/**
+ * Multi-select over `available`, pre-checked from the current setting and saved back
+ * space-separated. Selecting nothing leaves the setting alone rather than clearing it.
+ */
+async function pickAndSaveApps(
+	available: string[],
+	placeHolder: string,
+): Promise<string | undefined> {
+	const current = splitAppNames(getXousAppName());
+	const picked = await vscode.window.showQuickPick(
+		available.map((name) => ({ label: name, picked: current.includes(name) })),
+		{ placeHolder, canPickMany: true },
+	);
+	if (!picked || picked.length === 0) return undefined;
+
+	const selection = picked.map((item) => item.label).join(' ');
+	await setXousAppName(selection);
+	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', selection));
+	return selection;
+}
+
+/** Pick which crates an out-of-tree project builds. */
 async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
 	const root = getOutOfTreeRoot();
 	if (!root) return undefined;
@@ -92,19 +114,7 @@ async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	const current = getXousAppName();
-	const pick = await vscode.window.showQuickPick(
-		crates.map((name) => ({
-			label: name,
-			description: name === current ? vscode.l10n.t('current') : undefined,
-		})),
-		{ placeHolder: vscode.l10n.t('Select crate') },
-	);
-	if (!pick) return undefined;
-
-	await setXousAppName(pick.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
-	return pick.label;
+	return pickAndSaveApps(crates, vscode.l10n.t('Select crate'));
 }
 
 /**
@@ -134,31 +144,15 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	const current = getXousAppName();
-	const pick = await vscode.window.showQuickPick(
-		apps.map((a) => ({
-			label: a,
-			description: a === current ? vscode.l10n.t('current') : undefined,
-		})),
-		{ placeHolder: vscode.l10n.t('Select app') },
-	);
-	if (!pick) return undefined;
-
-	await setXousAppName(pick.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', pick.label));
-	return pick.label;
+	return pickAndSaveApps(apps, vscode.l10n.t('Select app'));
 }
 
 export function missingApps(xousRoot: string, appNames: string, target: string): string[] {
 	const appsDir = path.join(xousRoot, getAppsDir(target));
-	return appNames
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean)
-		.filter((n) => {
-			const dir = path.join(appsDir, n);
-			return !(isDirectory(dir) && hasCargoToml(dir));
-		});
+	return splitAppNames(appNames).filter((n) => {
+		const dir = path.join(appsDir, n);
+		return !(isDirectory(dir) && hasCargoToml(dir));
+	});
 }
 
 export function appExists(xousRoot: string, appNames: string, target: string): boolean {

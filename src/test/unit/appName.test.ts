@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isLikelyValidAppName } from '../../util/appName';
+import { isLikelyValidAppName, splitAppNames } from '../../util/appName';
 
 test('isLikelyValidAppName: accepts lowercase names starting with a letter', () => {
 	for (const name of ['app', 'test_app', 'my-app', 'a1', 'x_2-y']) {
@@ -18,4 +18,22 @@ test('isLikelyValidAppName: rejects empty and illegal characters', () => {
 	for (const name of ['', 'my app', 'app!', 'app.name', 'app/name', 'café']) {
 		assert.equal(isLikelyValidAppName(name), false, name);
 	}
+});
+
+test('splitAppNames: splits on any run of whitespace', () => {
+	assert.deepEqual(splitAppNames('alpha  zeta\tbeta'), ['alpha', 'zeta', 'beta']);
+});
+
+test('splitAppNames: trims and ignores empty input', () => {
+	assert.deepEqual(splitAppNames('  hello  '), ['hello']);
+	assert.deepEqual(splitAppNames(''), []);
+	assert.deepEqual(splitAppNames('   '), []);
+	assert.deepEqual(splitAppNames(undefined), []);
+});
+
+test('splitAppNames: keeps a region suffix intact', () => {
+	assert.deepEqual(splitAppNames('dc34-console~flash dc34-vault'), [
+		'dc34-console~flash',
+		'dc34-vault',
+	]);
 });

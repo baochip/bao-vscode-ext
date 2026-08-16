@@ -16,7 +16,7 @@ import { checkRustToolchain } from '@services/rustCheckService';
 import { ensureNamedTerminal, runInTerminal } from '@services/terminalService';
 import { ensureXousFolderOpen, resolveXousRootOrNotify } from '@services/xousCoreService';
 import { checkXousAppUf2 } from '@services/xousToolsService';
-import { isLikelyValidAppName } from '@util/appName';
+import { isLikelyValidAppName, splitAppNames } from '@util/appName';
 import { buildOutOfTreeFeatures, isValidCrateName } from '@util/cargo';
 import { quoteArg } from '@util/shell';
 import * as vscode from 'vscode';
@@ -200,11 +200,6 @@ export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]
 	term.show(true);
 }
 
-/** Split a whitespace-separated app string into individual app names (empty when none given). */
-function splitAppArgs(app?: string): string[] {
-	return app ? app.trim().split(/\s+/).filter(Boolean) : [];
-}
-
 /** Toast which target is being built, and whether any apps are included. */
 function announceBuilding(target: string, appArgs: string[]) {
 	vscode.window.showInformationMessage(
@@ -216,7 +211,7 @@ function announceBuilding(target: string, appArgs: string[]) {
 
 /** Standalone Build command UX: run in a VS Code terminal (non-blocking). */
 export async function runBuildInTerminal(root: string, target: string, app?: string) {
-	const appArgs = splitAppArgs(app);
+	const appArgs = splitAppNames(app);
 
 	// Target and app names are workspace-controlled settings interpolated into a shell command
 	// line; allow only known/identifier-like values so shell metacharacters never reach the
@@ -323,7 +318,7 @@ export async function runBuildAndWait(
 	target: string,
 	app?: string,
 ): Promise<number | null> {
-	const appArgs = splitAppArgs(app);
+	const appArgs = splitAppNames(app);
 	const args = ['xtask', target, ...appArgs];
 
 	announceBuilding(target, appArgs);

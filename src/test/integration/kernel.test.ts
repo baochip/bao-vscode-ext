@@ -445,7 +445,7 @@ suite('Kernel files service', () => {
 		const fetchJson = sandbox.stub(httpService, 'fetchJson');
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, true);
 		assert.ok(fetchJson.notCalled && runBao.notCalled, 'no rev fetch or Cargo.toml update');
@@ -457,7 +457,7 @@ suite('Kernel files service', () => {
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd').resolves('');
 		const root = tmpDir();
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(root);
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(root, ['hello']);
 
 		assert.equal(ok, true);
 		assert.deepEqual(runBao.firstCall.args[0], [
@@ -476,7 +476,7 @@ suite('Kernel files service', () => {
 		const runBao = sandbox.stub(baoRunnerService, 'runBaoCmd');
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(runBao.notCalled, 'no Cargo.toml update after a failed fetch');
@@ -494,7 +494,7 @@ suite('Kernel files service', () => {
 		sandbox.stub(baoRunnerService, 'runBaoCmd').rejects(new Error('no dependency found'));
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -515,7 +515,7 @@ suite('Kernel files service', () => {
 			.resolves({ code: 2, stdout: '', stderr: 'no dependency found', cancelled: false });
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir());
+		const ok = await kernelService.ensureOutOfTreeBuildSetup(tmpDir(), ['hello']);
 
 		assert.equal(ok, false);
 		assert.equal(
