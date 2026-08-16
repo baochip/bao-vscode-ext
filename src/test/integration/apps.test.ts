@@ -250,6 +250,41 @@ suite('App service and scaffolding', () => {
 		assert.ok(pick.notCalled, 'an existing selection is not re-asked');
 	});
 
+	test('ensureOutOfTreeAppSelection rejects a configured crate that does not exist', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const crates = await appService.ensureOutOfTreeAppSelection(root);
+
+		assert.equal(crates, undefined, 'the build stops before cargo sees the bad name');
+		assert.ok(
+			errors.getCalls().some((c) => String(c.args[0]).includes('ghost')),
+			'our message, not cargo package-ID error',
+		);
+	});
+
+	test('hasCrateChoice is true when a member cannot be resolved', async () => {
+		await setCfg('buildMode', 'out-of-tree');
+		const root = tmpDir();
+		fs.writeFileSync(
+			path.join(root, 'Cargo.toml'),
+			`[workspace]
+members = ["crates/*"]
+`,
+			'utf8',
+		);
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+
+		assert.equal(
+			appService.hasCrateChoice(),
+			true,
+			'an unresolvable member still means the item should show, so the reason can be surfaced',
+		);
+	});
+
 	test('hasCrateChoice only where there is more than one crate', async () => {
 		await setCfg('buildMode', 'out-of-tree');
 		const solo = makeFakeWorkspace(tmpDir(), ['solo']);

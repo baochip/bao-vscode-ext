@@ -35,7 +35,9 @@ export function hasCrateChoice(): boolean {
 	if (getProjectMode() === 'xous-core') return true;
 	const root = findOutOfTreeRoot();
 	if (!root) return false;
-	return discoverOutOfTreeCrates(root).crates.length > 1;
+	const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+	// Members we could not resolve still mean a choice exists - just one we cannot offer yet.
+	return crates.length > 1 || wildcardMembers.length > 0 || unreadableMembers.length > 0;
 }
 
 /** Names in the setting matching no crate here. Empty when the crates cannot be determined. */
@@ -83,11 +85,25 @@ export function listOutOfTreeCrates(root: string): string[] {
 /** Selected crates for an out-of-tree build; a lone crate is filled in without prompting. */
 export async function ensureOutOfTreeAppSelection(root: string): Promise<string[] | undefined> {
 	const selected = splitAppNames(getXousAppName());
-	if (selected.length > 0) return selected;
+	if (selected.length > 0) {
+		// Checked here so a stale name gets this message rather than cargo's package-ID error.
+		const unknown = unknownAppNames();
+		if (unknown.length > 0) {
+			vscode.window.showErrorMessage(
+				vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
+			);
+			return undefined;
+		}
+		return selected;
+	}
 
 	const available = listOutOfTreeCrates(root);
 	if (available.length === 0) {
-		vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		// listOutOfTreeCrates already said why when it could; only add the vague message otherwise.
+		const { wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
+		if (wildcardMembers.length === 0 && unreadableMembers.length === 0) {
+			vscode.window.showErrorMessage(vscode.l10n.t('No crates found in {0}.', root));
+		}
 		return undefined;
 	}
 
