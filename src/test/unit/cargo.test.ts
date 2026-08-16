@@ -6,6 +6,9 @@ import { test } from 'node:test';
 import {
 	addWorkspaceMemberToToml,
 	buildOutOfTreeFeatures,
+	discoverOutOfTreeCrates,
+	hasPackageTable,
+	hasWorkspaceTable,
 	isValidCrateName,
 	isValidFeatureName,
 	parseCargoPackageName,
@@ -275,4 +278,157 @@ test('rewriteXousGitDepsToPaths: leaves other git repos and registry deps untouc
 	const { toml, missing } = rewriteXousGitDepsToPaths(cargo, PKG_MAP, '/xc/apps-dabao/a', '/xc');
 	assert.deepEqual(missing, []);
 	assert.equal(toml, cargo, 'nothing rewritten');
+});
+
+/* ------------------------------ workspace / package tables ------------------------------ */
+
+test('hasWorkspaceTable / hasPackageTable: plain package project', () => {
+	const toml = '[package]\nname = "solo"\n';
+	assert.equal(hasPackageTable(toml), true);
+	assert.equal(hasWorkspaceTable(toml), false);
+});
+
+test('hasWorkspaceTable / hasPackageTable: workspace with no root crate', () => {
+	const toml = '[workspace]\nmembers = ["a"]\n';
+	assert.equal(hasPackageTable(toml), false);
+	assert.equal(hasWorkspaceTable(toml), true);
+});
+
+test('hasWorkspaceTable: a commented-out table does not count', () => {
+	assert.equal(hasWorkspaceTable('# [workspace]\n[package]\nname = "x"\n'), false);
+});
+
+test('hasWorkspaceTable: [workspace.package] is not [workspace]', () => {
+	assert.equal(hasWorkspaceTable('[workspace.package]\nedition = "2021"\n'), false);
+});
+
+/* ------------------------------ discoverOutOfTreeCrates ------------------------------ */
+
+/** Build a temp project tree: files is a map of relative path -> contents. */
+function withProject(files: Record<string, string>, run: (dir: string) => void): void {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bao-crates-'));
+	try {
+		for (const [rel, body] of Object.entries(files)) {
+			const full = path.join(dir, rel);
+			fs.mkdirSync(path.dirname(full), { recursive: true });
+			fs.writeFileSync(full, body);
+		}
+		run(dir);
+	} finally {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+}
+
+test('discoverOutOfTreeCrates: plain package project yields its one crate', () => {
+	withProject({ 'Cargo.toml': '[package]\nname = "solo_app"\n' }, (dir) => {
+		const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(dir);
+		assert.deepEqual(
+			crates.map((c) => c.name),
+			['solo_app'],
+		);
+		assert.equal(crates[0].manifestPath, path.join(dir, 'Cargo.toml'));
+		assert.deepEqual(wildcardMembers, []);
+		assert.deepEqual(unreadableMembers, []);
+	});
+});
+
+test('discoverOutOfTreeCrates: workspace with no root crate yields one entry per member', () => {
+	withProject(
+		{
+			'Cargo.toml': '[workspace]\nmembers = ["crates/alpha", "crates/beta"]\n',
+			'crates/alpha/Cargo.toml': '[package]\nname = "alpha"\n',
+			'crates/beta/Cargo.toml': '[package]\nname = "beta"\n',
+		},
+		(dir) => {
+			const { crates, unreadableMembers } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(
+				crates.map((c) => c.name),
+				['alpha', 'beta'],
+			);
+			assert.equal(crates[0].manifestPath, path.join(dir, 'crates/alpha', 'Cargo.toml'));
+			assert.deepEqual(unreadableMembers, []);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: a root package is a member of its own workspace', () => {
+	withProject(
+		{
+			'Cargo.toml': '[package]\nname = "root_app"\n\n[workspace]\nmembers = ["helper"]\n',
+			'helper/Cargo.toml': '[package]\nname = "helper"\n',
+		},
+		(dir) => {
+			const { crates } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(
+				crates.map((c) => c.name),
+				['root_app', 'helper'],
+			);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: a root crate listed in its own members is not returned twice', () => {
+	withProject(
+		{ 'Cargo.toml': '[package]\nname = "root_app"\n\n[workspace]\nmembers = ["."]\n' },
+		(dir) => {
+			const { crates } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(
+				crates.map((c) => c.name),
+				['root_app'],
+			);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: wildcard members are reported, not expanded', () => {
+	withProject(
+		{
+			'Cargo.toml': '[workspace]\nmembers = ["crates/*", "tools/one"]\n',
+			'crates/alpha/Cargo.toml': '[package]\nname = "alpha"\n',
+			'tools/one/Cargo.toml': '[package]\nname = "one"\n',
+		},
+		(dir) => {
+			const { crates, wildcardMembers } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(
+				crates.map((c) => c.name),
+				['one'],
+				'the wildcard contributes nothing',
+			);
+			assert.deepEqual(wildcardMembers, ['crates/*']);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: a member with no manifest is reported as unreadable', () => {
+	withProject(
+		{
+			'Cargo.toml': '[workspace]\nmembers = ["present", "gone"]\n',
+			'present/Cargo.toml': '[package]\nname = "present"\n',
+		},
+		(dir) => {
+			const { crates, unreadableMembers } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(
+				crates.map((c) => c.name),
+				['present'],
+			);
+			assert.deepEqual(unreadableMembers, ['gone']);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: a workspace-only manifest does not borrow a name from another table', () => {
+	withProject(
+		{ 'Cargo.toml': '[workspace]\nmembers = []\n\n[workspace.package]\nname = "not_a_crate"\n' },
+		(dir) => {
+			const { crates } = discoverOutOfTreeCrates(dir);
+			assert.deepEqual(crates, []);
+		},
+	);
+});
+
+test('discoverOutOfTreeCrates: a folder with no Cargo.toml yields nothing and no complaints', () => {
+	withProject({ 'readme.txt': 'not a cargo project\n' }, (dir) => {
+		const result = discoverOutOfTreeCrates(dir);
+		assert.deepEqual(result, { crates: [], wildcardMembers: [], unreadableMembers: [] });
+	});
 });
