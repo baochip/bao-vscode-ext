@@ -27,6 +27,9 @@ xous-usb-hid = { git = "https://github.com/betrusted-io/xous-usb-hid.git", branc
 bio-lib = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
 arbitrary-int = "1.2"
 
+# pinned to the version the patch below supplies
+getrandom = "=0.2.12"
+
 [patch.crates-io]
 getrandom = { git = "https://github.com/betrusted-io/xous-core", rev = "{{REV}}" }
 
