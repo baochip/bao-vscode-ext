@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
 import { runBaoCmd } from '@services/baoRunnerService';
 import {
-	getBuildTargetOrDefault,
+	getBuildTarget,
 	getKernelFilesPath,
 	getKernelMode,
 	type KernelMode,
@@ -164,7 +164,7 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 	// CI_BASE is dabao-only. A baosec CI path exists upstream, but which UF2 artifacts it
 	// carries is not yet known - so any other target must fail clearly here rather than
 	// silently flash dabao kernels onto a different board.
-	const target = getBuildTargetOrDefault();
+	const target = getBuildTarget();
 	if (target !== 'dabao') {
 		vscode.window.showErrorMessage(
 			vscode.l10n.t(

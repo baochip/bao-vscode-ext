@@ -56,8 +56,10 @@ suite('Kernel files service', () => {
 		await activateExtension();
 	});
 
-	setup(() => {
+	setup(async () => {
 		wipeKernelCache();
+		// CI kernels are dabao-only, so these tests run as a user who has picked that board.
+		await setCfg('buildTarget', 'dabao');
 	});
 
 	teardown(async () => {

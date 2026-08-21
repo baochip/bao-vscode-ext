@@ -1,9 +1,9 @@
 import * as assert from 'node:assert';
 import { Commands } from '@commands/commandIds';
 import { openBaochipSettings } from '@commands/openSettings';
-import * as buildService from '@services/buildService';
+import * as buildTargetService from '@services/buildTargetService';
 import {
-	getBuildTargetOrDefault,
+	getBuildTarget,
 	getDefaultBaud,
 	getExtraFeatures,
 	getKernelMode,
@@ -157,7 +157,7 @@ suite('Config and selection commands', () => {
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
 		pick.resolves(undefined);
 
-		const result = await buildService.promptAndSaveBuildTarget();
+		const result = await buildTargetService.promptAndSaveBuildTarget();
 
 		assert.equal(result, undefined, 'cancel returns undefined');
 		assert.equal(cfg().get<string>('buildTarget'), 'dabao', 'cancel leaves the setting alone');
@@ -165,7 +165,7 @@ suite('Config and selection commands', () => {
 		assert.deepEqual(
 			items.map((i) => i.label),
 			['dabao', 'baosec'],
-			'all build targets offered',
+			'all hardware targets offered',
 		);
 		assert.equal(items[0].description, 'current', 'configured target marked current');
 		assert.equal(items[1].description, undefined);
@@ -225,11 +225,11 @@ suite('Config and selection commands', () => {
 		assert.equal(getDefaultBaud(), 115200, 'valid value passes through');
 	});
 
-	test('getBuildTargetOrDefault returns the set target and dabao when unset', async () => {
-		assert.equal(getBuildTargetOrDefault(), 'dabao', 'default when unset');
+	test('getBuildTarget reports only what the user picked', async () => {
+		assert.equal(getBuildTarget(), '', 'empty until the user picks - nothing is assumed');
 
 		await setCfg('buildTarget', 'baosec');
-		assert.equal(getBuildTargetOrDefault(), 'baosec', 'set value passes through');
+		assert.equal(getBuildTarget(), 'baosec', 'the pick passes through');
 	});
 
 	test('getKernelMode returns ask for unknown values and passes valid modes', async () => {

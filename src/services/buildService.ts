@@ -2,12 +2,8 @@ import * as path from 'node:path';
 import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
 import { appExists, ensureOutOfTreeAppSelection, missingApps } from '@services/appService';
 import { appsUf2Path } from '@services/artifactsService';
-import {
-	getBuildTarget,
-	getExtraFeatures,
-	getXousAppName,
-	setBuildTarget,
-} from '@services/configService';
+import { ensureBuildTarget } from '@services/buildTargetService';
+import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
 import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
@@ -25,39 +21,6 @@ export type BuildPrereqs =
 	| { mode: 'xous-core'; root: string; target: string; app?: string }
 	| { mode: 'out-of-tree'; root: string; crates: string[] };
 
-/** Return the configured build target, prompting to select one if unset. Returns undefined if the user declines. */
-export async function ensureBuildTargetOrPrompt(): Promise<string | undefined> {
-	const target = getBuildTarget();
-	if (target) return target;
-	const selectLabel = vscode.l10n.t('Select Target');
-	const action = await vscode.window.showWarningMessage(
-		vscode.l10n.t('No build target set.'),
-		selectLabel,
-	);
-	if (action === selectLabel) {
-		// Return the freshly-picked target so the caller can proceed in the same run.
-		return promptAndSaveBuildTarget();
-	}
-	return undefined;
-}
-
-/** Prompt the user to pick a build target, persist it, and return it (or undefined if cancelled). */
-export async function promptAndSaveBuildTarget(): Promise<string | undefined> {
-	const current = getBuildTarget();
-	const picked = await vscode.window.showQuickPick(
-		BUILD_TARGETS.map((t) => ({
-			label: t,
-			description: t === current ? vscode.l10n.t('current') : undefined,
-		})),
-		{ placeHolder: vscode.l10n.t('Select build target') },
-	);
-	if (!picked) return undefined;
-
-	await setBuildTarget(picked.label);
-	vscode.window.showInformationMessage(vscode.l10n.t('Build target set to: {0}', picked.label));
-	return picked.label;
-}
-
 export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	const ok = await checkRustToolchain();
 	if (!ok) return;
@@ -65,6 +28,9 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	if (getProjectMode() === 'out-of-tree') {
 		const hasUf2Tool = await checkXousAppUf2();
 		if (!hasUf2Tool) return;
+
+		// The board feature comes from the hardware target, so out-of-tree builds need one too.
+		if (!(await ensureBuildTarget())) return;
 
 		const root = getOutOfTreeRoot();
 		if (!root) return;
@@ -80,14 +46,8 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	const wsState = await ensureXousFolderOpen(root);
 	if (wsState === 'reopen') return;
 
-	const target = await ensureBuildTargetOrPrompt();
+	const target = await ensureBuildTarget();
 	if (!target) return;
-	// A hand-edited baochip.buildTarget flows into `cargo xtask <target>` (argv, shell:false - not
-	// shell injection, but argument injection); whitelist it like the terminal build paths do.
-	if (!BUILD_TARGETS.includes(target)) {
-		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
-		return;
-	}
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {
@@ -169,11 +129,7 @@ function crateElfPaths(crates: string[]): string[] {
 export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
 	// Target and crate names reach a shell command line; allow only known-safe values, since
 	// quoteArg cannot make $ or backtick inert inside PowerShell double quotes.
-	const target = getBuildTarget();
-	if (target && !BUILD_TARGETS.includes(target)) {
-		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
-		return;
-	}
+	if (!(await ensureBuildTarget())) return;
 	const badCrate = crates.find((crate) => !isValidCrateName(crate));
 	if (badCrate !== undefined) {
 		vscode.window.showErrorMessage(vscode.l10n.t('Invalid crate name: {0}', badCrate));
@@ -217,7 +173,7 @@ export async function runBuildInTerminal(root: string, target: string, app?: str
 	// line; allow only known/identifier-like values so shell metacharacters never reach the
 	// terminal (quoteArg cannot make $ or backtick inert inside PowerShell double quotes).
 	if (!BUILD_TARGETS.includes(target)) {
-		vscode.window.showErrorMessage(vscode.l10n.t('Invalid build target: {0}', target));
+		vscode.window.showErrorMessage(vscode.l10n.t('Invalid hardware target: {0}', target));
 		return;
 	}
 	const badApp = appArgs.find((a) => !isLikelyValidAppName(a));
@@ -233,7 +189,7 @@ export async function runBuildInTerminal(root: string, target: string, app?: str
 		// quoted: PowerShell's echo prints each unquoted word on its own line
 		await runInTerminal(
 			term,
-			`echo ${quoteArg(`[bao] ${vscode.l10n.t('No apps specified - building target "{0}" only.', target)}`)}`,
+			`echo ${quoteArg(`[bao] ${vscode.l10n.t('No apps specified - building hardware target "{0}" only.', target)}`)}`,
 		);
 	}
 
@@ -326,7 +282,7 @@ export async function runBuildAndWait(
 		return runCargoAndWait(
 			root,
 			args,
-			vscode.l10n.t('No apps specified - building target "{0}" only.', target),
+			vscode.l10n.t('No apps specified - building hardware target "{0}" only.', target),
 		);
 	}
 	return runCargoAndWait(root, args);

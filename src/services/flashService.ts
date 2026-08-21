@@ -3,11 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { scanArtifacts } from '@services/artifactsService';
-import {
-	getBuildTargetOrDefault,
-	getFlashLocation,
-	setFlashLocation,
-} from '@services/configService';
+import { getBuildTarget, getFlashLocation, setFlashLocation } from '@services/configService';
 import {
 	appendSeparator,
 	getBaochipChannel,
@@ -243,7 +239,7 @@ export async function gatherArtifacts(root: string) {
 
 /** Warn when a .uf2 overflows the dabao region it targets; records its exact size either way. */
 export function checkUf2Size(filePath: string): void {
-	if (getBuildTargetOrDefault() !== 'dabao') return;
+	if (getBuildTarget() !== 'dabao') return;
 
 	const head = Buffer.alloc(UF2_BLOCK_BYTES);
 	let size: number;

@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getBootloaderSerialPort,
-	getBuildTargetOrDefault,
+	getBuildTarget,
 	getDefaultBaud,
 	getFlashLocation,
 	getKernelMode,
@@ -81,7 +81,7 @@ export async function buildDiagnosticsReport(): Promise<string> {
 		const folders =
 			folderCount === 0 ? '(none)' : `${folderCount} folder${folderCount === 1 ? '' : 's'}`;
 		lines.push(
-			`Mode: ${getProjectMode()} | target: ${getBuildTargetOrDefault()} | app: ${getXousAppName() || '(none)'} | workspace: ${folders}`,
+			`Mode: ${getProjectMode()} | hardware target: ${getBuildTarget() || '(not set)'} | app: ${getXousAppName() || '(none)'} | workspace: ${folders}`,
 		);
 		const flags = getMonitorFlags();
 		lines.push(

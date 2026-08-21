@@ -2,8 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Commands } from '@commands/commandIds';
 import { BUILD_TARGETS, getAppsDir } from '@constants';
+import { ensureBuildTarget } from '@services/buildTargetService';
 import {
-	getBuildTargetOrDefault,
+	getBuildTarget,
 	getXousAppName,
 	getXousCorePath,
 	setXousAppName,
@@ -55,7 +56,9 @@ export function unknownAppNames(): string[] {
 
 	const root = findXousCoreInWorkspace() || getXousCorePath();
 	if (!root) return [];
-	return missingApps(root, getXousAppName(), getBuildTargetOrDefault());
+	const target = getBuildTarget();
+	if (!target) return []; // nothing to check against until a hardware target is picked
+	return missingApps(root, getXousAppName(), target);
 }
 
 /** Crate names an out-of-tree project can build, warning about members it had to skip. */
@@ -191,7 +194,8 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 	const effectiveRoot = await ensureXousWorkspaceOpen(root);
 	if (!effectiveRoot) return undefined;
 
-	const target = getBuildTargetOrDefault();
+	const target = await ensureBuildTarget();
+	if (!target) return undefined;
 	const apps = await listBaoApps(effectiveRoot, target);
 	if (apps.length === 0) {
 		vscode.window.showWarningMessage(
@@ -277,7 +281,7 @@ export async function createBaoApp(
 	// target is a workspace-controlled setting interpolated into the template path below; reject
 	// anything not whitelisted so it can never become a traversal path segment.
 	if (!BUILD_TARGETS.includes(target)) {
-		throw new Error(vscode.l10n.t('Invalid build target: {0}', target));
+		throw new Error(vscode.l10n.t('Invalid hardware target: {0}', target));
 	}
 	const appsDir = path.join(xousRoot, getAppsDir(target));
 	const newDir = path.join(appsDir, appName);
@@ -294,7 +298,9 @@ export async function createBaoApp(
 		target,
 	);
 	if (!hasCargoToml(templateDir)) {
-		throw new Error(vscode.l10n.t('No out-of-tree template available for target "{0}".', target));
+		throw new Error(
+			vscode.l10n.t('No out-of-tree template available for hardware target "{0}".', target),
+		);
 	}
 
 	// Build workspace map for the path-dep rewrite

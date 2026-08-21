@@ -63,7 +63,7 @@ export class BaoTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem>
 					'gear',
 				),
 				new TreeItem(vscode.l10n.t('Set baochip location'), Commands.setFlashLocation, 'chip'),
-				new TreeItem(vscode.l10n.t('Select build target'), Commands.selectBuildTarget, 'target'),
+				new TreeItem(vscode.l10n.t('Select hardware target'), Commands.selectBuildTarget, 'target'),
 				new TreeItem(
 					vscode.l10n.t('Build mode: {0}', getProjectMode()),
 					Commands.setBuildMode,

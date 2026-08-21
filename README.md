@@ -52,7 +52,7 @@ Prompts for paths, serial ports, and flash locations appear during normal use. Y
 
 - **Welcome page** - quick setup actions, app creation and selection, and documentation links.
 - **App workflow** - create and select apps. Out-of-tree apps live in your project folder; in-tree apps live under `apps-<target>/`.
-- **Build** - pick a build target (e.g. `dabao`, `baosec`), with full clean support.
+- **Build** - pick a hardware target (e.g. `dabao`, `baosec`), with full clean support.
 - **Flash** - copy UF2 firmware to your Baochip device, with drive auto-detection and verification.
 - **Serial monitor** - raw or line mode (with CRLF normalization), and Run Mode <-> Bootloader Mode port handling.
 - **Build / Flash / Monitor** - one command builds, flashes, boots the board, and opens the monitor, for a fast edit-and-run loop.

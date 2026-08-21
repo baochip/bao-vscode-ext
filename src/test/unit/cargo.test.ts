@@ -57,10 +57,6 @@ test('readCargoPackageName: returns null when Cargo.toml is missing', () => {
 
 const FIXED = ['--features', 'bao1x', '--features', 'utralib/bao1x'];
 
-test('buildOutOfTreeFeatures: defaults to board-dabao with the fixed features', () => {
-	assert.deepEqual(buildOutOfTreeFeatures('', []), ['--features', 'board-dabao', ...FIXED]);
-});
-
 test('buildOutOfTreeFeatures: uses the given board target', () => {
 	assert.deepEqual(buildOutOfTreeFeatures('baosec', []), ['--features', 'board-baosec', ...FIXED]);
 });

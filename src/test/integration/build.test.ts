@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import * as buildService from '@services/buildService';
+import * as buildTargetService from '@services/buildTargetService';
 import * as logService from '@services/logService';
 import * as procService from '@services/procService';
 import * as projectModeService from '@services/projectModeService';
@@ -53,44 +54,48 @@ suite('Build service', () => {
 		cleanupTmpDirs();
 	});
 
-	/* ------------------------------ ensureBuildTargetOrPrompt ------------------------------ */
+	/* ------------------------------ ensureBuildTarget ------------------------------ */
 
-	test('ensureBuildTargetOrPrompt returns the configured target without prompting', async () => {
-		await setCfg('buildTarget', 'dabao');
-		const warn = sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub;
+	test('ensureBuildTarget returns the configured target without prompting', async () => {
+		await setCfg('buildTarget', 'baosec');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
 
-		const target = await buildService.ensureBuildTargetOrPrompt();
-
-		assert.equal(target, 'dabao');
-		assert.ok(warn.notCalled, 'no warning when a target is already set');
+		assert.equal(await buildTargetService.ensureBuildTarget(), 'baosec');
+		assert.ok(pick.notCalled, 'an answered question is not asked again');
 	});
 
-	test('ensureBuildTargetOrPrompt: unset target prompts, saves, and returns the pick', async () => {
-		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
-			'Select Target',
-		);
+	test('ensureBuildTarget: an unset target asks once, saves, and returns the pick', async () => {
 		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
 			label: 'baosec',
 		});
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
-		const target = await buildService.ensureBuildTargetOrPrompt();
-
-		assert.equal(target, 'baosec', 'returns the freshly picked target (same-run continue)');
-		assert.equal(cfg().get<string>('buildTarget'), 'baosec', 'pick was persisted');
+		assert.equal(await buildTargetService.ensureBuildTarget(), 'baosec', 'the pick is returned');
+		assert.equal(cfg().get<string>('buildTarget'), 'baosec', 'and persisted, so it asks only once');
 	});
 
-	test('ensureBuildTargetOrPrompt: dismissing the warning returns undefined', async () => {
-		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).resolves(
+	test('ensureBuildTarget: nothing is assumed when the picker is dismissed', async () => {
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves(
 			undefined,
 		);
-		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
 
-		const target = await buildService.ensureBuildTargetOrPrompt();
+		assert.equal(await buildTargetService.ensureBuildTarget(), undefined);
+		assert.equal(
+			cfg().get<string>('buildTarget') || '',
+			'',
+			'no target is written behind our back',
+		);
+	});
 
-		assert.equal(target, undefined);
-		assert.ok(pick.notCalled, 'picker never shown');
-		assert.equal(cfg().get<string>('buildTarget') || '', '', 'nothing saved');
+	test('ensureBuildTarget: a hand-edited target outside the known list is rejected', async () => {
+		await setCfg('buildTarget', 'dabao; rm -rf /');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		assert.equal(await buildTargetService.ensureBuildTarget(), undefined);
+		assert.ok(
+			String(errors.firstCall.args[0]).includes('Invalid hardware target'),
+			'the bad value is reported',
+		);
 	});
 
 	/* ------------------------------ ensureBuildPrereqs ------------------------------ */
@@ -135,7 +140,7 @@ suite('Build service', () => {
 
 		assert.equal(pre, undefined, 'prereqs aborted on an unrecognized target');
 		assert.ok(
-			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid build target')),
+			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid hardware target')),
 			'invalid-target error shown',
 		);
 	});
@@ -172,6 +177,7 @@ suite('Build service', () => {
 	});
 
 	test('ensureBuildPrereqs: out-of-tree mode returns the folder and the selected crates', async () => {
+		await setCfg('buildTarget', 'dabao');
 		sandbox.stub(rustCheckService, 'checkRustToolchain').resolves(true);
 		sandbox.stub(xousToolsService, 'checkXousAppUf2').resolves(true);
 		await setCfg('buildMode', 'out-of-tree');
@@ -284,6 +290,7 @@ suite('Build service', () => {
 	/* ------------------------------ runOutOfTreeBuildInTerminal ------------------------------ */
 
 	test('runOutOfTreeBuildInTerminal on win32 chains build and UF2 via $LASTEXITCODE', async () => {
+		await setCfg('buildTarget', 'dabao');
 		sandbox.stub(process, 'platform').value('win32');
 		const root = tmpDir();
 		fs.writeFileSync(path.join(root, 'Cargo.toml'), '[package]\nname = "myapp"\n', 'utf8');
@@ -300,6 +307,7 @@ suite('Build service', () => {
 	});
 
 	test('runOutOfTreeBuildInTerminal on POSIX chains build and UF2 via &&', async () => {
+		await setCfg('buildTarget', 'dabao');
 		sandbox.stub(process, 'platform').value('linux');
 		const root = tmpDir();
 		fs.writeFileSync(path.join(root, 'Cargo.toml'), '[package]\nname = "myapp"\n', 'utf8');
@@ -313,6 +321,7 @@ suite('Build service', () => {
 	});
 
 	test('runOutOfTreeBuildInTerminal passes one --elf per selected crate', async () => {
+		await setCfg('buildTarget', 'dabao');
 		const root = tmpDir();
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
@@ -327,6 +336,7 @@ suite('Build service', () => {
 	});
 
 	test('runOutOfTreeBuildInTerminal rejects a malformed crate name before any terminal work', async () => {
+		await setCfg('buildTarget', 'dabao');
 		const err = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');
 
@@ -408,7 +418,7 @@ suite('Build service', () => {
 		await buildService.runBuildInTerminal('C:\\fake\\root', 'dabao; rm -rf ~', 'hello');
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
-		assert.ok(String(errors.firstCall.args[0]).includes('Invalid build target'));
+		assert.ok(String(errors.firstCall.args[0]).includes('Invalid hardware target'));
 	});
 
 	test('runBuildInTerminal rejects an app word with shell metacharacters', async () => {

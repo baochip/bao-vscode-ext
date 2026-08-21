@@ -31,6 +31,7 @@ suite('Command handlers (createApp, clean)', () => {
 	/* ------------------------------ New App (createApp) ------------------------------ */
 
 	test('New App routes to the out-of-tree scaffolder in out-of-tree mode', async () => {
+		await setCfg('buildTarget', 'dabao');
 		sandbox.stub(projectModeService, 'getProjectMode').returns('out-of-tree');
 		const scaffold = sandbox.stub(outOfTreeScaffoldService, 'scaffoldOutOfTreeApp').resolves();
 		const createInTree = sandbox.stub(appService, 'createBaoApp');
@@ -42,6 +43,7 @@ suite('Command handlers (createApp, clean)', () => {
 	});
 
 	test('New App creates an in-tree app at the adopted root, saves it, and reveals it', async () => {
+		await setCfg('buildTarget', 'dabao');
 		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(XOUS_ROOT);
 		// The user adopts a different open folder; createApp must operate on the returned root.
@@ -55,7 +57,7 @@ suite('Command handlers (createApp, clean)', () => {
 
 		assert.ok(
 			create.calledOnceWithExactly('C:\\fake\\adopted', 'my_app', 'dabao'),
-			'createBaoApp uses the adopted root, the lowercased name, and the default target',
+			'createBaoApp uses the adopted root, the lowercased name, and the picked target',
 		);
 		assert.ok(reveal.calledOnceWithExactly('C:\\fake\\adopted', 'my_app', 'dabao'), 'app revealed');
 		assert.equal(cfg().get<string>('xousAppName'), 'my_app', 'new app saved as current');

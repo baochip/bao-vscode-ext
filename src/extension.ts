@@ -2,7 +2,7 @@ import { Commands } from '@commands/commandIds';
 import { hasCrateChoice, unknownAppNames } from '@services/appService';
 import {
 	getBootloaderSerialPort,
-	getBuildTargetOrDefault,
+	getBuildTarget,
 	getDefaultBaud,
 	getFlashLocation,
 	getMonitorDefaultPort,
@@ -68,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		const runSerPort = getRunSerialPort();
 		const baud = getDefaultBaud();
 		const flLoc = getFlashLocation();
-		const target = getBuildTargetOrDefault();
+		const target = getBuildTarget();
 		const app = getXousAppName();
 		const mode = getProjectMode();
 
@@ -110,9 +110,11 @@ export async function activate(context: vscode.ExtensionContext) {
 			: vscode.l10n.t('Click to set baochip location');
 		items.flashLocation.show();
 
-		// Build target - relevant in both modes; defaults to dabao when not explicitly set
-		items.buildTarget.text = `$(target) ${target}`;
-		items.buildTarget.tooltip = vscode.l10n.t('Click to select build target');
+		// Hardware target - relevant in both modes; unset until the user picks one
+		items.buildTarget.text = target
+			? `$(target) ${target}`
+			: `$(target) ${vscode.l10n.t('Hardware Target: (not set)')}`;
+		items.buildTarget.tooltip = vscode.l10n.t('Click to select hardware target');
 		items.buildTarget.show();
 
 		// Which crates get built - hidden only when there is nothing to choose and nothing wrong

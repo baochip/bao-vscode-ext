@@ -52,7 +52,7 @@ export function createStatusBarItems(context: vscode.ExtensionContext): StatusBa
 		buildTarget: makeStatusItem(
 			97,
 			Commands.selectBuildTarget,
-			vscode.l10n.t('Baochip: Build Target'),
+			vscode.l10n.t('Baochip: Hardware Target'),
 		),
 		app: makeStatusItem(96, Commands.selectApp, vscode.l10n.t('Baochip: App')),
 		clean: makeStatusItem(95, Commands.clean, vscode.l10n.t('Baochip: Clean')),

@@ -203,7 +203,7 @@ export function isValidCrateName(name: string): boolean {
 
 /** Build the cargo `--features` args for an out-of-tree Baochip build: the board feature, fixed defaults, then any extras. */
 export function buildOutOfTreeFeatures(target: string, extraFeatures: string[]): string[] {
-	const boardFeature = `board-${target || 'dabao'}`;
+	const boardFeature = `board-${target}`;
 	return [
 		'--features',
 		boardFeature,

@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { Commands } from '@commands/commandIds';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import * as appService from '@services/appService';
-import * as buildService from '@services/buildService';
+import * as buildTargetService from '@services/buildTargetService';
 import * as flashService from '@services/flashService';
 import * as logService from '@services/logService';
 import * as procService from '@services/procService';
@@ -51,7 +51,7 @@ suite('Flash service', () => {
 	test('the Flash command flashes without an app configured (app is a build-time concern)', async () => {
 		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves('C:\\fake\\xous-core');
-		sandbox.stub(buildService, 'ensureBuildTargetOrPrompt').resolves('dabao');
+		sandbox.stub(buildTargetService, 'ensureBuildTarget').resolves('dabao');
 		const flash = sandbox.stub(flashService, 'decideAndFlash').resolves(true);
 		const pickApp = sandbox.stub(appService, 'promptAndSaveApp');
 

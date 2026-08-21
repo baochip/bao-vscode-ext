@@ -35,6 +35,11 @@ suite('App service and scaffolding', () => {
 		await activateExtension();
 	});
 
+	setup(async () => {
+		// These cover apps and scaffolding, not target selection: run as a user who picked a board.
+		await setCfg('buildTarget', 'dabao');
+	});
+
 	teardown(async () => {
 		await resetBaochipConfig();
 		cleanupTmpDirs();
@@ -487,7 +492,7 @@ members = ["crates/*"]
 		// A traversal-shaped target must be refused up front (never joined into the template path).
 		await assert.rejects(
 			appService.createBaoApp(root, 'my_app', '../../../../etc'),
-			/Invalid build target/,
+			/Invalid hardware target/,
 		);
 	});
 
@@ -628,7 +633,7 @@ members = ["crates/*"]
 		await outOfTreeScaffoldService.scaffoldOutOfTreeApp();
 
 		assert.ok(
-			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid build target')),
+			errors.getCalls().some((c) => String(c.args[0]).includes('Invalid hardware target')),
 			'invalid-target refusal shown',
 		);
 		assert.ok(fetchRev.notCalled, 'rejected before the rev fetch');

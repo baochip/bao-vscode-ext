@@ -1,4 +1,4 @@
-## [1.2.0] - 2026-08-16
+## [1.2.0] - 2026-08-22
 
 ### Added
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
@@ -10,11 +10,13 @@
 - **Build • Flash • Monitor** is now called **Build • Flash • Boot • Monitor** - it always booted the board after flashing
 - The app picker now selects several apps at once, starting from what is already set; previously it replaced the whole setting with one app
 - The app setting shows a warning when it names something the project does not have, rather than silently building without it
+- The build target is now called the **hardware target** throughout the UI, matching xous-core and keeping it distinct from the Rust toolchain target. It is no longer assumed to be dabao: the first build, flash, or app pick asks once
 
 ### Fixed
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
 - New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch and failed to build
 - Builds and cleans now wait for the terminal to be ready, so a Python environment activating in it can no longer kill them on startup
+- Building or flashing without a hardware target set reported "No build target set" while the status bar showed dabao; the extension now asks which board you have the first time it needs to know, and remembers the answer
 
 ---
 

@@ -2,7 +2,8 @@ import { Commands } from '@commands/commandIds';
 import { withCommand } from '@commands/withCommand';
 import { getAppsDir } from '@constants';
 import { createBaoApp } from '@services/appService';
-import { getBuildTargetOrDefault, setXousAppName } from '@services/configService';
+import { ensureBuildTarget } from '@services/buildTargetService';
+import { setXousAppName } from '@services/configService';
 import { errorToast } from '@services/logService';
 import { scaffoldOutOfTreeApp } from '@services/outOfTreeScaffoldService';
 import { getProjectMode } from '@services/projectModeService';
@@ -14,7 +15,9 @@ import * as vscode from 'vscode';
 
 export function registerCreateApp() {
 	return withCommand(Commands.createApp, async () => {
-		if (getBuildTargetOrDefault() === 'baosec') {
+		const target = await ensureBuildTarget();
+		if (!target) return;
+		if (target === 'baosec') {
 			vscode.window.showErrorMessage(vscode.l10n.t('baosec app creation is not yet supported.'));
 			return;
 		}
@@ -32,7 +35,6 @@ export function registerCreateApp() {
 		const effectiveRoot = await ensureXousWorkspaceOpen(root);
 		if (!effectiveRoot) return;
 
-		const target = getBuildTargetOrDefault();
 		const appsDir = getAppsDir(target);
 
 		const nameInput = await vscode.window.showInputBox({
