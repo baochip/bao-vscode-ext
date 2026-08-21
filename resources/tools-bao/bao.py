@@ -4,6 +4,7 @@ import logging
 import traceback
 
 from commands import app
+from commands import boardtype
 from commands import boot
 from commands import monitor
 from commands import ports
@@ -17,6 +18,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     app.register(sub)
+    boardtype.register(sub)
     boot.register(sub)
     monitor.register(sub)
     ports.register(sub)

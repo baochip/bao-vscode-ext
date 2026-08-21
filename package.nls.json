@@ -46,6 +46,7 @@
 	"cfg.outOfTree.kernelFilesPath": "Folder containing loader.uf2 and xous.uf2 for manual out-of-tree flashing. Only used when baochip.outOfTree.kernelMode is 'manual'.",
 	"cfg.outOfTree.extraFeatures": "Additional cargo feature flags for out-of-tree builds, beyond the standard board-dabao/bao1x set (e.g. [\"usb\", \"my-feature\"]). Only used for out-of-tree builds.",
 	"cfg.flashing.location": "Location of the mounted Baochip UF2 drive (D:\\ or another letter drive on Windows, /Volumes/BAOCHIP on MacOS, /media/$(whoami)/BAOCHIP on Linux).",
+	"cfg.flashing.checkBoardType": "Ask the bootloader which board is attached before flashing, and warn when it does not match the hardware target.",
 	"views.container.title": "Baochip",
 	"views.main": "Baochip",
 	"views.docs": "Documentation",

@@ -5,6 +5,7 @@ import { runBaoCmd } from '@services/baoRunnerService';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
+	getCheckBoardTypeBeforeFlash,
 	getDefaultBaud,
 	getFlashLocation,
 	getKernelMode,
@@ -88,7 +89,8 @@ export async function buildDiagnosticsReport(): Promise<string> {
 			`Settings: run=${getRunSerialPort() || '(unset)'} boot=${getBootloaderSerialPort() || '(unset)'} ` +
 				`baud=${getDefaultBaud()} crlf=${flags.crlf ? 'on' : 'off'} raw=${flags.raw ? 'on' : 'off'} ` +
 				`echo=${flags.echo ? 'on' : 'off'} monitorDefault=${getMonitorDefaultPort()} ` +
-				`kernelMode=${getKernelMode()} flashLocation=${getFlashLocation() || '(unset)'}`,
+				`kernelMode=${getKernelMode()} flashLocation=${getFlashLocation() || '(unset)'} ` +
+				`boardTypeCheck=${getCheckBoardTypeBeforeFlash() ? 'on' : 'off'}`,
 		);
 
 		const venvRoot = getGlobalVenvRoot();

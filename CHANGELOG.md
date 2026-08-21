@@ -5,6 +5,7 @@
 - Warning when a built or flashed .uf2 is too big for its dabao flash region (oversized images are silently truncated and leave the board running no app)
 - Warning when rustc is not a stable build; nightly, beta, and dev toolchains are unsupported and now say so up front rather than failing in the toolchain download
 - Out-of-tree projects can be a cargo workspace: pick which crates to build and they are built together into one apps.uf2. A project with a single crate needs no picking
+- Warning before flashing when the attached board reports a different type than the hardware target - the bootloader is asked which board it is, and a mismatch can be overridden or silenced via `baochip.checkBoardTypeBeforeFlash`
 
 ### Changed
 - **Build • Flash • Monitor** is now called **Build • Flash • Boot • Monitor** - it always booted the board after flashing

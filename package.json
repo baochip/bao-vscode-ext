@@ -274,6 +274,12 @@
 						"default": "",
 						"description": "%cfg.flashing.location%",
 						"order": 1
+					},
+					"baochip.checkBoardTypeBeforeFlash": {
+						"type": "boolean",
+						"default": true,
+						"description": "%cfg.flashing.checkBoardType%",
+						"order": 2
 					}
 				}
 			},

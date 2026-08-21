@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { Commands } from '@commands/commandIds';
 import { XOUS_TARGET_TRIPLE } from '@constants';
 import * as appService from '@services/appService';
+import * as boardTypeService from '@services/boardTypeService';
 import * as buildTargetService from '@services/buildTargetService';
 import * as flashService from '@services/flashService';
 import * as logService from '@services/logService';
@@ -465,6 +466,110 @@ suite('Flash service', () => {
 		assert.ok(
 			!warnings.getCalls().some((c) => String(c.args[0]).includes('over the')),
 			`no oversize warning off dabao: ${warnings.getCalls().map((c) => String(c.args[0]))}`,
+		);
+	});
+
+	/* ------------------------------ board type check ------------------------------ */
+
+	/** A xous-core checkout with artifacts, a flash destination, and a picked target. */
+	async function readyToFlash(target: string) {
+		const { root } = makeFakeXousCore(tmpDir(), { withArtifacts: true });
+		const dest = tmpDir();
+		await setCfg('flashLocation', dest);
+		await setCfg('buildTarget', target);
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		return { root, dest, lines };
+	}
+
+	/** Answer the mismatch modal by button title; undefined stands for dismissing it. */
+	function answerModal(title: string | undefined) {
+		return (
+			sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub
+		).callsFake((_msg: string, _opts: unknown, ...items: { title: string }[]) =>
+			Promise.resolve(items.find((i) => i.title === title)),
+		);
+	}
+
+	test('a board disagreeing with the hardware target asks before flashing', async () => {
+		const { root, dest } = await readyToFlash('dabao');
+		sandbox.stub(boardTypeService, 'readBoardType').resolves({ type: 'baosec', port: 'COM7' });
+		const modal = answerModal('Flash anyway');
+
+		const ok = await flashService.decideAndFlash(root);
+
+		assert.equal(ok, true, 'Flash anyway proceeds');
+		assert.ok(fs.existsSync(path.join(dest, 'apps.uf2')), 'artifacts copied');
+		const [msg, opts] = modal.firstCall.args as [string, { modal?: boolean; detail?: string }];
+		assert.ok(msg.includes('baosec') && msg.includes('dabao'), `both types named: ${msg}`);
+		assert.equal(opts.modal, true, 'asked as a modal, not a toast');
+		assert.ok(String(opts.detail).includes('COM7'), 'detail names the port it asked on');
+	});
+
+	test('dismissing the mismatch modal flashes nothing', async () => {
+		const { root, dest } = await readyToFlash('dabao');
+		sandbox.stub(boardTypeService, 'readBoardType').resolves({ type: 'baosec', port: 'COM7' });
+		answerModal(undefined);
+
+		const ok = await flashService.decideAndFlash(root);
+
+		assert.equal(ok, false);
+		assert.ok(!fs.existsSync(path.join(dest, 'apps.uf2')), 'no file written');
+	});
+
+	test('Flash and stop asking turns the check off and still flashes', async () => {
+		const { root, dest } = await readyToFlash('dabao');
+		sandbox.stub(boardTypeService, 'readBoardType').resolves({ type: 'baosec', port: 'COM7' });
+		answerModal('Flash and stop asking');
+
+		const ok = await flashService.decideAndFlash(root);
+
+		assert.equal(ok, true);
+		assert.ok(fs.existsSync(path.join(dest, 'apps.uf2')), 'artifacts copied');
+		assert.equal(cfg().get<boolean>('checkBoardTypeBeforeFlash'), false, 'setting turned off');
+	});
+
+	test('a matching board flashes without asking, and logs what it read', async () => {
+		const { root, lines } = await readyToFlash('dabao');
+		sandbox.stub(boardTypeService, 'readBoardType').resolves({ type: 'dabao', port: 'COM7' });
+		const modal = answerModal('Flash anyway');
+
+		assert.equal(await flashService.decideAndFlash(root), true);
+		assert.ok(modal.notCalled, 'nothing to warn about');
+		assert.ok(
+			lines.some((l) => l.includes('board type: dabao on COM7')),
+			`the reading is logged even when it agrees: ${lines.join(' | ')}`,
+		);
+	});
+
+	test('an unanswerable board and an oem board both flash without asking', async () => {
+		const { root } = await readyToFlash('dabao');
+		const reading = sandbox.stub(boardTypeService, 'readBoardType').resolves(undefined);
+		const modal = answerModal('Flash anyway');
+
+		assert.equal(await flashService.decideAndFlash(root), true, 'no answer does not block');
+
+		reading.resolves({ type: 'oem', port: 'COM7' });
+		assert.equal(await flashService.decideAndFlash(root), true, 'oem maps to no target');
+		assert.ok(modal.notCalled, 'neither case is comparable, so neither asks');
+	});
+
+	test('the check is skipped entirely when the setting is off', async () => {
+		const { root, lines } = await readyToFlash('dabao');
+		await setCfg('checkBoardTypeBeforeFlash', false);
+		const reading = sandbox.stub(boardTypeService, 'readBoardType').resolves({
+			type: 'baosec',
+			port: 'COM7',
+		});
+		const modal = answerModal('Flash anyway');
+
+		assert.equal(await flashService.decideAndFlash(root), true);
+		assert.ok(reading.notCalled, 'the board is not even queried');
+		assert.ok(modal.notCalled, 'and nothing is asked');
+		assert.ok(
+			lines.some((l) => l.includes('board type check skipped')),
+			`the skip is logged: ${lines.join(' | ')}`,
 		);
 	});
 });

@@ -46,6 +46,7 @@
 	"cfg.outOfTree.kernelFilesPath": "手動 out-of-tree フラッシュ用の loader.uf2 と xous.uf2 が含まれるフォルダ。baochip.outOfTree.kernelMode が 'manual' の場合のみ使用されます。",
 	"cfg.outOfTree.extraFeatures": "アウトオブツリービルド用の追加 Cargo フィーチャーフラグ（標準の board-dabao/bao1x セットに加えて）（例：[\"usb\", \"my-feature\"]）。アウトオブツリービルドにのみ使用されます。",
 	"cfg.flashing.location": "マウントされた Baochip UF2 ドライブの場所（Windows では D:\\ または別のドライブレターのドライブ、macOS では /Volumes/BAOCHIP、Linux では /media/$(whoami)/BAOCHIP）。",
+	"cfg.flashing.checkBoardType": "フラッシュ前にブートローダーに接続中のボードを問い合わせ、ハードウェアターゲットと一致しない場合に警告します。",
 	"views.container.title": "Baochip",
 	"views.main": "Baochip",
 	"views.docs": "ドキュメント",

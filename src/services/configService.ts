@@ -40,6 +40,12 @@ export const setRunSerialPort = (port: string) => updateSetting('serialPortRun',
 export const getFlashLocation = () => cfg().get<string>('flashLocation') || '';
 export const setFlashLocation = (p: string) => updateSetting('flashLocation', p);
 
+/** Whether to ask the board what it is before flashing. */
+export const getCheckBoardTypeBeforeFlash = () =>
+	cfg().get<boolean>('checkBoardTypeBeforeFlash') !== false;
+export const setCheckBoardTypeBeforeFlash = (on: boolean) =>
+	updateSetting('checkBoardTypeBeforeFlash', on);
+
 /** The picked hardware target: empty string until the user picks one. */
 export const getBuildTarget = () => cfg().get<string>('buildTarget') || '';
 export const setBuildTarget = (t: string) => updateSetting('buildTarget', t);

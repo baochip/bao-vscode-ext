@@ -46,6 +46,7 @@
 	"cfg.outOfTree.kernelFilesPath": "包含 loader.uf2 和 xous.uf2 的文件夹，用于手动 out-of-tree 烧录。仅在 baochip.outOfTree.kernelMode 为 'manual' 时使用。",
 	"cfg.outOfTree.extraFeatures": "out-of-tree 构建的额外 Cargo 特性标志，除标准 board-dabao/bao1x 集之外（例如 [\"usb\", \"my-feature\"]）。仅用于 out-of-tree 构建。",
 	"cfg.flashing.location": "已挂载的 Baochip UF2 驱动器位置（Windows 上为 D:\\ 或其他盘符的驱动器，macOS 上为 /Volumes/BAOCHIP，Linux 上为 /media/$(whoami)/BAOCHIP）。",
+	"cfg.flashing.checkBoardType": "烧录前向引导程序查询所连接的板子，并在与硬件目标不匹配时发出警告。",
 	"views.container.title": "Baochip",
 	"views.main": "Baochip",
 	"views.docs": "文档",

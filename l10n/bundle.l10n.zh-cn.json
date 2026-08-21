@@ -294,5 +294,9 @@
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "不支持使用 \"*\" 的工作区成员: {0}。请逐个列出每个 crate 文件夹。",
 	"Click to select the crate to build": "点击选择要构建的 crate",
 	"Invalid crate name: {0}": "无效的 crate 名称: {0}",
-	"Not found in this project: {0}": "在此项目中找不到: {0}"
+	"Not found in this project: {0}": "在此项目中找不到: {0}",
+	"Flash anyway": "仍然烧录",
+	"Flash and stop asking": "烧录并不再询问",
+	"Board type read from {0}.": "板类型读取自 {0}。",
+	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} 处的板子类型为 {1}，但硬件目标是 {2}。确定要继续烧录吗？"
 }

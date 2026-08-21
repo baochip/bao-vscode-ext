@@ -294,5 +294,9 @@
 	"Workspace members using \"*\" are not supported: {0}. List each crate folder individually.": "\"*\" を使うワークスペースメンバーはサポートされていません: {0}。各クレートのフォルダーを個別に指定してください。",
 	"Click to select the crate to build": "ビルドするクレートを選択するにはクリックしてください",
 	"Invalid crate name: {0}": "無効なクレート名: {0}",
-	"Not found in this project: {0}": "このプロジェクトに見つかりません: {0}"
+	"Not found in this project: {0}": "このプロジェクトに見つかりません: {0}",
+	"Flash anyway": "このままフラッシュ",
+	"Flash and stop asking": "フラッシュして今後は確認しない",
+	"Board type read from {0}.": "ボードタイプは {0} から読み取りました。",
+	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} のボードはタイプ {1} ですが、ハードウェアターゲットは {2} です。フラッシュを続行してもよろしいですか?"
 }

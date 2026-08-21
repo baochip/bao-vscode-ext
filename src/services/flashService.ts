@@ -2,8 +2,16 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { targetForBoardType } from '@constants';
 import { scanArtifacts } from '@services/artifactsService';
-import { getBuildTarget, getFlashLocation, setFlashLocation } from '@services/configService';
+import { readBoardType } from '@services/boardTypeService';
+import {
+	getBuildTarget,
+	getCheckBoardTypeBeforeFlash,
+	getFlashLocation,
+	setCheckBoardTypeBeforeFlash,
+	setFlashLocation,
+} from '@services/configService';
 import {
 	appendSeparator,
 	getBaochipChannel,
@@ -286,8 +294,6 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 			try {
 				let copied = 0;
 				const chan = getBaochipChannel();
-				appendSeparator(chan, 'Flash');
-				chan.show(true);
 
 				// Size-check every image up front so any warning lands before the device is written to.
 				for (const srcPath of files) checkUf2Size(srcPath);
@@ -372,12 +378,72 @@ export async function flashFiles(dest: string, files: string[]): Promise<boolean
 	);
 }
 
+/**
+ * Ask the attached board what it is and confirm before flashing images built for another one.
+ * Best-effort by design: anything that cannot be compared - no answer, an oem board, a board type
+ * this version does not know - goes ahead silently rather than standing between you and a flash.
+ */
+async function confirmBoardTypeMatches(dest: string): Promise<boolean> {
+	const chan = getBaochipChannel();
+	if (!getCheckBoardTypeBeforeFlash()) {
+		chan.appendLine('[bao] board type check skipped (baochip.checkBoardTypeBeforeFlash is off)');
+		return true;
+	}
+
+	const target = getBuildTarget();
+	if (!target) return true;
+
+	const reading = await readBoardType();
+	if (!reading) return true;
+
+	chan.appendLine(
+		`[bao] board type: ${reading.type} on ${reading.port} (hardware target: ${target})`,
+	);
+
+	const boardTarget = targetForBoardType(reading.type);
+	if (!boardTarget || boardTarget === target) return true;
+
+	chan.appendLine(
+		`[bao] board reports ${reading.type} on ${reading.port}, hardware target is ${target}`,
+	);
+
+	const flashAnyway = { title: vscode.l10n.t('Flash anyway') };
+	const stopAsking = { title: vscode.l10n.t('Flash and stop asking') };
+	const cancel = { title: vscode.l10n.t('Cancel'), isCloseAffordance: true };
+	const picked = await vscode.window.showWarningMessage(
+		vscode.l10n.t(
+			'The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?',
+			dest,
+			reading.type,
+			target,
+		),
+		{ modal: true, detail: vscode.l10n.t('Board type read from {0}.', reading.port) },
+		flashAnyway,
+		stopAsking,
+		cancel,
+	);
+
+	if (picked === stopAsking) {
+		await setCheckBoardTypeBeforeFlash(false);
+		return true;
+	}
+	return picked === flashAnyway;
+}
+
 export async function decideAndFlash(
 	root: string,
 	kernelFiles?: { loader: string; xous: string },
 ): Promise<boolean> {
+	// Open the section before anything else in the flash step logs into it: the board type
+	// check and its uv lines belong under this header, not trailing the previous operation.
+	const chan = getBaochipChannel();
+	appendSeparator(chan, 'Flash');
+	chan.show(true);
+
 	const dest = await ensureFlashLocation();
 	if (!dest) return false;
+
+	if (!(await confirmBoardTypeMatches(dest))) return false;
 
 	let files: string[];
 
