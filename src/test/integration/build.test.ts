@@ -11,6 +11,7 @@ import * as rustCheckService from '@services/rustCheckService';
 import * as terminalService from '@services/terminalService';
 import * as xousCoreService from '@services/xousCoreService';
 import * as xousToolsService from '@services/xousToolsService';
+import { quoteArg } from '@util/shell';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import {
@@ -461,8 +462,9 @@ suite('Build service', () => {
 		);
 
 		assert.deepEqual(sent, [
-			// the region suffix is quoted so no shell can read the tilde as a home directory
-			'cargo xtask baosec "dc34-console~flash" dc34-vault --feature usb --kernel-feature debug-proc --no-timestamp --no-verify',
+			// quoted so no shell reads the tilde as a home directory; which quote character is
+			// used differs by platform, so ask quoteArg rather than hard-coding one
+			`cargo xtask baosec ${quoteArg('dc34-console~flash')} dc34-vault --feature usb --kernel-feature debug-proc --no-timestamp --no-verify`,
 		]);
 	});
 
