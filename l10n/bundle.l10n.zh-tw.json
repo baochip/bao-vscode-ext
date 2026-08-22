@@ -157,14 +157,13 @@
 	"Kernel files not found in {0}. Ensure loader.uf2 and xous.uf2 are present.": "{0} 中找不到核心檔案。請確認 loader.uf2 和 xous.uf2 存在。",
 	"Baochip: Failed to download kernel files.\n{0}": "Baochip：下載核心檔案失敗。\n{0}",
 	"Set Up Kernel Files for Out-of-Tree Build": "設定 Out-of-Tree 建置的核心檔案",
-	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.": "- SYNC TO LATEST  (ci-sync)\n      將 Cargo.toml rev 更新為最新 xous-core 提交。\n      從 CI 下載對應的 loader.uf2 + xous.uf2。\n      應用程式和核心通常來自同一提交（CI 核心可能會短暫落後）。\n\n- MANAGE MY OWN FILES  (manual)\n      使用您指定資料夾中的 loader.uf2 + xous.uf2。\n      不修改 Cargo.toml rev。",
+	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.\n\n- FLASH THE APP ONLY  (app-only)\n      Flashes your project image and nothing else.\n      Use when the board already has a kernel.": "- SYNC TO LATEST  (ci-sync)\n      將 Cargo.toml rev 更新為最新 xous-core 提交。\n      從 CI 下載對應的 loader.uf2 + xous.uf2。\n      應用程式和核心通常來自同一提交（CI 核心可能會短暫落後）。\n\n- MANAGE MY OWN FILES  (manual)\n      使用您指定資料夾中的 loader.uf2 + xous.uf2。\n      不修改 Cargo.toml rev。\n\n- FLASH THE APP ONLY  (app-only)\n      僅燒錄專案鏡像，不燒錄其他內容。\n      當板子上已有內核時使用。",
 	"Sync to latest": "同步至最新版本",
 	"Manage my own files": "自行管理檔案",
 	"Select folder containing loader.uf2 and xous.uf2": "選擇包含 loader.uf2 和 xous.uf2 的資料夾",
 	"Kernel mode set to \"{0}\". You can change this in Settings under Baochip.": "核心模式已設定為「{0}」。您可在 Baochip 設定中變更此項。",
 	"Failed to fetch latest xous-core rev: {0}": "取得最新 xous-core 版本失敗：{0}",
 	"Failed to update xous-core rev in Cargo.toml: {0}": "更新 Cargo.toml 中的 xous-core rev 失敗：{0}",
-	"apps.uf2 not found in {0}. Run a build first.": "{0} 中找不到 apps.uf2。請先執行建置。",
 	"Baochip: Converting ELF to UF2...": "Baochip：正在將 ELF 轉換為 UF2...",
 	"ELF not found at {0}. Has the build completed successfully?": "{0} 處找不到 ELF 檔案。建置是否已成功完成？",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip：ELF 轉換為 UF2 失敗。詳情請查看輸出。",
@@ -283,7 +282,6 @@
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "{0} 中已存在 src 資料夾。請先移走它或選擇一個空資料夾。",
 	"A .cargo/config.toml already exists in {0}. Move it first or pick an empty folder.": "{0} 中已存在 .cargo/config.toml。請先移走它或選擇一個空資料夾。",
 	"Created {0}/{1}. Add it to the workspace members manually.": "已建立 {0}/{1}。請手動將其加入工作區成員。",
-	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI 核心同步僅適用於 dabao 目標。對「{0}」請使用手動核心模式。",
 	"App directory already exists: {0}": "應用程式目錄已存在: {0}",
 	"Ignoring invalid extra cargo features: {0}": "已忽略無效的額外 cargo 特性：{0}",
 	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip：{0} 比 dabao 的 {2} 上限大 {1}，無法在裝置上執行。",
@@ -302,5 +300,7 @@
 	"not in this project": "不在本專案中",
 	"These do not declare the board-{0} feature: {1}": "以下未宣告 board-{0} 功能：{1}",
 	"No apps here declare the board-{0} feature.": "此處沒有宣告 board-{0} 功能的應用。",
-	"No crates here declare the board-{0} feature.": "此處沒有宣告 board-{0} 功能的 crate。"
+	"No crates here declare the board-{0} feature.": "此處沒有宣告 board-{0} 功能的 crate。",
+	"Flash the app only": "僅燒錄應用",
+	"{0} not found in {1}. Run a build first.": "在 {1} 中未找到 {0}。請先建置。"
 }

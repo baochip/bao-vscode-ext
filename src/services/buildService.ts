@@ -4,7 +4,7 @@ import {
 	describeAppProblems,
 	ensureOutOfTreeAppSelection,
 } from '@services/appService';
-import { appsUf2Path } from '@services/artifactsService';
+import { projectImagePath, uf2ToolArgs } from '@services/artifactsService';
 import { ensureBuildTarget } from '@services/buildTargetService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
 import { checkUf2Size } from '@services/flashService';
@@ -120,7 +120,8 @@ function crateElfPaths(crates: string[]): string[] {
 export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]) {
 	// Target and crate names reach a shell command line; allow only known-safe values, since
 	// quoteArg cannot make $ or backtick inert inside PowerShell double quotes.
-	if (!(await ensureBuildTarget())) return;
+	const target = await ensureBuildTarget();
+	if (!target) return;
 	const badCrate = crates.find((crate) => !isValidCrateName(crate));
 	if (badCrate !== undefined) {
 		vscode.window.showErrorMessage(vscode.l10n.t('Invalid crate name: {0}', badCrate));
@@ -134,7 +135,10 @@ export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]
 		.map((a) => quoteArg(a))
 		.join(' ')}`;
 
-	const uf2Args = crateElfPaths(crates).flatMap((elf) => ['--elf', elf]);
+	const uf2Args = [
+		...crateElfPaths(crates).flatMap((elf) => ['--elf', elf]),
+		...uf2ToolArgs(target, root),
+	];
 	const uf2Cmd = `xous-app-uf2 ${uf2Args.map((a) => quoteArg(a)).join(' ')}`;
 	// PowerShell 5.x does not support &&
 	const chainedCmd =
@@ -142,7 +146,7 @@ export async function runOutOfTreeBuildInTerminal(root: string, crates: string[]
 			? `${buildCmd}; if ($LASTEXITCODE -eq 0) { ${uf2Cmd} }`
 			: `${buildCmd} && ${uf2Cmd}`;
 	await runInTerminal(term, chainedCmd);
-	checkUf2SizeAfterBuild(term, appsUf2Path('out-of-tree', root));
+	checkUf2SizeAfterBuild(term, projectImagePath('out-of-tree', root, target));
 
 	term.show(true);
 }
@@ -188,7 +192,7 @@ export async function runBuildInTerminal(root: string, target: string, app?: str
 		term,
 		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
 	);
-	checkUf2SizeAfterBuild(term, appsUf2Path('xous-core', root));
+	checkUf2SizeAfterBuild(term, projectImagePath('xous-core', root, target));
 	term.show(true);
 }
 

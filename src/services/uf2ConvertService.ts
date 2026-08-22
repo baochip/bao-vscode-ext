@@ -1,12 +1,17 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { XOUS_TARGET_TRIPLE } from '@constants';
+import { projectImagePath, uf2ToolArgs } from '@services/artifactsService';
 import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
 import * as vscode from 'vscode';
 
-export async function convertElfToUf2(root: string, crates: string[]): Promise<boolean> {
+export async function convertElfToUf2(
+	root: string,
+	crates: string[],
+	target: string,
+): Promise<boolean> {
 	const elfPaths = crates.map((crate) =>
 		path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release', crate),
 	);
@@ -35,7 +40,7 @@ export async function convertElfToUf2(root: string, crates: string[]): Promise<b
 		async () => {
 			const r = await runProcess(
 				'xous-app-uf2',
-				elfPaths.flatMap((elf) => ['--elf', elf]),
+				[...elfPaths.flatMap((elf) => ['--elf', elf]), ...uf2ToolArgs(target, root)],
 				{
 					cwd: root,
 					onStdout: (s) => chan.append(s),
@@ -43,7 +48,7 @@ export async function convertElfToUf2(root: string, crates: string[]): Promise<b
 				},
 			);
 			if (!r.error && r.code === 0) {
-				checkUf2Size(path.join(root, 'apps.uf2'));
+				checkUf2Size(projectImagePath('out-of-tree', root, target));
 				return true;
 			}
 			if (r.error) {

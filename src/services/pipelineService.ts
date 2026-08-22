@@ -4,6 +4,7 @@ import {
 	runBuildAndWait,
 	runOutOfTreeBuildAndWait,
 } from '@services/buildService';
+import { getBuildTarget } from '@services/configService';
 import { decideAndFlash } from '@services/flashService';
 import { ensureOutOfTreeBuildSetup, resolveKernelFiles } from '@services/kernelService';
 import { errorToast } from '@services/logService';
@@ -44,19 +45,23 @@ export async function runBuildFlashBoot(): Promise<boolean> {
 
 	// 1.5) ELF->UF2 conversion (out-of-tree only)
 	if (pre.mode === 'out-of-tree') {
-		const converted = await convertElfToUf2(pre.root, pre.crates);
+		const converted = await convertElfToUf2(pre.root, pre.crates, getBuildTarget());
 		if (!converted) return false;
 	}
 
-	// Resolve kernel files for flashing (out-of-tree only)
-	let kernelFiles: { loader: string; xous: string } | null = null;
+	// Resolve kernel files for flashing (out-of-tree only); app-only mode flashes without them
+	let kernelFiles: { loader: string; xous: string } | undefined;
 	if (pre.mode === 'out-of-tree') {
-		kernelFiles = await resolveKernelFiles();
-		if (!kernelFiles) return false;
+		const kernel = await resolveKernelFiles();
+		if (!kernel) return false;
+		if (kernel !== 'app-only') kernelFiles = kernel;
 	}
 
 	// 2) Flash
-	const flashed = await decideAndFlash(pre.root, kernelFiles ?? undefined);
+	const flashed = await decideAndFlash(
+		pre.root,
+		pre.mode === 'out-of-tree' ? { mode: 'out-of-tree', kernelFiles } : { mode: 'xous-core' },
+	);
 	if (!flashed) return false;
 
 	// A copy that reached the drive is not an image the device has finished committing, and a

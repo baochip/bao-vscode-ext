@@ -13,9 +13,12 @@ export function registerFlashCommand() {
 			if (!root) return;
 			// The kernel to flash depends on the board, so ask before resolving one.
 			if (!(await ensureBuildTarget())) return;
-			const kernelFiles = await resolveKernelFiles();
-			if (!kernelFiles) return;
-			await decideAndFlash(root, kernelFiles);
+			const kernel = await resolveKernelFiles();
+			if (!kernel) return;
+			await decideAndFlash(root, {
+				mode: 'out-of-tree',
+				kernelFiles: kernel === 'app-only' ? undefined : kernel,
+			});
 			return;
 		}
 

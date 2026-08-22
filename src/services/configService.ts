@@ -81,11 +81,11 @@ export const getMonitorFlags = () => ({
 });
 
 /** Kernel-file sourcing modes a user can choose; 'ask' (not part of this type) means unchosen. */
-export type KernelMode = 'ci-sync' | 'manual';
+export type KernelMode = 'ci-sync' | 'manual' | 'app-only';
 
 export const getKernelMode = (): KernelMode | 'ask' => {
 	const m = cfg().get<string>('outOfTree.kernelMode');
-	return m === 'ci-sync' || m === 'manual' ? m : 'ask';
+	return m === 'ci-sync' || m === 'manual' || m === 'app-only' ? m : 'ask';
 };
 export const setKernelMode = (mode: KernelMode) => updateSetting('outOfTree.kernelMode', mode);
 

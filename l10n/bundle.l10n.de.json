@@ -157,14 +157,13 @@
 	"Kernel files not found in {0}. Ensure loader.uf2 and xous.uf2 are present.": "Kernel-Dateien nicht gefunden in {0}. Stellen Sie sicher, dass loader.uf2 und xous.uf2 vorhanden sind.",
 	"Baochip: Failed to download kernel files.\n{0}": "Baochip: Herunterladen der Kernel-Dateien fehlgeschlagen.\n{0}",
 	"Set Up Kernel Files for Out-of-Tree Build": "Kernel-Dateien für Out-of-Tree-Build einrichten",
-	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.": "- SYNC TO LATEST  (ci-sync)\n      Aktualisiert den Cargo.toml-Rev auf den neuesten xous-core-Commit.\n      Lädt passende loader.uf2 + xous.uf2 von CI.\n      App und Kernel stammen normalerweise aus demselben Commit (der CI-Kernel kann kurz nachhinken).\n\n- MANAGE MY OWN FILES  (manual)\n      Verwendet loader.uf2 + xous.uf2 aus einem von Ihnen angegebenen Ordner.\n      Cargo.toml wird nicht geändert.",
+	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.\n\n- FLASH THE APP ONLY  (app-only)\n      Flashes your project image and nothing else.\n      Use when the board already has a kernel.": "- SYNC TO LATEST  (ci-sync)\n      Aktualisiert den Cargo.toml-Rev auf den neuesten xous-core-Commit.\n      Lädt passende loader.uf2 + xous.uf2 von CI.\n      App und Kernel stammen normalerweise aus demselben Commit (der CI-Kernel kann kurz nachhinken).\n\n- MANAGE MY OWN FILES  (manual)\n      Verwendet loader.uf2 + xous.uf2 aus einem von Ihnen angegebenen Ordner.\n      Cargo.toml wird nicht geändert.\n\n- FLASH THE APP ONLY  (app-only)\n      Flasht nur das Projektabbild und sonst nichts.\n      Verwenden, wenn das Board bereits einen Kernel hat.",
 	"Sync to latest": "Mit Neuester synchronisieren",
 	"Manage my own files": "Eigene Dateien verwenden",
 	"Select folder containing loader.uf2 and xous.uf2": "Ordner mit loader.uf2 und xous.uf2 auswählen",
 	"Kernel mode set to \"{0}\". You can change this in Settings under Baochip.": "Kernel-Modus auf \"{0}\" gesetzt. Sie können dies in den Einstellungen unter Baochip ändern.",
 	"Failed to fetch latest xous-core rev: {0}": "Neueste xous-core-Rev konnte nicht abgerufen werden: {0}",
 	"Failed to update xous-core rev in Cargo.toml: {0}": "xous-core-Rev in Cargo.toml konnte nicht aktualisiert werden: {0}",
-	"apps.uf2 not found in {0}. Run a build first.": "apps.uf2 nicht gefunden in {0}. Bitte zuerst einen Build durchführen.",
 	"Baochip: Converting ELF to UF2...": "Baochip: ELF wird in UF2 konvertiert...",
 	"ELF not found at {0}. Has the build completed successfully?": "ELF-Datei nicht gefunden unter {0}. Wurde der Build erfolgreich abgeschlossen?",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip: ELF-zu-UF2-Konvertierung fehlgeschlagen. Details im Ausgabefenster.",
@@ -283,7 +282,6 @@
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "In {0} existiert bereits ein src-Ordner. Verschieben Sie ihn zuerst oder wählen Sie einen leeren Ordner.",
 	"A .cargo/config.toml already exists in {0}. Move it first or pick an empty folder.": "In {0} existiert bereits eine .cargo/config.toml. Verschieben Sie sie zuerst oder wählen Sie einen leeren Ordner.",
 	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} wurde erstellt. Fügen Sie es den Workspace-Membern manuell hinzu.",
-	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "Die CI-Kernel-Synchronisierung ist nur für das dabao-Ziel verfügbar. Verwenden Sie für \"{0}\" den manuellen Kernel-Modus.",
 	"App directory already exists: {0}": "Das App-Verzeichnis existiert bereits: {0}",
 	"Ignoring invalid extra cargo features: {0}": "Ungültige zusätzliche Cargo-Features werden ignoriert: {0}",
 	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} liegt {1} über dem dabao-Limit von {2}. Die Datei wird auf dem Gerät nicht ausgeführt.",
@@ -302,5 +300,7 @@
 	"not in this project": "nicht in diesem Projekt",
 	"These do not declare the board-{0} feature: {1}": "Diese deklarieren das Feature board-{0} nicht: {1}",
 	"No apps here declare the board-{0} feature.": "Keine App hier deklariert das Feature board-{0}.",
-	"No crates here declare the board-{0} feature.": "Kein Crate hier deklariert das Feature board-{0}."
+	"No crates here declare the board-{0} feature.": "Kein Crate hier deklariert das Feature board-{0}.",
+	"Flash the app only": "Nur die App flashen",
+	"{0} not found in {1}. Run a build first.": "{0} in {1} nicht gefunden. Zuerst bauen."
 }

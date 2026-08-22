@@ -310,7 +310,14 @@
 						"enum": [
 							"ask",
 							"ci-sync",
-							"manual"
+							"manual",
+							"app-only"
+						],
+						"enumDescriptions": [
+							"%cfg.outOfTree.kernelMode.ask%",
+							"%cfg.outOfTree.kernelMode.ciSync%",
+							"%cfg.outOfTree.kernelMode.manual%",
+							"%cfg.outOfTree.kernelMode.appOnly%"
 						],
 						"default": "ask",
 						"description": "%cfg.outOfTree.kernelMode%",

@@ -157,14 +157,13 @@
 	"Kernel files not found in {0}. Ensure loader.uf2 and xous.uf2 are present.": "{0} にカーネルファイルが見つかりません。loader.uf2 と xous.uf2 が存在することを確認してください。",
 	"Baochip: Failed to download kernel files.\n{0}": "Baochip: カーネルファイルのダウンロードに失敗しました。\n{0}",
 	"Set Up Kernel Files for Out-of-Tree Build": "アウトオブツリービルド用カーネルファイルの設定",
-	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.": "- SYNC TO LATEST  (ci-sync)\n      Cargo.toml の rev を最新の xous-core コミットに更新します。\n      一致する loader.uf2 + xous.uf2 を CI からダウンロードします。\n      アプリとカーネルは通常同じコミットからのものです（CI カーネルは少し遅れることがあります）。\n\n- MANAGE MY OWN FILES  (manual)\n      指定したフォルダーの loader.uf2 + xous.uf2 を使用します。\n      Cargo.toml は変更しません。",
+	"- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.\n\n- FLASH THE APP ONLY  (app-only)\n      Flashes your project image and nothing else.\n      Use when the board already has a kernel.": "- SYNC TO LATEST  (ci-sync)\n      Cargo.toml の rev を最新の xous-core コミットに更新します。\n      一致する loader.uf2 + xous.uf2 を CI からダウンロードします。\n      アプリとカーネルは通常同じコミットからのものです（CI カーネルは少し遅れることがあります）。\n\n- MANAGE MY OWN FILES  (manual)\n      指定したフォルダーの loader.uf2 + xous.uf2 を使用します。\n      Cargo.toml は変更しません。\n\n- FLASH THE APP ONLY  (app-only)\n      プロジェクトのイメージのみをフラッシュします。\n      ボードにすでにカーネルがある場合に使います。",
 	"Sync to latest": "最新と同期",
 	"Manage my own files": "自分でファイルを管理",
 	"Select folder containing loader.uf2 and xous.uf2": "loader.uf2 と xous.uf2 を含むフォルダーを選択",
 	"Kernel mode set to \"{0}\". You can change this in Settings under Baochip.": "カーネルモードを \"{0}\" に設定しました。Baochip の設定で変更できます。",
 	"Failed to fetch latest xous-core rev: {0}": "最新の xous-core リビジョンの取得に失敗しました: {0}",
 	"Failed to update xous-core rev in Cargo.toml: {0}": "Cargo.toml の xous-core リビジョンの更新に失敗しました: {0}",
-	"apps.uf2 not found in {0}. Run a build first.": "{0} に apps.uf2 が見つかりません。先にビルドを実行してください。",
 	"Baochip: Converting ELF to UF2...": "Baochip: ELF を UF2 に変換中...",
 	"ELF not found at {0}. Has the build completed successfully?": "{0} に ELF ファイルが見つかりません。ビルドは正常に完了しましたか？",
 	"Baochip: ELF to UF2 conversion failed. See output for details.": "Baochip: ELF から UF2 への変換に失敗しました。詳細は出力を確認してください。",
@@ -283,7 +282,6 @@
 	"A src folder already exists in {0}. Move it first or pick an empty folder.": "{0} には既に src フォルダーが存在します。先に移動するか、空のフォルダーを選択してください。",
 	"A .cargo/config.toml already exists in {0}. Move it first or pick an empty folder.": "{0} には既に .cargo/config.toml が存在します。先に移動するか、空のフォルダーを選択してください。",
 	"Created {0}/{1}. Add it to the workspace members manually.": "{0}/{1} を作成しました。ワークスペースのメンバーには手動で追加してください。",
-	"CI kernel sync is only available for the dabao target. Use manual kernel mode for \"{0}\".": "CI カーネル同期は dabao ターゲットでのみ利用できます。\"{0}\" には手動カーネルモードを使用してください。",
 	"App directory already exists: {0}": "アプリディレクトリは既に存在します: {0}",
 	"Ignoring invalid extra cargo features: {0}": "無効な追加 cargo フィーチャーを無視します: {0}",
 	"Baochip: {0} is {1} over the {2} limit for dabao. It will not run on the device.": "Baochip: {0} は dabao の上限 {2} を {1} 超えています。デバイス上では実行されません。",
@@ -302,5 +300,7 @@
 	"not in this project": "このプロジェクトにありません",
 	"These do not declare the board-{0} feature: {1}": "board-{0} 機能を宣言していません: {1}",
 	"No apps here declare the board-{0} feature.": "board-{0} 機能を宣言しているアプリはここにありません。",
-	"No crates here declare the board-{0} feature.": "board-{0} 機能を宣言しているクレートはここにありません。"
+	"No crates here declare the board-{0} feature.": "board-{0} 機能を宣言しているクレートはここにありません。",
+	"Flash the app only": "アプリのみをフラッシュ",
+	"{0} not found in {1}. Run a build first.": "{0} が {1} にありません。先にビルドしてください。"
 }

@@ -19,7 +19,10 @@ import * as vscode from 'vscode';
 
 const GITHUB_API_COMMITS = 'https://api.github.com/repos/betrusted-io/xous-core/commits/dev';
 // Exported for the real-world drift tests, which probe the endpoint for liveness.
-export const CI_BASE = 'https://ci.betrusted.io/latest-ci/baochip/dabao';
+const CI_ROOT = 'https://ci.betrusted.io/latest-ci/baochip';
+
+/** CI publishes one directory of images per board. */
+export const ciBase = (target: string) => `${CI_ROOT}/${target}`;
 
 /**
  * Fetches the latest xous-core commit hash from the GitHub API.
@@ -75,20 +78,22 @@ function clearStoredEtags(cacheDir: string): void {
 	fs.rmSync(path.join(cacheDir, KERNEL_ETAG_FILE), { force: true });
 }
 
-async function fetchKernelEtags(): Promise<{ loader: string | null; xous: string | null }> {
+async function fetchKernelEtags(
+	target: string,
+): Promise<{ loader: string | null; xous: string | null }> {
 	const [loader, xous] = await Promise.all([
-		fetchETag(`${CI_BASE}/loader.uf2`),
-		fetchETag(`${CI_BASE}/xous.uf2`),
+		fetchETag(`${ciBase(target)}/loader.uf2`),
+		fetchETag(`${ciBase(target)}/xous.uf2`),
 	]);
 	return { loader, xous };
 }
 
-async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
+async function kernelFilesUpToDate(cacheDir: string, target: string): Promise<boolean> {
 	// No etags file at all means the last download did not complete (it is invalidated up front and
 	// only rewritten on success), so the on-disk pair may be incoherent - do not trust it.
 	if (!fs.existsSync(path.join(cacheDir, KERNEL_ETAG_FILE))) return false;
 
-	const { loader: curLoader, xous: curXous } = await fetchKernelEtags();
+	const { loader: curLoader, xous: curXous } = await fetchKernelEtags(target);
 	// Current etags are unavailable (CI serves none, or we are offline): a completed cache cannot be
 	// validated, so trust it rather than re-downloading every online flash or hard-failing offline.
 	if (!curLoader || !curXous) return true;
@@ -100,7 +105,7 @@ async function kernelFilesUpToDate(cacheDir: string): Promise<boolean> {
 	return curLoader === stored.loader && curXous === stored.xous;
 }
 
-async function downloadKernelFiles(cacheDir: string): Promise<void> {
+async function downloadKernelFiles(cacheDir: string, target: string): Promise<void> {
 	fs.mkdirSync(cacheDir, { recursive: true });
 	// Invalidate the stored etags before touching any file: if a download fails partway, the
 	// on-disk pair is left incoherent (one new file, one old). With no etags surviving, that
@@ -117,8 +122,14 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
 			// Store the ETag returned by each GET (the etag of the exact bytes just written), not a
 			// separate HEAD afterwards - a HEAD could observe a newer CI publish and stamp the
 			// downloaded pair with etags that do not match its bytes, freezing a stale cache.
-			const loader = await downloadFile(`${CI_BASE}/loader.uf2`, path.join(cacheDir, 'loader.uf2'));
-			const xous = await downloadFile(`${CI_BASE}/xous.uf2`, path.join(cacheDir, 'xous.uf2'));
+			const loader = await downloadFile(
+				`${ciBase(target)}/loader.uf2`,
+				path.join(cacheDir, 'loader.uf2'),
+			);
+			const xous = await downloadFile(
+				`${ciBase(target)}/xous.uf2`,
+				path.join(cacheDir, 'xous.uf2'),
+			);
 			writeStoredEtags(cacheDir, { loader: loader ?? undefined, xous: xous ?? undefined });
 		},
 	);
@@ -130,11 +141,15 @@ async function downloadKernelFiles(cacheDir: string): Promise<void> {
  * Downloads from CI if needed (ci-sync), or reads from the user's folder (manual).
  * Returns null on failure.
  */
-export async function resolveKernelFiles(): Promise<{ loader: string; xous: string } | null> {
+/** Kernel images to flash, 'app-only' when the board keeps the kernel it has, null on failure. */
+export type KernelResolution = { loader: string; xous: string } | 'app-only';
+
+export async function resolveKernelFiles(): Promise<KernelResolution | null> {
 	// A fresh user can hit Flash before ever building, so the one-time mode prompt must
 	// happen here too, not only on the build path.
 	const mode = await ensureKernelModeConfigured();
 	if (!mode) return null;
+	if (mode === 'app-only') return 'app-only';
 
 	if (mode === 'manual') {
 		const folder = getKernelFilesPath();
@@ -160,29 +175,20 @@ export async function resolveKernelFiles(): Promise<{ loader: string; xous: stri
 		return { loader, xous };
 	}
 
-	// ci-sync: use cached files, downloading if not yet present.
-	// CI_BASE is dabao-only. A baosec CI path exists upstream, but which UF2 artifacts it
-	// carries is not yet known - so any other target must fail clearly here rather than
-	// silently flash dabao kernels onto a different board.
+	// ci-sync: use cached files, downloading if not yet present. Each board has its own CI
+	// directory and its own cache, so one board's kernel is never served for another.
 	const target = getBuildTarget();
-	if (target !== 'dabao') {
-		vscode.window.showErrorMessage(
-			vscode.l10n.t(
-				'CI kernel sync is only available for the dabao target. Use manual kernel mode for "{0}".',
-				target,
-			),
-		);
-		return null;
-	}
-	const cacheDir = path.join(getGlobalVenvRoot(), 'kernel');
+	const cacheDir = path.join(getGlobalVenvRoot(), 'kernel', target);
 	const loader = path.join(cacheDir, 'loader.uf2');
 	const xous = path.join(cacheDir, 'xous.uf2');
 
 	const needsDownload =
-		!fs.existsSync(loader) || !fs.existsSync(xous) || !(await kernelFilesUpToDate(cacheDir));
+		!fs.existsSync(loader) ||
+		!fs.existsSync(xous) ||
+		!(await kernelFilesUpToDate(cacheDir, target));
 	if (needsDownload) {
 		try {
-			await downloadKernelFiles(cacheDir);
+			await downloadKernelFiles(cacheDir, target);
 		} catch (e: unknown) {
 			const message = toMessage(e);
 			errorToast(vscode.l10n.t('Baochip: Failed to download kernel files.\n{0}', message));
@@ -204,17 +210,19 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 
 	const syncLabel = vscode.l10n.t('Sync to latest');
 	const manualLabel = vscode.l10n.t('Manage my own files');
+	const appOnlyLabel = vscode.l10n.t('Flash the app only');
 
 	const result = await vscode.window.showInformationMessage(
 		vscode.l10n.t('Set Up Kernel Files for Out-of-Tree Build'),
 		{
 			modal: true,
 			detail: vscode.l10n.t(
-				'- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.',
+				'- SYNC TO LATEST  (ci-sync)\n      Updates your Cargo.toml rev to the latest xous-core commit.\n      Downloads matching loader.uf2 + xous.uf2 from CI.\n      App and kernel are usually from the same commit (the CI kernel can lag briefly).\n\n- MANAGE MY OWN FILES  (manual)\n      Uses loader.uf2 + xous.uf2 from a folder you specify.\n      Does not change your Cargo.toml rev.\n\n- FLASH THE APP ONLY  (app-only)\n      Flashes your project image and nothing else.\n      Use when the board already has a kernel.',
 			),
 		},
 		syncLabel,
 		manualLabel,
+		appOnlyLabel,
 	);
 
 	if (!result) return undefined;
@@ -222,6 +230,7 @@ export async function ensureKernelModeConfigured(): Promise<KernelMode | undefin
 	const modeMap: Record<string, KernelMode> = {
 		[syncLabel]: 'ci-sync',
 		[manualLabel]: 'manual',
+		[appOnlyLabel]: 'app-only',
 	};
 	const resolvedMode = modeMap[result];
 	if (!resolvedMode) return undefined;

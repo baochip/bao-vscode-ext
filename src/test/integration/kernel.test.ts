@@ -24,13 +24,14 @@ const setCfg = (key: string, value: unknown) =>
 
 const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
-/** The ci-sync download cache inside the test host's global storage; wiped around each test. */
-function kernelCacheDir(): string {
-	return path.join(uvService.getGlobalVenvRoot(), 'kernel');
+/** The ci-sync download cache for a board, inside the test host's global storage. */
+function kernelCacheDir(target = 'dabao'): string {
+	return path.join(uvService.getGlobalVenvRoot(), 'kernel', target);
 }
 
+/** Wipes every board's cache, so one test's download cannot answer another's. */
 function wipeKernelCache(): void {
-	fs.rmSync(kernelCacheDir(), { recursive: true, force: true });
+	fs.rmSync(path.join(uvService.getGlobalVenvRoot(), 'kernel'), { recursive: true, force: true });
 }
 
 /** An out-of-tree root whose manifest pins xous-core, so the rev sync has something to update. */
@@ -194,8 +195,10 @@ suite('Kernel files service', () => {
 		// Compare against the persisted folder (Uri.fsPath can change drive-letter case on Windows).
 		const savedFolder = cfg().get<string>('outOfTree.kernelFilesPath') ?? '';
 		assert.ok(files, 'kernel files resolved in the same run');
-		assert.equal(files?.loader, path.join(savedFolder, 'loader.uf2'));
-		assert.equal(files?.xous, path.join(savedFolder, 'xous.uf2'));
+		assert.notEqual(files, 'app-only');
+		const kernel = files as { loader: string; xous: string } | null;
+		assert.equal(kernel?.loader, path.join(savedFolder, 'loader.uf2'));
+		assert.equal(kernel?.xous, path.join(savedFolder, 'xous.uf2'));
 		assert.equal(cfg().get<string>('outOfTree.kernelMode'), 'manual', 'choice persisted');
 	});
 
@@ -245,21 +248,30 @@ suite('Kernel files service', () => {
 		});
 	});
 
-	test('resolveKernelFiles (ci-sync) refuses a non-dabao target instead of serving dabao kernels', async () => {
+	test('resolveKernelFiles (ci-sync) fetches each board from its own CI directory', async () => {
 		await setCfg('outOfTree.kernelMode', 'ci-sync');
 		await setCfg('buildTarget', 'baosec');
-		const download = sandbox.stub(httpService, 'downloadFile');
-		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+		const download = sandbox
+			.stub(httpService, 'downloadFile')
+			.callsFake(async (_url: string, dest: string) => {
+				fs.mkdirSync(path.dirname(dest), { recursive: true });
+				fs.writeFileSync(dest, 'image', 'utf8');
+				return 'etag';
+			});
+		sandbox.stub(httpService, 'fetchETag').resolves('etag');
 
 		const files = await kernelService.resolveKernelFiles();
 
-		assert.equal(files, null);
-		assert.ok(download.notCalled, 'no dabao kernels downloaded for another board');
+		assert.notEqual(files, null, 'baosec syncs like any other board');
+		const urls = download.getCalls().map((c) => String(c.args[0]));
 		assert.ok(
-			errors
-				.getCalls()
-				.some((c) => String(c.args[0]).includes('only available for the dabao target')),
-			'clear dabao-only error shown',
+			urls.every((u) => u.includes('/baochip/baosec/')),
+			`downloads come from the baosec directory: ${urls.join(', ')}`,
+		);
+		const kernel = files as { loader: string; xous: string };
+		assert.ok(
+			kernel.loader.includes(path.join('kernel', 'baosec')),
+			'and are cached apart from another board',
 		);
 	});
 

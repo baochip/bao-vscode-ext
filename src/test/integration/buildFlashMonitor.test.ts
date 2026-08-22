@@ -83,7 +83,11 @@ suite('Build-Flash-Monitor pipeline', () => {
 
 		assert.ok(p.build.calledOnceWith(XOUS_ROOT, 'dabao', 'hello'), 'build with root/target/app');
 		assert.ok(p.flash.calledOnce, 'flash called');
-		assert.deepEqual(p.flash.firstCall.args, [XOUS_ROOT, undefined], 'flash without kernel files');
+		assert.deepEqual(
+			p.flash.firstCall.args,
+			[XOUS_ROOT, { mode: 'xous-core' }],
+			'flash without kernel files',
+		);
 		assert.ok(p.boot.calledOnce, 'boot called');
 		assert.ok(p.monitor.calledOnceWith('run'), 'monitor opened in run mode');
 		assert.ok(p.build.calledBefore(p.flash), 'build before flash');
@@ -193,7 +197,11 @@ suite('Build-Flash-Monitor pipeline', () => {
 		assert.ok(p.buildOot.calledOnceWith(OOT_ROOT), 'out-of-tree build ran');
 		assert.ok(p.build.notCalled, 'xtask build not used');
 		assert.ok(p.convert.calledOnceWith(OOT_ROOT), 'ELF to UF2 conversion ran');
-		assert.deepEqual(p.flash.firstCall.args, [OOT_ROOT, KERNEL_FILES], 'flash with kernel files');
+		assert.deepEqual(
+			p.flash.firstCall.args,
+			[OOT_ROOT, { mode: 'out-of-tree', kernelFiles: KERNEL_FILES }],
+			'flash with kernel files',
+		);
 		assert.ok(p.monitor.calledOnceWith('run'), 'monitor opened');
 	});
 

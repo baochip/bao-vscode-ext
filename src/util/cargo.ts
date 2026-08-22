@@ -174,6 +174,16 @@ const XOUS_GIT_RE = new RegExp(
 	`git\\s*=\\s*"${XOUS_CORE_REPO.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`,
 );
 
+/** The xous-core revision a manifest pins on its git dependencies, or null when it pins none. */
+export function parseXousCoreRev(cargoContent: string): string | null {
+	for (const match of cargoContent.matchAll(/\{([^}]*)\}/g)) {
+		const body = match[1];
+		if (!XOUS_GIT_RE.test(body)) continue;
+		const rev = body.match(/rev\s*=\s*"([^"]+)"/);
+		if (rev) return rev[1];
+	}
+	return null;
+}
 /**
  * Rewrite every xous-core git dependency to a path dependency into the checkout at `xousRoot`.
  * In-tree apps are members of the xous-core workspace, so sibling crates are referenced

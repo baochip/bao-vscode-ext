@@ -14,6 +14,7 @@ import {
 	parseCargoFeatures,
 	parseCargoPackageName,
 	parseWorkspaceMembers,
+	parseXousCoreRev,
 	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
@@ -480,4 +481,29 @@ test('parseCargoFeatures: a commented-out table header is not a features table',
 
 test('parseCargoFeatures: no features table yields nothing', () => {
 	assert.deepEqual(parseCargoFeatures('[package]\nname = "lib"\n'), []);
+});
+
+/* ------------------------------ parseXousCoreRev ------------------------------ */
+
+test('parseXousCoreRev: reads the pin from a xous-core git dependency', () => {
+	const toml = [
+		'[dependencies]',
+		'serde = "1"',
+		'bao1x-api = { git = "https://github.com/betrusted-io/xous-core", rev = "abc123def" }',
+	].join('\n');
+
+	assert.equal(parseXousCoreRev(toml), 'abc123def');
+});
+
+test('parseXousCoreRev: ignores revisions pinned on other repositories', () => {
+	const toml = '[dependencies]\nother = { git = "https://github.com/someone/else", rev = "zzz" }\n';
+
+	assert.equal(parseXousCoreRev(toml), null);
+});
+
+test('parseXousCoreRev: null when xous-core is pinned by branch instead', () => {
+	const toml =
+		'[dependencies]\nbao1x-api = { git = "https://github.com/betrusted-io/xous-core", branch = "main" }\n';
+
+	assert.equal(parseXousCoreRev(toml), null);
 });

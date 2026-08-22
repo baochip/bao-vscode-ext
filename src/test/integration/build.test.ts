@@ -376,6 +376,37 @@ suite('Build service', () => {
 		assert.ok(sent[0].includes('board-baosec'), `known target passes through: ${sent[0]}`);
 	});
 
+	test('runOutOfTreeBuildInTerminal builds a swap image for baosec, pinning the revision', async () => {
+		// baosec has no app region, so its project image is swap.uf2 - which the tool signs with
+		// the xous-core revision, taken from the manifest so it never has to run git itself.
+		await setCfg('buildTarget', 'baosec');
+		const root = tmpDir();
+		fs.writeFileSync(
+			path.join(root, 'Cargo.toml'),
+			`[package]\nname = "hello"\n\n[dependencies]\nbao1x-api = { git = "https://github.com/betrusted-io/xous-core", rev = "abc123" }\n`,
+			'utf8',
+		);
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		await buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+
+		assert.ok(sent[0].includes('--swap'), `swap image requested: ${sent[0]}`);
+		assert.ok(sent[0].includes('--git-rev'), `revision passed: ${sent[0]}`);
+		assert.ok(sent[0].includes('abc123'), `and it is the pinned one: ${sent[0]}`);
+	});
+
+	test('runOutOfTreeBuildInTerminal builds an app image for dabao, with no swap flag', async () => {
+		await setCfg('buildTarget', 'dabao');
+		const root = tmpDir();
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		await buildService.runOutOfTreeBuildInTerminal(root, ['hello']);
+
+		assert.ok(!sent[0].includes('--swap'), `dabao builds apps.uf2 as before: ${sent[0]}`);
+	});
+
 	/* ------------------------------ ensureBuildPrereqs ------------------------------ */
 
 	test('ensureBuildPrereqs: an app that does not declare the target board is rejected', async () => {

@@ -1,6 +1,8 @@
 ## [1.2.0] - 2026-08-22
 
 ### Added
+- Out-of-tree projects can build and flash for baosec: the build produces swap.uf2 rather than apps.uf2, and kernel sync fetches from the board's own CI directory
+- New kernel mode app-only, which flashes just the image your project builds and leaves the kernel already on the board in place
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
 - Warning when a built or flashed .uf2 is too big for its dabao flash region (oversized images are silently truncated and leave the board running no app)
 - Warning when rustc is not a stable build; nightly, beta, and dev toolchains are unsupported and now say so up front rather than failing in the toolchain download

@@ -3,7 +3,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { targetForBoardType } from '@constants';
-import { imagesForTarget, scanArtifacts, type Uf2Role } from '@services/artifactsService';
+import {
+	imagesForTarget,
+	projectImagePath,
+	scanArtifacts,
+	type Uf2Role,
+} from '@services/artifactsService';
 import { readBoardType } from '@services/boardTypeService';
 import {
 	getBuildTarget,
@@ -430,9 +435,15 @@ async function confirmBoardTypeMatches(dest: string): Promise<boolean> {
 	return picked === flashAnyway;
 }
 
+/** What to flash: an in-tree build's artifacts, or an out-of-tree project image with an
+ * optional kernel alongside it. */
+export type FlashPlan =
+	| { mode: 'xous-core' }
+	| { mode: 'out-of-tree'; kernelFiles?: { loader: string; xous: string } };
+
 export async function decideAndFlash(
 	root: string,
-	kernelFiles?: { loader: string; xous: string },
+	plan: FlashPlan = { mode: 'xous-core' },
 ): Promise<boolean> {
 	// Open the section before anything else in the flash step logs into it: the board type
 	// check and its uv lines belong under this header, not trailing the previous operation.
@@ -447,16 +458,17 @@ export async function decideAndFlash(
 
 	let files: string[];
 
-	if (kernelFiles) {
-		// Out-of-tree: flash kernel files + apps.uf2 from project root
-		const appsUf2 = path.join(root, 'apps.uf2');
-		if (!fs.existsSync(appsUf2)) {
+	if (plan.mode === 'out-of-tree') {
+		// The project image is what this build produced; the kernel comes with it unless the
+		// board already has one.
+		const image = projectImagePath('out-of-tree', root, getBuildTarget());
+		if (!fs.existsSync(image)) {
 			vscode.window.showErrorMessage(
-				vscode.l10n.t('apps.uf2 not found in {0}. Run a build first.', root),
+				vscode.l10n.t('{0} not found in {1}. Run a build first.', path.basename(image), root),
 			);
 			return false;
 		}
-		files = [kernelFiles.loader, kernelFiles.xous, appsUf2];
+		files = plan.kernelFiles ? [plan.kernelFiles.loader, plan.kernelFiles.xous, image] : [image];
 	} else {
 		// xous-core mode: discover artifacts from the build output
 		const { all } = await gatherArtifacts(root, getBuildTarget());

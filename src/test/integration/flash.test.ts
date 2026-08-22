@@ -322,7 +322,7 @@ suite('Flash service', () => {
 		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
-		const ok = await flashService.decideAndFlash(root, kernelFiles);
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree', kernelFiles });
 
 		assert.equal(ok, true);
 		assert.equal(fs.readFileSync(path.join(dest, 'loader.uf2'), 'utf8'), 'loader image');
@@ -342,7 +342,7 @@ suite('Flash service', () => {
 		await setCfg('flashLocation', tmpDir());
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 
-		const ok = await flashService.decideAndFlash(root, kernelFiles);
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree', kernelFiles });
 
 		assert.equal(ok, false);
 		assert.ok(
@@ -586,6 +586,74 @@ suite('Flash service', () => {
 		assert.ok(
 			lines.some((l) => l.includes('board type check skipped')),
 			`the skip is logged: ${lines.join(' | ')}`,
+		);
+	});
+
+	/* ------------------------------ out-of-tree flash plans ------------------------------ */
+
+	test('an out-of-tree flash sends the kernel plus the project image', async () => {
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'apps.uf2'), 'app image', 'utf8');
+		const kernelDir = tmpDir();
+		const kernelFiles = {
+			loader: path.join(kernelDir, 'loader.uf2'),
+			xous: path.join(kernelDir, 'xous.uf2'),
+		};
+		for (const p of Object.values(kernelFiles)) fs.writeFileSync(p, 'kernel', 'utf8');
+		const dest = tmpDir();
+		await setCfg('flashLocation', dest);
+		await setCfg('buildTarget', 'dabao');
+		sandbox.stub(vscode.window, 'showInformationMessage');
+
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree', kernelFiles });
+
+		assert.equal(ok, true);
+		for (const name of ['loader.uf2', 'xous.uf2', 'apps.uf2']) {
+			assert.ok(fs.existsSync(path.join(dest, name)), `${name} flashed`);
+		}
+	});
+
+	test('app-only sends the project image and leaves the kernel alone', async () => {
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'apps.uf2'), 'app image', 'utf8');
+		const dest = tmpDir();
+		await setCfg('flashLocation', dest);
+		await setCfg('buildTarget', 'dabao');
+		sandbox.stub(vscode.window, 'showInformationMessage');
+
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree' });
+
+		assert.equal(ok, true);
+		assert.deepEqual(fs.readdirSync(dest), ['apps.uf2'], 'nothing else written to the board');
+	});
+
+	test('an out-of-tree baosec flash sends swap.uf2 as the project image', async () => {
+		const root = tmpDir();
+		fs.writeFileSync(path.join(root, 'swap.uf2'), 'swap image', 'utf8');
+		const dest = tmpDir();
+		await setCfg('flashLocation', dest);
+		await setCfg('buildTarget', 'baosec');
+		sandbox.stub(vscode.window, 'showInformationMessage');
+
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree' });
+
+		assert.equal(ok, true);
+		assert.deepEqual(fs.readdirSync(dest), ['swap.uf2'], 'baosec builds swap, not apps');
+	});
+
+	test('a missing project image names the file the target actually builds', async () => {
+		const root = tmpDir(); // nothing built
+		const dest = tmpDir();
+		await setCfg('flashLocation', dest);
+		await setCfg('buildTarget', 'baosec');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		const ok = await flashService.decideAndFlash(root, { mode: 'out-of-tree' });
+
+		assert.equal(ok, false);
+		assert.ok(
+			String(errors.firstCall.args[0]).includes('swap.uf2'),
+			`the message names swap.uf2 on baosec: ${errors.firstCall.args[0]}`,
 		);
 	});
 });

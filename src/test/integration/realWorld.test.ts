@@ -5,7 +5,7 @@ import * as path from 'node:path';
 import { XOUS_CORE_REPO, XOUS_TARGET_TRIPLE } from '@constants';
 import * as appService from '@services/appService';
 import { fetchETag, fetchJson } from '@services/httpService';
-import { CI_BASE } from '@services/kernelService';
+import { ciBase } from '@services/kernelService';
 import { BETRUSTED_RUST_RELEASES } from '@services/toolkitService';
 import { selectXousToolkitAsset } from '@util/rust';
 import { activateExtension, cleanupTmpDirs, tmpDir } from './helpers';
@@ -77,7 +77,7 @@ suite('Real-world drift (opt-in: BAO_TEST_REAL=1)', function () {
 
 	test('the kernel CI endpoint still serves loader and xous images with ETags', async () => {
 		for (const file of ['loader.uf2', 'xous.uf2']) {
-			assert.ok(await fetchETag(`${CI_BASE}/${file}`), `ETag present for ${file}`);
+			assert.ok(await fetchETag(`${ciBase('dabao')}/${file}`), `ETag present for ${file}`);
 		}
 	});
 
