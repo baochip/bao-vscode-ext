@@ -11,10 +11,9 @@
 	"Creating app \"{0}\"...": "App „{0}“ wird erstellt...",
 	"Will be created under xous-core/{0}/<name>/": "Wird unter xous-core/{0}/<name>/ erstellt.",
 	"New Baochip App Name": "Neuer Baochip-App-Name",
-	"These apps were not found under {0}: {1}": "Diese Apps wurden in {0} nicht gefunden: {1}",
-	"App \"{0}\" was not found under {1}.": "App „{0}“ wurde in {1} nicht gefunden.",
 	"No apps found under {0}. Create one first.": "Keine Apps unter {0} gefunden. Bitte zuerst eine erstellen.",
 	"Baochip app set to: {0}": "Baochip-App auf {0} gesetzt.",
+	"Baochip app selection cleared.": "Baochip-App-Auswahl gelöscht.",
 	"Boot command failed: {0}": "Boot-Befehl fehlgeschlagen: {0}",
 	"Sending 'boot' to {0} @ {1}...": "'boot' wird an {0} @ {1} gesendet...",
 	"Could not check whether {0} disappeared.": "Konnte nicht prüfen, ob {0} verschwunden ist.",
@@ -298,5 +297,10 @@
 	"Flash anyway": "Trotzdem flashen",
 	"Flash and stop asking": "Flashen und nicht mehr fragen",
 	"Board type read from {0}.": "Boardtyp von {0} gelesen.",
-	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "Das Board an {0} ist vom Typ {1}, das Hardware-Ziel ist aber {2}. Möchten Sie wirklich weiter flashen?"
+	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "Das Board an {0} ist vom Typ {1}, das Hardware-Ziel ist aber {2}. Möchten Sie wirklich weiter flashen?",
+	"invalid for {0}": "ungültig für {0}",
+	"not in this project": "nicht in diesem Projekt",
+	"These do not declare the board-{0} feature: {1}": "Diese deklarieren das Feature board-{0} nicht: {1}",
+	"No apps here declare the board-{0} feature.": "Keine App hier deklariert das Feature board-{0}.",
+	"No crates here declare the board-{0} feature.": "Kein Crate hier deklariert das Feature board-{0}."
 }

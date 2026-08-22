@@ -1,5 +1,5 @@
 import { Commands } from '@commands/commandIds';
-import { hasCrateChoice, unknownAppNames } from '@services/appService';
+import { currentAppProblems, describeAppProblems, hasCrateChoice } from '@services/appService';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -118,11 +118,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		items.buildTarget.show();
 
 		// Which crates get built - hidden only when there is nothing to choose and nothing wrong
-		const unknownApps = unknownAppNames();
-		if (hasCrateChoice() || unknownApps.length > 0) {
-			if (unknownApps.length > 0) {
+		const appIssues = currentAppProblems();
+		if (hasCrateChoice() || appIssues.length > 0) {
+			if (appIssues.length > 0) {
 				items.app.text = `$(warning) ${app}`;
-				items.app.tooltip = vscode.l10n.t('Not found in this project: {0}', unknownApps.join(', '));
+				items.app.tooltip = describeAppProblems(appIssues, target);
 			} else {
 				items.app.text = app
 					? `$(package) ${app}`

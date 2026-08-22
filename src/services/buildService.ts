@@ -1,6 +1,9 @@
-import * as path from 'node:path';
-import { BUILD_TARGETS, getAppsDir, XOUS_TARGET_TRIPLE } from '@constants';
-import { appExists, ensureOutOfTreeAppSelection, missingApps } from '@services/appService';
+import { BUILD_TARGETS, XOUS_TARGET_TRIPLE } from '@constants';
+import {
+	appProblems,
+	describeAppProblems,
+	ensureOutOfTreeAppSelection,
+} from '@services/appService';
 import { appsUf2Path } from '@services/artifactsService';
 import { ensureBuildTarget } from '@services/buildTargetService';
 import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
@@ -51,21 +54,9 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {
-		if (!appExists(root, app, target)) {
-			const missing = missingApps(root, app, target);
-			vscode.window.showErrorMessage(
-				missing.length > 1
-					? vscode.l10n.t(
-							'These apps were not found under {0}: {1}',
-							path.join(root, getAppsDir(target)),
-							missing.join(', '),
-						)
-					: vscode.l10n.t(
-							'App "{0}" was not found under {1}.',
-							missing[0] || app,
-							path.join(root, getAppsDir(target)),
-						),
-			);
+		const problems = appProblems(root, app, target);
+		if (problems.length > 0) {
+			vscode.window.showErrorMessage(describeAppProblems(problems, target));
 			return;
 		}
 	}

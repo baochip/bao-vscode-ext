@@ -11,6 +11,7 @@ import {
 	hasWorkspaceTable,
 	isValidCrateName,
 	isValidFeatureName,
+	parseCargoFeatures,
 	parseCargoPackageName,
 	parseWorkspaceMembers,
 	readCargoPackageName,
@@ -427,4 +428,56 @@ test('discoverOutOfTreeCrates: a folder with no Cargo.toml yields nothing and no
 		const result = discoverOutOfTreeCrates(dir);
 		assert.deepEqual(result, { crates: [], wildcardMembers: [], unreadableMembers: [] });
 	});
+});
+
+/* ------------------------------ parseCargoFeatures ------------------------------ */
+
+test('parseCargoFeatures: reads an empty declaration, as apps use to satisfy the board flag', () => {
+	const toml = [
+		'[package]',
+		'name = "helloworld"',
+		'',
+		'[features]',
+		'bao1x = ["utralib/bao1x"]',
+		'board-dabao = []',
+		'default = []',
+	].join('\n');
+
+	assert.deepEqual(parseCargoFeatures(toml), ['bao1x', 'board-dabao', 'default']);
+});
+
+test('parseCargoFeatures: skips the entries inside a multi-line value', () => {
+	const toml = [
+		'[features]',
+		'board-dabao = [',
+		'    "bao1x-hal-service/board-dabao",',
+		'    # "bao1x-hal/debug-print-uart",',
+		'    "usb-bao1x/board-dabao",',
+		']',
+		'usb = []',
+	].join('\n');
+
+	assert.deepEqual(parseCargoFeatures(toml), ['board-dabao', 'usb']);
+});
+
+test('parseCargoFeatures: stops at the next table', () => {
+	const toml = [
+		'[features]',
+		'board-dabao = []',
+		'',
+		'[dependencies]',
+		'utralib = { path = "../utralib" }',
+	].join('\n');
+
+	assert.deepEqual(parseCargoFeatures(toml), ['board-dabao']);
+});
+
+test('parseCargoFeatures: a commented-out table header is not a features table', () => {
+	const toml = ['[package]', 'name = "lib"', '# [features]', '# board-dabao = []'].join('\n');
+
+	assert.deepEqual(parseCargoFeatures(toml), []);
+});
+
+test('parseCargoFeatures: no features table yields nothing', () => {
+	assert.deepEqual(parseCargoFeatures('[package]\nname = "lib"\n'), []);
 });

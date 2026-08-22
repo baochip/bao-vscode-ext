@@ -11,10 +11,9 @@
 	"Creating app \"{0}\"...": "正在建立應用「{0}」...",
 	"Will be created under xous-core/{0}/<name>/": "將建立於 xous-core/{0}/<name>/ 下。",
 	"New Baochip App Name": "新的 Baochip 應用名稱",
-	"These apps were not found under {0}: {1}": "在 {0} 中找不到以下應用：{1}",
-	"App \"{0}\" was not found under {1}.": "應用「{0}」未在 {1} 中找到。",
 	"No apps found under {0}. Create one first.": "{0} 下未找到應用，請先建立一個。",
 	"Baochip app set to: {0}": "已將 Baochip 應用設定為 {0}",
+	"Baochip app selection cleared.": "已清除 Baochip 應用選擇。",
 	"Boot command failed: {0}": "Boot 指令執行失敗：{0}",
 	"Sending 'boot' to {0} @ {1}...": "正在傳送 'boot' 至 {0}（{1}）...",
 	"Could not check whether {0} disappeared.": "無法檢查 {0} 是否已消失。",
@@ -298,5 +297,10 @@
 	"Flash anyway": "仍然燒錄",
 	"Flash and stop asking": "燒錄並不再詢問",
 	"Board type read from {0}.": "板子類型讀取自 {0}。",
-	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} 處的板子類型為 {1}，但硬體目標是 {2}。確定要繼續燒錄嗎？"
+	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} 處的板子類型為 {1}，但硬體目標是 {2}。確定要繼續燒錄嗎？",
+	"invalid for {0}": "對 {0} 無效",
+	"not in this project": "不在本專案中",
+	"These do not declare the board-{0} feature: {1}": "以下未宣告 board-{0} 功能：{1}",
+	"No apps here declare the board-{0} feature.": "此處沒有宣告 board-{0} 功能的應用。",
+	"No crates here declare the board-{0} feature.": "此處沒有宣告 board-{0} 功能的 crate。"
 }

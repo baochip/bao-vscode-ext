@@ -11,10 +11,9 @@
 	"Creating app \"{0}\"...": "アプリ「{0}」を作成中...",
 	"Will be created under xous-core/{0}/<name>/": "xous-core/{0}/<name>/ に作成されます。",
 	"New Baochip App Name": "新しい Baochip アプリ名",
-	"These apps were not found under {0}: {1}": "これらのアプリが {0} に見つかりませんでした: {1}",
-	"App \"{0}\" was not found under {1}.": "アプリ「{0}」は {1} に見つかりませんでした。",
 	"No apps found under {0}. Create one first.": "{0} 配下にアプリが見つかりません。先に作成してください。",
 	"Baochip app set to: {0}": "Baochip アプリを {0} に設定しました。",
+	"Baochip app selection cleared.": "Baochip アプリの選択をクリアしました。",
 	"Boot command failed: {0}": "boot コマンドに失敗しました: {0}",
 	"Sending 'boot' to {0} @ {1}...": "'boot' を {0}（{1}）へ送信中...",
 	"Could not check whether {0} disappeared.": "{0} が消えたかどうかを確認できませんでした。",
@@ -298,5 +297,10 @@
 	"Flash anyway": "このままフラッシュ",
 	"Flash and stop asking": "フラッシュして今後は確認しない",
 	"Board type read from {0}.": "ボードタイプは {0} から読み取りました。",
-	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} のボードはタイプ {1} ですが、ハードウェアターゲットは {2} です。フラッシュを続行してもよろしいですか?"
+	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} のボードはタイプ {1} ですが、ハードウェアターゲットは {2} です。フラッシュを続行してもよろしいですか?",
+	"invalid for {0}": "{0} では無効",
+	"not in this project": "このプロジェクトにありません",
+	"These do not declare the board-{0} feature: {1}": "board-{0} 機能を宣言していません: {1}",
+	"No apps here declare the board-{0} feature.": "board-{0} 機能を宣言しているアプリはここにありません。",
+	"No crates here declare the board-{0} feature.": "board-{0} 機能を宣言しているクレートはここにありません。"
 }

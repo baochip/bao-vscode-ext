@@ -69,6 +69,8 @@ export interface FakeXousCoreOptions {
 	target?: string;
 	/** App directories to create (each gets a Cargo.toml). Default ['hello']. */
 	apps?: string[];
+	/** Apps created without a board-<target> feature, i.e. ones cargo could not build here. */
+	unsupportedApps?: string[];
 	/** Also create target/<triple>/release/{loader,xous,apps}.uf2 dummy artifacts. */
 	withArtifacts?: boolean;
 }
@@ -89,15 +91,19 @@ export function makeFakeXousCore(root: string, opts: FakeXousCoreOptions = {}): 
 	const appsDirName = `apps-${target}`;
 	const appsDir = path.join(root, appsDirName);
 
-	for (const app of apps) {
+	// A real app declares the board feature xtask passes it; without it cargo refuses the build.
+	const writeApp = (app: string, declaresBoard: boolean) => {
 		const dir = path.join(appsDir, app);
 		fs.mkdirSync(dir, { recursive: true });
+		const features = declaresBoard ? `\n[features]\nboard-${target} = []\n` : '';
 		fs.writeFileSync(
 			path.join(dir, 'Cargo.toml'),
-			`[package]\nname = "${app}"\nversion = "0.1.0"\nedition = "2021"\n`,
+			`[package]\nname = "${app}"\nversion = "0.1.0"\nedition = "2021"\n${features}`,
 			'utf8',
 		);
-	}
+	};
+	for (const app of apps) writeApp(app, true);
+	for (const app of opts.unsupportedApps ?? []) writeApp(app, false);
 
 	const members = apps.map((a) => `  "${appsDirName}/${a}",`).join('\n');
 	fs.writeFileSync(
@@ -122,13 +128,14 @@ export function makeFakeXousCore(root: string, opts: FakeXousCoreOptions = {}): 
  * An out-of-tree cargo workspace: a virtual root listing `crates`, each under apps/.
  * Members are written in the given order, which is the order discovery returns them in.
  */
-export function makeFakeWorkspace(root: string, crates: string[]): string {
+export function makeFakeWorkspace(root: string, crates: string[], target = 'dabao'): string {
+	// Crates declare the board feature the build passes them, as a real Baochip crate does.
 	for (const crate of crates) {
 		const dir = path.join(root, 'apps', crate);
 		fs.mkdirSync(dir, { recursive: true });
 		fs.writeFileSync(
 			path.join(dir, 'Cargo.toml'),
-			`[package]\nname = "${crate}"\nversion = "0.1.0"\nedition = "2021"\n`,
+			`[package]\nname = "${crate}"\nversion = "0.1.0"\nedition = "2021"\n\n[features]\nboard-${target} = []\n`,
 			'utf8',
 		);
 	}

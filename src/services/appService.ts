@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { Commands } from '@commands/commandIds';
-import { BUILD_TARGETS, getAppsDir } from '@constants';
+import { ALL_APPS_DIRS, BUILD_TARGETS, getAppsDir } from '@constants';
 import { ensureBuildTarget } from '@services/buildTargetService';
 import {
 	getBuildTarget,
@@ -9,7 +8,7 @@ import {
 	getXousCorePath,
 	setXousAppName,
 } from '@services/configService';
-import { warn } from '@services/logService';
+import { getBaochipChannel, warn } from '@services/logService';
 import {
 	findOutOfTreeRoot,
 	findXousCoreInWorkspace,
@@ -24,6 +23,7 @@ import {
 	addWorkspaceMemberToToml,
 	discoverOutOfTreeCrates,
 	parseWorkspaceMembers,
+	readCargoFeatures,
 	readCargoPackageName,
 	rewriteXousGitDepsToPaths,
 	transformAppCargoToml,
@@ -41,26 +41,110 @@ export function hasCrateChoice(): boolean {
 	return crates.length > 1 || wildcardMembers.length > 0 || unreadableMembers.length > 0;
 }
 
-/** Names in the setting matching no crate here. Empty when the crates cannot be determined. */
-export function unknownAppNames(): string[] {
-	const names = splitAppNames(getXousAppName());
-	if (names.length === 0) return [];
+export type AppStatus = 'ok' | 'wrong-board' | 'missing';
+export type AppProblem = { name: string; status: Exclude<AppStatus, 'ok'> };
+
+/**
+ * Every app in the tree, split by whether its manifest declares the target's board feature.
+ * Apps live under any of the apps-* directories; which one is not the authority, the feature is,
+ * because that is what cargo is handed (`--features board-<target>`) and will reject.
+ */
+function classifyApps(xousRoot: string, target: string): { ok: string[]; wrongBoard: string[] } {
+	const declares = new Map<string, boolean>();
+
+	for (const appsDir of ALL_APPS_DIRS) {
+		const dir = path.join(xousRoot, appsDir);
+		if (!isDirectory(dir)) continue;
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			if (!entry.isDirectory()) continue;
+			const appDir = path.join(dir, entry.name);
+			if (!hasCargoToml(appDir)) continue;
+			const ok = readCargoFeatures(path.join(appDir, 'Cargo.toml')).includes(`board-${target}`);
+			// the same name under two apps-* dirs counts as buildable if either copy declares it
+			declares.set(entry.name, ok || declares.get(entry.name) === true);
+		}
+	}
+
+	const sorted = (names: string[]) => names.sort((a, b) => a.localeCompare(b));
+	return {
+		ok: sorted([...declares].filter(([, ok]) => ok).map(([name]) => name)),
+		wrongBoard: sorted([...declares].filter(([, ok]) => !ok).map(([name]) => name)),
+	};
+}
+type Classified = { ok: string[]; wrongBoard: string[] };
+
+/** Out-of-tree crates, split the same way: by whether the manifest declares the board feature. */
+function classifyCrates(root: string, target: string): Classified {
+	const ok: string[] = [];
+	const wrongBoard: string[] = [];
+	for (const crate of discoverOutOfTreeCrates(root).crates) {
+		const declares = readCargoFeatures(crate.manifestPath).includes(`board-${target}`);
+		(declares ? ok : wrongBoard).push(crate.name);
+	}
+	const sorted = (names: string[]) => names.sort((a, b) => a.localeCompare(b));
+	return { ok: sorted(ok), wrongBoard: sorted(wrongBoard) };
+}
+
+/** Configured names that are not buildable, and why. */
+function problemsFrom({ ok, wrongBoard }: Classified, appNames: string): AppProblem[] {
+	return splitAppNames(appNames)
+		.filter((name) => !ok.includes(name))
+		.map((name) => ({
+			name,
+			status: wrongBoard.includes(name) ? ('wrong-board' as const) : ('missing' as const),
+		}));
+}
+
+/** Why each configured name cannot be built for `target` in a xous-core tree. */
+export function appProblems(xousRoot: string, appNames: string, target: string): AppProblem[] {
+	return problemsFrom(classifyApps(xousRoot, target), appNames);
+}
+
+/** Why each configured name cannot be built for `target` out of tree. */
+export function crateProblems(root: string, appNames: string, target: string): AppProblem[] {
+	return problemsFrom(classifyCrates(root, target), appNames);
+}
+
+/** One message covering both ways a selected name can fail to build here. */
+export function describeAppProblems(problems: AppProblem[], target: string): string {
+	const named = (status: AppProblem['status']) =>
+		problems
+			.filter((p) => p.status === status)
+			.map((p) => p.name)
+			.join(', ');
+
+	const wrongBoard = named('wrong-board');
+	const missing = named('missing');
+	return [
+		wrongBoard &&
+			vscode.l10n.t('These do not declare the board-{0} feature: {1}', target, wrongBoard),
+		missing && vscode.l10n.t('Not found in this project: {0}', missing),
+	]
+		.filter(Boolean)
+		.join(' ');
+}
+
+/**
+ * What is wrong with the current app selection, if anything. Empty while there is nothing to
+ * check against: no target picked, no project found, or a project whose crates cannot be read.
+ */
+export function currentAppProblems(): AppProblem[] {
+	if (splitAppNames(getXousAppName()).length === 0) return [];
+
+	const target = getBuildTarget();
+	if (!target) return []; // nothing to compare against until a hardware target is picked
 
 	if (getProjectMode() === 'out-of-tree') {
 		const root = findOutOfTreeRoot();
 		if (!root) return [];
-		const known = discoverOutOfTreeCrates(root).crates.map((crate) => crate.name);
-		if (known.length === 0) return [];
-		return names.filter((name) => !known.includes(name));
+		if (discoverOutOfTreeCrates(root).crates.length === 0) return [];
+		return crateProblems(root, getXousAppName(), target);
 	}
 
 	const root = findXousCoreInWorkspace() || getXousCorePath();
 	if (!root) return [];
-	const target = getBuildTarget();
-	if (!target) return []; // nothing to check against until a hardware target is picked
-	return missingApps(root, getXousAppName(), target);
+	return appProblems(root, getXousAppName(), target);
 }
-
 /** Crate names an out-of-tree project can build, warning about members it had to skip. */
 export function listOutOfTreeCrates(root: string): string[] {
 	const { crates, wildcardMembers, unreadableMembers } = discoverOutOfTreeCrates(root);
@@ -90,16 +174,13 @@ export async function ensureOutOfTreeAppSelection(root: string): Promise<string[
 	const selected = splitAppNames(getXousAppName());
 	if (selected.length > 0) {
 		// Checked here so a stale name gets this message rather than cargo's package-ID error.
-		const unknown = unknownAppNames();
-		if (unknown.length > 0) {
-			vscode.window.showErrorMessage(
-				vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
-			);
+		const problems = currentAppProblems();
+		if (problems.length > 0) {
+			vscode.window.showErrorMessage(describeAppProblems(problems, getBuildTarget()));
 			return undefined;
 		}
 		return selected;
 	}
-
 	const available = listOutOfTreeCrates(root);
 	if (available.length === 0) {
 		// listOutOfTreeCrates already said why when it could; only add the vague message otherwise.
@@ -119,36 +200,58 @@ export async function ensureOutOfTreeAppSelection(root: string): Promise<string[
 	return picked ? splitAppNames(picked) : undefined;
 }
 
+/** Apps in the tree that can build for `target`, i.e. that declare its board feature. */
 export async function listBaoApps(xousRoot: string, target: string): Promise<string[]> {
-	const appsDir = path.join(xousRoot, getAppsDir(target));
-	if (!isDirectory(appsDir)) return [];
-	const entries = fs.readdirSync(appsDir, { withFileTypes: true });
-	return entries
-		.filter((e) => e.isDirectory())
-		.map((e) => e.name)
-		.filter((name) => hasCargoToml(path.join(appsDir, name)))
-		.sort((a, b) => a.localeCompare(b));
+	return classifyApps(xousRoot, target).ok;
 }
 
 /**
- * Multi-select over `available`, pre-checked from the current setting and saved back
- * space-separated. Selecting nothing leaves the setting alone rather than clearing it.
+ * Multi-select over what can actually be built, saved back space-separated. Confirming with
+ * nothing checked clears the selection; dismissing the picker leaves it untouched.
+ *
+ * Anything selected that cannot be built here is listed too, checked and labelled with why:
+ * seeing it is how a wrong target announces itself, and unchecking is how it goes away. Leaving
+ * one checked keeps it, since only the user knows whether the app or the target was the mistake.
  */
 async function pickAndSaveApps(
-	available: string[],
+	buildable: string[],
+	problems: AppProblem[],
+	target: string,
 	placeHolder: string,
 ): Promise<string | undefined> {
 	const current = splitAppNames(getXousAppName());
 	const picked = await vscode.window.showQuickPick(
-		available.map((name) => ({ label: name, picked: current.includes(name) })),
+		[
+			...buildable.map((name) => ({ label: name, picked: current.includes(name) })),
+			...problems.map((problem) => ({
+				label: problem.name,
+				picked: true,
+				description:
+					problem.status === 'wrong-board'
+						? vscode.l10n.t('invalid for {0}', target)
+						: vscode.l10n.t('not in this project'),
+			})),
+		],
 		{ placeHolder, canPickMany: true },
 	);
-	if (!picked || picked.length === 0) return undefined;
+	if (!picked) return undefined; // dismissed, which is not a decision about the setting
 
 	const selection = picked.map((item) => item.label).join(' ');
 	await setXousAppName(selection);
-	vscode.window.showInformationMessage(vscode.l10n.t('Baochip app set to: {0}', selection));
+	vscode.window.showInformationMessage(
+		selection
+			? vscode.l10n.t('Baochip app set to: {0}', selection)
+			: vscode.l10n.t('Baochip app selection cleared.'),
+	);
 	return selection;
+}
+
+/** Note what was left out of the picker, so an app missing from the list is still explainable. */
+function logUnbuildable(names: string[], target: string): void {
+	if (names.length === 0) return;
+	getBaochipChannel().appendLine(
+		`[bao] not offered for ${target} (no board-${target} feature): ${names.join(', ')}`,
+	);
 }
 
 /** Pick which crates an out-of-tree project builds. */
@@ -162,7 +265,21 @@ async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
 		return undefined;
 	}
 
-	return pickAndSaveApps(crates, vscode.l10n.t('Select crate'));
+	const target = await ensureBuildTarget();
+	if (!target) return undefined;
+
+	const { ok, wrongBoard } = classifyCrates(root, target);
+	logUnbuildable(wrongBoard, target);
+	const problems = crateProblems(root, getXousAppName(), target);
+	// Nothing buildable is still worth opening for: it is the only way to uncheck what is set.
+	if (ok.length === 0 && problems.length === 0) {
+		vscode.window.showWarningMessage(
+			vscode.l10n.t('No crates here declare the board-{0} feature.', target),
+		);
+		return undefined;
+	}
+
+	return pickAndSaveApps(ok, problems, target, vscode.l10n.t('Select crate'));
 }
 
 /**
@@ -170,20 +287,6 @@ async function promptAndSaveOutOfTreeCrate(): Promise<string | undefined> {
  * Returns undefined if nothing is available or the user cancels.
  */
 export async function promptAndSaveApp(): Promise<string | undefined> {
-	// picking would overwrite a setting the user may have meant
-	const unknown = unknownAppNames();
-	if (unknown.length > 0) {
-		const settingsLabel = vscode.l10n.t('Open Baochip Settings');
-		const choice = await vscode.window.showWarningMessage(
-			vscode.l10n.t('Not found in this project: {0}', unknown.join(', ')),
-			settingsLabel,
-		);
-		if (choice === settingsLabel) {
-			await vscode.commands.executeCommand(Commands.openSettings);
-		}
-		return undefined;
-	}
-
 	if (getProjectMode() === 'out-of-tree') return promptAndSaveOutOfTreeCrate();
 
 	const root = await resolveXousRootOrNotify();
@@ -196,32 +299,25 @@ export async function promptAndSaveApp(): Promise<string | undefined> {
 
 	const target = await ensureBuildTarget();
 	if (!target) return undefined;
-	const apps = await listBaoApps(effectiveRoot, target);
-	if (apps.length === 0) {
+
+	const { ok, wrongBoard } = classifyApps(effectiveRoot, target);
+	logUnbuildable(wrongBoard, target);
+	const problems = appProblems(effectiveRoot, getXousAppName(), target);
+	// Nothing buildable is still worth opening for: it is the only way to uncheck what is set.
+	if (ok.length === 0 && problems.length === 0) {
 		vscode.window.showWarningMessage(
-			vscode.l10n.t(
-				'No apps found under {0}. Create one first.',
-				path.join(effectiveRoot, getAppsDir(target)),
-			),
+			wrongBoard.length > 0
+				? vscode.l10n.t('No apps here declare the board-{0} feature.', target)
+				: vscode.l10n.t(
+						'No apps found under {0}. Create one first.',
+						path.join(effectiveRoot, getAppsDir(target)),
+					),
 		);
 		return undefined;
 	}
 
-	return pickAndSaveApps(apps, vscode.l10n.t('Select app'));
+	return pickAndSaveApps(ok, problems, target, vscode.l10n.t('Select app'));
 }
-
-export function missingApps(xousRoot: string, appNames: string, target: string): string[] {
-	const appsDir = path.join(xousRoot, getAppsDir(target));
-	return splitAppNames(appNames).filter((n) => {
-		const dir = path.join(appsDir, n);
-		return !(isDirectory(dir) && hasCargoToml(dir));
-	});
-}
-
-export function appExists(xousRoot: string, appNames: string, target: string): boolean {
-	return missingApps(xousRoot, appNames, target).length === 0;
-}
-
 /* ------------------------------ workspace helpers ------------------------------ */
 
 function readWorkspaceMembers(xousRoot: string): string[] {

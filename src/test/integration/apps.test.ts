@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { XOUS_CORE_REPO } from '@constants';
 import * as appService from '@services/appService';
 import * as kernelService from '@services/kernelService';
+import * as logService from '@services/logService';
 import * as outOfTreeScaffoldService from '@services/outOfTreeScaffoldService';
 import * as projectModeService from '@services/projectModeService';
 import * as uvService from '@services/uvService';
@@ -15,6 +16,7 @@ import * as vscode from 'vscode';
 import {
 	activateExtension,
 	cleanupTmpDirs,
+	fakeChannel,
 	makeFakeWorkspace,
 	makeFakeXousCore,
 	resetBaochipConfig,
@@ -58,16 +60,17 @@ suite('App service and scaffolding', () => {
 	test('listBaoApps is empty when the apps directory does not exist', async () => {
 		assert.deepEqual(await appService.listBaoApps(tmpDir(), 'dabao'), []);
 	});
+	test('appProblems separates a missing app from one built for another board', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['hello', 'world'],
+			unsupportedApps: ['other_board'],
+		});
 
-	test('missingApps/appExists handle multi-app strings and extra whitespace', async () => {
-		const { root } = makeFakeXousCore(tmpDir(), { apps: ['hello', 'world'] });
-
-		assert.deepEqual(appService.missingApps(root, 'hello ghost world phantom', 'dabao'), [
-			'ghost',
-			'phantom',
+		assert.deepEqual(appService.appProblems(root, ' hello  world ', 'dabao'), [], 'whitespace ok');
+		assert.deepEqual(appService.appProblems(root, 'hello ghost other_board', 'dabao'), [
+			{ name: 'ghost', status: 'missing' },
+			{ name: 'other_board', status: 'wrong-board' },
 		]);
-		assert.equal(appService.appExists(root, ' hello  world ', 'dabao'), true);
-		assert.equal(appService.appExists(root, 'hello ghost', 'dabao'), false);
 	});
 
 	/* ------------------------------ promptAndSaveApp ------------------------------ */
@@ -148,49 +151,87 @@ suite('App service and scaffolding', () => {
 		assert.equal(cfg().get<string>('xousAppName'), 'alpha zeta');
 	});
 
-	test('promptAndSaveApp leaves the setting alone when nothing is picked', async () => {
+	test('promptAndSaveApp leaves the setting alone when the picker is dismissed', async () => {
 		const { root } = makeFakeXousCore(tmpDir(), { apps: ['alpha', 'zeta'] });
 		await setCfg('buildMode', 'xous-core');
 		await setCfg('xousAppName', 'alpha zeta');
 		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
 		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
-		pick.resolves([]);
+		pick.resolves(undefined);
 
 		const result = await appService.promptAndSaveApp();
 
 		assert.equal(result, undefined);
 		assert.equal(cfg().get<string>('xousAppName'), 'alpha zeta', 'selection not cleared');
 	});
-
-	test('promptAndSaveApp refuses to open when the setting names an unknown crate', async () => {
+	test('promptAndSaveApp lists a stale name checked and labelled, so it can be unchecked', async () => {
 		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
 		await setCfg('buildMode', 'out-of-tree');
 		await setCfg('xousAppName', 'one ghost');
 		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
-		const warnings = sandbox.stub(
-			vscode.window,
-			'showWarningMessage',
-		) as unknown as sinon.SinonStub;
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
 		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		// unchecking the stale one: confirm with only the real crate
+		pick.resolves([{ label: 'one' }]);
 
 		const result = await appService.promptAndSaveApp();
 
-		assert.equal(result, undefined);
-		assert.ok(pick.notCalled, 'the picker never opens, so the setting is not overwritten');
-		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('ghost')),
-			'the unknown name is reported',
+		const items = pick.firstCall.args[0] as {
+			label: string;
+			picked?: boolean;
+			description?: string;
+		}[];
+		const ghost = items.find((i) => i.label === 'ghost');
+		assert.ok(ghost, 'the stale name is offered rather than blocking the picker');
+		assert.equal(ghost.picked, true, 'and starts checked, showing what the setting holds');
+		assert.ok(String(ghost.description).length > 0, 'labelled as not belonging here');
+		assert.equal(result, 'one');
+		assert.equal(cfg().get<string>('xousAppName'), 'one', 'unchecking drops it');
+	});
+
+	test('promptAndSaveApp keeps a stale name that is left checked', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves([
+			{ label: 'one' },
+			{ label: 'ghost' },
+		]);
+
+		await appService.promptAndSaveApp();
+
+		assert.equal(
+			cfg().get<string>('xousAppName'),
+			'one ghost',
+			'only the user knows whether the target was the mistake, so a checked name survives',
 		);
+	});
+
+	test('promptAndSaveApp leaves a stale setting alone when the picker is cancelled', async () => {
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two']);
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('xousAppName', 'one ghost');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves(
+			undefined,
+		);
+
+		assert.equal(await appService.promptAndSaveApp(), undefined);
 		assert.equal(cfg().get<string>('xousAppName'), 'one ghost', 'setting left untouched');
 	});
 
-	test('unknownAppNames stays quiet when the crates cannot be determined', async () => {
+	test('currentAppProblems stays quiet when the crates cannot be determined', async () => {
 		await setCfg('buildMode', 'out-of-tree');
 		await setCfg('xousAppName', 'anything');
 		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(undefined);
 
-		assert.deepEqual(appService.unknownAppNames(), [], 'no folder means no verdict');
+		assert.deepEqual(appService.currentAppProblems(), [], 'no folder means no verdict');
 	});
 
 	test('promptAndSaveApp lists apps from the adopted workspace root, not the configured one', async () => {
@@ -211,6 +252,80 @@ suite('App service and scaffolding', () => {
 			items.map((i) => i.label),
 			['adopted_app'],
 			'apps come from the adopted root, not the configured checkout',
+		);
+	});
+
+	test('promptAndSaveApp hides apps that cannot build for the target, and logs where they went', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['hello'],
+			unsupportedApps: ['other_board'],
+		});
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		const { lines, chan } = fakeChannel();
+		sandbox.stub(logService, 'getBaochipChannel').returns(chan);
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		await appService.promptAndSaveApp();
+
+		const items = pick.firstCall.args[0] as { label: string }[];
+		assert.deepEqual(
+			items.map((i) => i.label),
+			['hello'],
+			'cargo would refuse the other one, so it is not offered',
+		);
+		assert.ok(
+			lines.some((l) => l.includes('other_board') && l.includes('board-dabao')),
+			`the omission is explained somewhere findable: ${lines.join(' | ')}`,
+		);
+	});
+
+	test('promptAndSaveApp keeps a selected app from another board visible and labelled', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['hello'],
+			unsupportedApps: ['other_board'],
+		});
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		await setCfg('xousAppName', 'other_board');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		await appService.promptAndSaveApp();
+
+		const items = pick.firstCall.args[0] as {
+			label: string;
+			picked?: boolean;
+			description?: string;
+		}[];
+		const stale = items.find((i) => i.label === 'other_board');
+		assert.ok(stale, 'what you already picked stays visible even though it cannot build');
+		assert.equal(stale.picked, true, 'checked, so unchecking is what drops it');
+		assert.ok(String(stale.description).includes('dabao'), 'labelled with the target it fails');
+	});
+
+	test('promptAndSaveApp says so when no app declares the target board', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: [], unsupportedApps: ['other_board'] });
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+
+		assert.equal(await appService.promptAndSaveApp(), undefined);
+		assert.ok(pick.notCalled, 'nothing to pick from');
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('board-dabao')),
+			'the warning explains why the list is empty rather than telling you to create an app',
 		);
 	});
 
@@ -723,5 +838,80 @@ members = ["crates/*"]
 			!fs.existsSync(path.join(projectDir, '.cargo', 'config.toml')),
 			'no leftover config.toml to block a retry',
 		);
+	});
+
+	/* ------------------------------ fixing a selection in place ------------------------------ */
+
+	test('promptAndSaveApp swaps invalid apps for a valid one and saves it', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['good_app'],
+			unsupportedApps: ['bad_one', 'bad_two'],
+		});
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		await setCfg('xousAppName', 'bad_one bad_two');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		// the user unchecks both bad ones and checks the good one
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves([
+			{ label: 'good_app' },
+		]);
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, 'good_app', 'the picker returns the new selection');
+		assert.equal(cfg().get<string>('xousAppName'), 'good_app', 'and it is persisted');
+	});
+
+	test('promptAndSaveApp clears the app list when everything is unchecked', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['good_app'],
+			unsupportedApps: ['bad_one', 'bad_two'],
+		});
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		await setCfg('xousAppName', 'bad_one bad_two');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		// the user unchecks everything and confirms: the obvious reading is "get rid of them"
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves([]);
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.equal(result, '', 'an empty selection is still a selection');
+		assert.equal(cfg().get<string>('xousAppName') || '', '', 'the broken names are gone');
+	});
+
+	test('promptAndSaveApp opens even when nothing is buildable, so a bad selection can be cleared', async () => {
+		// Out-of-tree project whose crates are all for another board, with two of them selected.
+		const root = makeFakeWorkspace(tmpDir(), ['one', 'two'], 'dabao');
+		await setCfg('buildMode', 'out-of-tree');
+		await setCfg('buildTarget', 'baosec');
+		await setCfg('xousAppName', 'one two');
+		sandbox.stub(projectModeService, 'findOutOfTreeRoot').returns(root);
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(root);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves([]); // the user unchecks both and confirms
+
+		const result = await appService.promptAndSaveApp();
+
+		assert.ok(pick.called, 'the picker opens rather than leaving the selection unfixable');
+		const items = pick.firstCall.args[0] as { label: string; description?: string }[];
+		assert.deepEqual(
+			items.map((i) => i.label),
+			['one', 'two'],
+			'only the unbuildable selection is there, labelled',
+		);
+		assert.ok(String(items[0].description).includes('baosec'), 'labelled with the target');
+		assert.ok(warnings.notCalled, 'no dead-end warning when there is something to fix');
+		assert.equal(result, '');
+		assert.equal(cfg().get<string>('xousAppName') || '', '', 'unchecking cleared them');
 	});
 });

@@ -158,7 +158,7 @@ suite('Build service', () => {
 		assert.equal(pre, undefined);
 		assert.ok(errors.calledOnce, 'one error toast');
 		const msg = String(errors.firstCall.args[0]);
-		assert.ok(msg.includes('"ghost"'), `singular message names the app: ${msg}`);
+		assert.ok(msg.includes('ghost'), `the message names the app: ${msg}`);
 	});
 
 	test('ensureBuildPrereqs: several missing apps fail with the plural error', async () => {
@@ -378,10 +378,15 @@ suite('Build service', () => {
 
 	/* ------------------------------ ensureBuildPrereqs ------------------------------ */
 
-	test('ensureBuildPrereqs: a missing app is reported with an OS-native apps path (no mixed slashes)', async () => {
-		const { root } = makeFakeXousCore(tmpDir(), { target: 'baosec', apps: ['vault2'] });
+	test('ensureBuildPrereqs: an app that does not declare the target board is rejected', async () => {
+		// It is right there in the tree, so the useful message is why it cannot build, not "missing".
+		const { root } = makeFakeXousCore(tmpDir(), {
+			target: 'baosec',
+			apps: ['vault2'],
+			unsupportedApps: ['dabao-console'],
+		});
 		await setCfg('buildTarget', 'baosec');
-		await setCfg('xousAppName', 'dabao-console'); // not present under apps-baosec
+		await setCfg('xousAppName', 'dabao-console');
 
 		sandbox.stub(rustCheckService, 'checkRustToolchain').resolves(true);
 		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
@@ -391,12 +396,10 @@ suite('Build service', () => {
 
 		const result = await buildService.ensureBuildPrereqs();
 
-		assert.equal(result, undefined, 'build aborts on a missing app');
+		assert.equal(result, undefined, 'the build aborts rather than reaching cargo');
 		const msg = String(err.firstCall.args[0]);
-		assert.ok(
-			msg.includes(path.join(root, 'apps-baosec')),
-			`message uses the OS-native apps path: ${msg}`,
-		);
+		assert.ok(msg.includes('board-baosec'), `the message names the feature: ${msg}`);
+		assert.ok(msg.includes('dabao-console'), `and the app: ${msg}`);
 	});
 
 	/* ------------------------------ runBuildInTerminal ------------------------------ */

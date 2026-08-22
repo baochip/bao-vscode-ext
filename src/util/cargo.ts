@@ -31,6 +31,32 @@ export function hasWorkspaceTable(toml: string): boolean {
 export function hasPackageTable(toml: string): boolean {
 	return /^[ \t]*\[package\][ \t]*$/m.test(stripTomlComments(toml));
 }
+/**
+ * Feature names declared in a Cargo.toml's [features] table. Cargo has no feature inheritance,
+ * so a crate's own table is the whole story: what is not here cannot be passed with --features.
+ */
+export function parseCargoFeatures(toml: string): string[] {
+	const withoutComments = stripTomlComments(toml);
+	const header = withoutComments.match(/^[ \t]*\[features\][ \t]*$/m);
+	if (!header || header.index === undefined) return [];
+
+	const body = withoutComments.slice(header.index + header[0].length);
+	const nextTable = body.match(/^[ \t]*\[[^\]]+\][ \t]*$/m);
+	const table = nextTable?.index !== undefined ? body.slice(0, nextTable.index) : body;
+
+	// Keys start a line; a feature's value may span lines, and those continuation lines carry no
+	// "=" of their own, so line-initial matching is enough to skip them.
+	return [...table.matchAll(/^[ \t]*"?([A-Za-z0-9_.+-]+)"?[ \t]*=/gm)].map((m) => m[1]);
+}
+
+/** Feature names declared by the crate at manifestPath; empty when it cannot be read. */
+export function readCargoFeatures(manifestPath: string): string[] {
+	try {
+		return parseCargoFeatures(fs.readFileSync(manifestPath, 'utf8'));
+	} catch {
+		return [];
+	}
+}
 
 /** Extract the workspace member paths from a Cargo.toml's `members = [...]` array. */
 export function parseWorkspaceMembers(toml: string): string[] {
