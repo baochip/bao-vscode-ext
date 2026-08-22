@@ -13,6 +13,7 @@
 - The app setting shows a warning when it names something the project does not have, rather than silently building without it
 - The build target is now called the **hardware target** throughout the UI, matching xous-core and keeping it distinct from the Rust toolchain target. It is no longer assumed to be dabao: the first build, flash, or app pick asks once
 - The app picker now offers only what can build for the selected hardware target: apps and crates whose manifest declares its board-<target> feature. Anything selected that cannot build stays listed and checked, labelled with why, so it can be unchecked there; unchecking everything clears the list
+- Flashing now sends only the images the selected hardware target builds - loader/xous/apps for dabao, loader/xous/swap for baosec
 
 ### Fixed
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader

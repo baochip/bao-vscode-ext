@@ -210,37 +210,53 @@ suite('Flash service', () => {
 
 	/* ------------------------------ gatherArtifacts ------------------------------ */
 
-	test('gatherArtifacts maps roles and skips absent files', async () => {
+	/** A release directory holding exactly the named images. */
+	function releaseWith(names: string[]) {
 		const root = tmpDir();
 		const releaseDir = path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release');
 		fs.mkdirSync(releaseDir, { recursive: true });
-		fs.writeFileSync(path.join(releaseDir, 'xous.uf2'), 'xous image', 'utf8');
+		for (const name of names) fs.writeFileSync(path.join(releaseDir, name), name, 'utf8');
+		return { root, releaseDir, at: (name: string) => path.join(releaseDir, name) };
+	}
 
-		const { byRole, all } = await flashService.gatherArtifacts(root);
+	test('gatherArtifacts maps roles and skips absent files', async () => {
+		const { root, at } = releaseWith(['xous.uf2']);
 
-		assert.equal(byRole.xous, path.join(releaseDir, 'xous.uf2'));
+		const { byRole, all } = await flashService.gatherArtifacts(root, 'dabao');
+
+		assert.equal(byRole.xous, at('xous.uf2'));
 		assert.equal(byRole.loader, undefined);
 		assert.equal(byRole.apps, undefined);
-		assert.deepEqual(all, [path.join(releaseDir, 'xous.uf2')]);
+		assert.deepEqual(all, [at('xous.uf2')]);
 	});
 
-	test('gatherArtifacts includes swap.uf2 for baosec builds (no apps.uf2)', async () => {
-		const root = tmpDir();
-		const releaseDir = path.join(root, 'target', XOUS_TARGET_TRIPLE, 'release');
-		fs.mkdirSync(releaseDir, { recursive: true });
-		for (const name of ['loader.uf2', 'xous.uf2', 'swap.uf2']) {
-			fs.writeFileSync(path.join(releaseDir, name), name, 'utf8');
-		}
+	test('gatherArtifacts leaves the other board images behind', async () => {
+		// Both targets build into the same release directory and nothing clears it, so a dabao
+		// apps.uf2 outlives the switch to baosec. Flashing it would write a dabao app image.
+		const { root, at } = releaseWith(['loader.uf2', 'xous.uf2', 'swap.uf2', 'apps.uf2']);
 
-		const { byRole, all } = await flashService.gatherArtifacts(root);
+		const forBaosec = await flashService.gatherArtifacts(root, 'baosec');
+		assert.deepEqual(forBaosec.all, [at('loader.uf2'), at('xous.uf2'), at('swap.uf2')]);
 
-		assert.equal(byRole.swap, path.join(releaseDir, 'swap.uf2'));
-		assert.equal(byRole.apps, undefined, 'a baosec build has no apps.uf2');
-		assert.deepEqual(all, [
-			path.join(releaseDir, 'loader.uf2'),
-			path.join(releaseDir, 'xous.uf2'),
-			path.join(releaseDir, 'swap.uf2'),
-		]);
+		const forDabao = await flashService.gatherArtifacts(root, 'dabao');
+		assert.deepEqual(forDabao.all, [at('loader.uf2'), at('xous.uf2'), at('apps.uf2')]);
+	});
+
+	test('gatherArtifacts falls back to whatever is there when no target is known', async () => {
+		const { root, at } = releaseWith(['loader.uf2', 'apps.uf2', 'swap.uf2']);
+
+		const { all } = await flashService.gatherArtifacts(root);
+
+		assert.deepEqual(all, [at('loader.uf2'), at('apps.uf2'), at('swap.uf2')]);
+	});
+
+	test('gatherArtifacts flashes swap.uf2 for baosec, which builds no apps.uf2', async () => {
+		const { root, at } = releaseWith(['loader.uf2', 'xous.uf2', 'swap.uf2']);
+
+		const { byRole, all } = await flashService.gatherArtifacts(root, 'baosec');
+
+		assert.equal(byRole.swap, at('swap.uf2'));
+		assert.deepEqual(all, [at('loader.uf2'), at('xous.uf2'), at('swap.uf2')]);
 	});
 
 	/* ------------------------------ decideAndFlash ------------------------------ */
@@ -285,7 +301,7 @@ suite('Flash service', () => {
 
 		assert.equal(ok, false);
 		assert.ok(
-			warnings.getCalls().some((c) => String(c.args[0]).includes('No UF2s found')),
+			warnings.getCalls().some((c) => String(c.args[0]).includes('No valid UF2s found')),
 			'build-first warning shown',
 		);
 	});

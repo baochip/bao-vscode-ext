@@ -14,6 +14,19 @@ const UF2_IMAGES: Array<{ fileName: string; role: NonNullable<BaoArtifact['role'
 	{ fileName: 'swap.uf2', role: 'swap' },
 ];
 
+export type Uf2Role = NonNullable<BaoArtifact['role']>;
+
+/** Images each target's build produces: dabao builds apps detached, baosec builds swap. */
+const TARGET_IMAGES: Record<string, Uf2Role[]> = {
+	dabao: ['loader', 'xous', 'apps'],
+	baosec: ['loader', 'xous', 'swap'],
+};
+
+/** Images belonging to `target`, or every role for a target this version does not know yet. */
+export function imagesForTarget(target: string): Uf2Role[] {
+	return TARGET_IMAGES[target] ?? UF2_IMAGES.map((image) => image.role);
+}
+
 function releaseDir(xousRoot: string): string {
 	return path.join(xousRoot, 'target', XOUS_TARGET_TRIPLE, 'release');
 }

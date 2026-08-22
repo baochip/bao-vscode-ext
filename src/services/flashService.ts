@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { targetForBoardType } from '@constants';
-import { scanArtifacts } from '@services/artifactsService';
+import { imagesForTarget, scanArtifacts, type Uf2Role } from '@services/artifactsService';
 import { readBoardType } from '@services/boardTypeService';
 import {
 	getBuildTarget,
@@ -230,17 +230,17 @@ export async function ensureFlashLocation(): Promise<string | undefined> {
 	return dest;
 }
 
-export async function gatherArtifacts(root: string) {
+/** The images to flash for `target`, in write order; both targets share one release dir. */
+export async function gatherArtifacts(root: string, target?: string) {
 	const images = scanArtifacts(root);
-	const byRole: Record<'loader' | 'xous' | 'apps' | 'swap', string | undefined> = {
+	const byRole: Record<Uf2Role, string | undefined> = {
 		loader: images.find((artifact) => artifact.role === 'loader')?.path,
 		xous: images.find((artifact) => artifact.role === 'xous')?.path,
 		apps: images.find((artifact) => artifact.role === 'apps')?.path,
 		swap: images.find((artifact) => artifact.role === 'swap')?.path,
 	};
-	const all: string[] = (['loader', 'xous', 'apps', 'swap'] as const)
-		.map((r) => byRole[r])
-		.filter((p): p is string => !!p);
+	const wanted = target ? imagesForTarget(target) : (['loader', 'xous', 'apps', 'swap'] as const);
+	const all: string[] = [...wanted].map((r) => byRole[r]).filter((p): p is string => !!p);
 
 	return { byRole, all };
 }
@@ -459,9 +459,11 @@ export async function decideAndFlash(
 		files = [kernelFiles.loader, kernelFiles.xous, appsUf2];
 	} else {
 		// xous-core mode: discover artifacts from the build output
-		const { all } = await gatherArtifacts(root);
+		const { all } = await gatherArtifacts(root, getBuildTarget());
 		if (all.length === 0) {
-			vscode.window.showWarningMessage(vscode.l10n.t('No UF2s found. Build first, then flash.'));
+			vscode.window.showWarningMessage(
+				vscode.l10n.t('No valid UF2s found for this hardware target. Build first, then flash.'),
+			);
 			return false;
 		}
 		files = all;
