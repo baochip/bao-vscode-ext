@@ -1,6 +1,7 @@
 ## [1.2.0] - 2026-08-22
 
 ### Added
+- Defcon 34 badge as a hardware target. Picking it fills in the crates, features and flags the badge build needs, so Build sends the documented cargo xtask baosec-lite command. It is offered for in-tree builds only for now.
 - In-tree builds can pass extra arguments to cargo xtask: features, kernel features, and switches, set under Baochip > In Tree in settings. Switches work with or without the leading --
 - Out-of-tree projects can build and flash for baosec: the build produces swap.uf2 rather than apps.uf2, and kernel sync fetches from the board's own CI directory
 - New kernel mode app-only, which flashes just the image your project builds and leaves the kernel already on the board in place

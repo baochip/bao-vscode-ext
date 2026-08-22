@@ -22,6 +22,7 @@ export type Uf2Role = NonNullable<BaoArtifact['role']>;
 const TARGET_IMAGES: Record<string, Uf2Role[]> = {
 	dabao: ['loader', 'xous', 'apps'],
 	baosec: ['loader', 'xous', 'swap'],
+	'baosec-lite': ['loader', 'xous', 'swap'],
 };
 
 /** Images belonging to `target`, or every role for a target this version does not know yet. */

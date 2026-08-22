@@ -2,7 +2,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { targetForBoardType } from '@constants';
+import { boardTypeFitsTarget } from '@constants';
 import {
 	imagesForTarget,
 	projectImagePath,
@@ -405,8 +405,8 @@ async function confirmBoardTypeMatches(dest: string): Promise<boolean> {
 		`[bao] board type: ${reading.type} on ${reading.port} (hardware target: ${target})`,
 	);
 
-	const boardTarget = targetForBoardType(reading.type);
-	if (!boardTarget || boardTarget === target) return true;
+	// undefined means the reported type belongs to no target we know, so there is nothing to compare
+	if (boardTypeFitsTarget(reading.type, target) !== false) return true;
 
 	chan.appendLine(
 		`[bao] board reports ${reading.type} on ${reading.port}, hardware target is ${target}`,

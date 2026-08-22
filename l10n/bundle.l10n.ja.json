@@ -306,5 +306,10 @@
 	"No apps here declare the board-{0} feature.": "board-{0} 機能を宣言しているアプリはここにありません。",
 	"No crates here declare the board-{0} feature.": "board-{0} 機能を宣言しているクレートはここにありません。",
 	"Flash the app only": "アプリのみをフラッシュ",
-	"{0} not found in {1}. Run a build first.": "{0} が {1} にありません。先にビルドしてください。"
+	"{0} not found in {1}. Run a build first.": "{0} が {1} にありません。先にビルドしてください。",
+	"Replace": "置き換える",
+	"App list only": "アプリ一覧のみ",
+	"{0} uses a specific app list and build settings. Replace your current ones?": "{0} は特定のアプリ一覧とビルド設定を使います。現在のものを置き換えますか?",
+	"You can edit them afterwards in the Baochip extension settings:\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags": "あとから Baochip 拡張機能の設定で変更できます:\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags",
+	"{0} cannot be built in this project. Pick another hardware target.": "{0} はこのプロジェクトではビルドできません。別のハードウェアターゲットを選んでください。"
 }

@@ -144,6 +144,7 @@ suite('Config and selection commands', () => {
 	test('selectBuildTarget command saves the picked target', async () => {
 		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
 			label: 'baosec',
+			target: 'baosec',
 		});
 		sandbox.stub(vscode.window, 'showInformationMessage');
 

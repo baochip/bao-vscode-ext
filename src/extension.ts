@@ -1,4 +1,5 @@
 import { Commands } from '@commands/commandIds';
+import { targetLabel } from '@constants';
 import {
 	blockingAppProblems,
 	currentAppProblems,
@@ -117,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// Hardware target - relevant in both modes; unset until the user picks one
 		items.buildTarget.text = target
-			? `$(target) ${target}`
+			? `$(target) ${targetLabel(target)}`
 			: `$(target) ${vscode.l10n.t('Hardware Target: (not set)')}`;
 		items.buildTarget.tooltip = vscode.l10n.t('Click to select hardware target');
 		items.buildTarget.show();

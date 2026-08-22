@@ -306,5 +306,10 @@
 	"No apps here declare the board-{0} feature.": "Keine App hier deklariert das Feature board-{0}.",
 	"No crates here declare the board-{0} feature.": "Kein Crate hier deklariert das Feature board-{0}.",
 	"Flash the app only": "Nur die App flashen",
-	"{0} not found in {1}. Run a build first.": "{0} in {1} nicht gefunden. Zuerst bauen."
+	"{0} not found in {1}. Run a build first.": "{0} in {1} nicht gefunden. Zuerst bauen.",
+	"Replace": "Ersetzen",
+	"App list only": "Nur App-Liste",
+	"{0} uses a specific app list and build settings. Replace your current ones?": "{0} verwendet eine bestimmte App-Liste und bestimmte Build-Einstellungen. Ihre aktuellen ersetzen?",
+	"You can edit them afterwards in the Baochip extension settings:\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags": "Sie können sie danach in den Baochip-Erweiterungseinstellungen ändern:\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags",
+	"{0} cannot be built in this project. Pick another hardware target.": "{0} kann in diesem Projekt nicht gebaut werden. Wählen Sie ein anderes Hardware-Ziel."
 }

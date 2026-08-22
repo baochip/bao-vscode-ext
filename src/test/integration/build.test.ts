@@ -68,6 +68,7 @@ suite('Build service', () => {
 	test('ensureBuildTarget: an unset target asks once, saves, and returns the pick', async () => {
 		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
 			label: 'baosec',
+			target: 'baosec',
 		});
 		sandbox.stub(vscode.window, 'showInformationMessage');
 
@@ -500,5 +501,112 @@ suite('Build service', () => {
 
 		assert.ok(ensure.notCalled, 'no terminal opened');
 		assert.ok(String(errors.firstCall.args[0]).includes('Invalid app name'));
+	});
+
+	/* ------------------------------ the Defcon 34 badge target ------------------------------ */
+
+	test('the badge is offered in a xous-core checkout, under its own name', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		await buildTargetService.promptAndSaveBuildTarget();
+
+		const items = pick.firstCall.args[0] as { label: string; target: string }[];
+		const badge = items.find((i) => i.target === 'baosec-lite');
+		assert.ok(badge, 'the badge is a target you can pick');
+		assert.equal(badge.label, 'Defcon 34 badge', 'shown by the name people know it by');
+	});
+
+	test('the badge is not offered out of tree, where its crates do not exist', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('out-of-tree');
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		await buildTargetService.promptAndSaveBuildTarget();
+
+		const items = pick.firstCall.args[0] as { target: string }[];
+		assert.deepEqual(
+			items.map((i) => i.target),
+			['dabao', 'baosec'],
+		);
+	});
+
+	test('a badge target stored from another project is refused out of tree', async () => {
+		await setCfg('buildTarget', 'baosec-lite');
+		sandbox.stub(projectModeService, 'getProjectMode').returns('out-of-tree');
+		const warnings = sandbox.stub(
+			vscode.window,
+			'showWarningMessage',
+		) as unknown as sinon.SinonStub;
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		assert.equal(await buildTargetService.ensureBuildTarget(), undefined);
+		assert.ok(
+			warnings.getCalls().some((c) => String(c.args[0]).includes('Defcon 34 badge')),
+			'said which target cannot be built here',
+		);
+		assert.ok(pick.called, 'and offered the picker so it can be changed');
+	});
+
+	test('picking the badge fills in the crates and flags it needs', async () => {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
+			label: 'Defcon 34 badge',
+			target: 'baosec-lite',
+		});
+
+		assert.equal(await buildTargetService.promptAndSaveBuildTarget(), 'baosec-lite');
+
+		assert.equal(cfg().get<string>('buildTarget'), 'baosec-lite');
+		assert.equal(cfg().get<string>('xousAppName'), 'dc34-console~flash dc34-vault');
+		assert.deepEqual(cfg().get<string[]>('inTree.features'), ['usb']);
+		assert.deepEqual(cfg().get<string[]>('inTree.kernelFeatures'), ['debug-proc']);
+		assert.deepEqual(cfg().get<string[]>('inTree.buildFlags'), ['--no-timestamp', '--no-verify']);
+	});
+	/** Pick the badge with the prompt answered by the button of this title. */
+	async function pickBadgeAnswering(title: string | undefined) {
+		sandbox.stub(projectModeService, 'getProjectMode').returns('xous-core');
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		(sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub).resolves({
+			label: 'Defcon 34 badge',
+			target: 'baosec-lite',
+		});
+		(sandbox.stub(vscode.window, 'showWarningMessage') as unknown as sinon.SinonStub).callsFake(
+			(_msg: string, _opts: unknown, ...items: { title: string }[]) =>
+				Promise.resolve(items.find((i) => i.title === title)),
+		);
+		return buildTargetService.promptAndSaveBuildTarget();
+	}
+
+	test('Replace overwrites the app list and the build settings', async () => {
+		await setCfg('xousAppName', 'my_app');
+
+		assert.equal(await pickBadgeAnswering('Replace'), 'baosec-lite');
+
+		assert.equal(cfg().get<string>('xousAppName'), 'dc34-console~flash dc34-vault');
+		assert.deepEqual(cfg().get<string[]>('inTree.features'), ['usb']);
+	});
+
+	test('App list only leaves the build settings as they were', async () => {
+		await setCfg('xousAppName', 'my_app');
+		await setCfg('inTree.features', ['mine']);
+
+		assert.equal(await pickBadgeAnswering('App list only'), 'baosec-lite');
+
+		assert.equal(cfg().get<string>('xousAppName'), 'dc34-console~flash dc34-vault');
+		assert.deepEqual(cfg().get<string[]>('inTree.features'), ['mine'], 'kept');
+	});
+
+	test('cancelling leaves the hardware target unchanged too', async () => {
+		await setCfg('buildTarget', 'dabao');
+		await setCfg('xousAppName', 'my_app');
+
+		assert.equal(await pickBadgeAnswering(undefined), undefined);
+
+		assert.equal(cfg().get<string>('buildTarget'), 'dabao', 'no half-applied switch');
+		assert.equal(cfg().get<string>('xousAppName'), 'my_app');
 	});
 });

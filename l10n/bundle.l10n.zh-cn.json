@@ -306,5 +306,10 @@
 	"No apps here declare the board-{0} feature.": "此处没有声明 board-{0} 特性的应用。",
 	"No crates here declare the board-{0} feature.": "此处没有声明 board-{0} 特性的 crate。",
 	"Flash the app only": "仅烧录应用",
-	"{0} not found in {1}. Run a build first.": "在 {1} 中未找到 {0}。请先构建。"
+	"{0} not found in {1}. Run a build first.": "在 {1} 中未找到 {0}。请先构建。",
+	"Replace": "替换",
+	"App list only": "仅应用列表",
+	"{0} uses a specific app list and build settings. Replace your current ones?": "{0} 使用特定的应用列表和构建设置。要替换当前的吗？",
+	"You can edit them afterwards in the Baochip extension settings:\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags": "之后可在 Baochip 扩展设置中修改：\n- Xous App Name\n- In Tree: Features\n- In Tree: Kernel Features\n- In Tree: Build Flags",
+	"{0} cannot be built in this project. Pick another hardware target.": "{0} 无法在此项目中构建。请选择其他硬件目标。"
 }

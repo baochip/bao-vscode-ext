@@ -117,6 +117,11 @@ export const getInTreeBuildFlags = (): string[] =>
 		(flag) => (flag.startsWith('--') ? flag : `--${flag}`),
 	);
 
+export const setInTreeFeatures = (features: string[]) => updateSetting('inTree.features', features);
+export const setInTreeKernelFeatures = (features: string[]) =>
+	updateSetting('inTree.kernelFeatures', features);
+export const setInTreeBuildFlags = (flags: string[]) => updateSetting('inTree.buildFlags', flags);
+
 export const getMonitorFlags = () => ({
 	crlf: cfg().get<boolean>('monitor.crlf') ?? true,
 	raw: cfg().get<boolean>('monitor.raw') ?? true,
