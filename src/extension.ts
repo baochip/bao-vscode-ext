@@ -1,5 +1,10 @@
 import { Commands } from '@commands/commandIds';
-import { currentAppProblems, describeAppProblems, hasCrateChoice } from '@services/appService';
+import {
+	blockingAppProblems,
+	currentAppProblems,
+	describeAppProblems,
+	hasCrateChoice,
+} from '@services/appService';
 import {
 	getBootloaderSerialPort,
 	getBuildTarget,
@@ -118,7 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		items.buildTarget.show();
 
 		// Which crates get built - hidden only when there is nothing to choose and nothing wrong
-		const appIssues = currentAppProblems();
+		const appIssues = blockingAppProblems(currentAppProblems());
 		if (hasCrateChoice() || appIssues.length > 0) {
 			if (appIssues.length > 0) {
 				items.app.text = `$(warning) ${app}`;

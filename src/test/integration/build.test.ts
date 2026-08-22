@@ -450,7 +450,8 @@ suite('Build service', () => {
 		// The badge is built this way: an app list plus features, a kernel feature, and switches.
 		await setCfg('inTree.features', ['usb']);
 		await setCfg('inTree.kernelFeatures', ['debug-proc']);
-		await setCfg('inTree.buildFlags', ['--no-timestamp', '--no-verify']);
+		// the leading -- is optional, so both spellings reach the command line
+		await setCfg('inTree.buildFlags', ['no-timestamp', '--no-verify']);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		const { sent, term } = fakeTerminal();
 		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
@@ -470,7 +471,7 @@ suite('Build service', () => {
 
 	test('runBuildInTerminal drops settings entries that could carry another argument', async () => {
 		await setCfg('inTree.features', ['usb', 'usb; rm -rf /']);
-		await setCfg('inTree.buildFlags', ['--no-verify', '--feature usb', 'no-verify']);
+		await setCfg('inTree.buildFlags', ['--no-verify', '--feature usb', 'Not A Flag']);
 		sandbox.stub(vscode.window, 'showInformationMessage');
 		sandbox.stub(logService, 'warn');
 		const { sent, term } = fakeTerminal();

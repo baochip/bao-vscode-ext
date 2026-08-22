@@ -300,6 +300,7 @@
 	"Board type read from {0}.": "Boardtyp von {0} gelesen.",
 	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "Das Board an {0} ist vom Typ {1}, das Hardware-Ziel ist aber {2}. Möchten Sie wirklich weiter flashen?",
 	"invalid for {0}": "ungültig für {0}",
+	"service or library": "Service oder Bibliothek",
 	"not in this project": "nicht in diesem Projekt",
 	"These do not declare the board-{0} feature: {1}": "Diese deklarieren das Feature board-{0} nicht: {1}",
 	"No apps here declare the board-{0} feature.": "Keine App hier deklariert das Feature board-{0}.",

@@ -42,7 +42,7 @@
 	"cfg.intree.appName": "要建置的 crate，空格分隔 (例如 'helloworld demo_app')。xous-core 中為應用程式，樹外專案中為工作區 crate。在 xous-core 中留空則僅建置基礎系統映像。",
 	"cfg.intree.features": "in-tree 建置的額外功能，以 --feature <name> 傳遞給 cargo xtask。",
 	"cfg.intree.kernelFeatures": "in-tree 建置的額外核心功能，以 --kernel-feature <name> 傳遞給 cargo xtask。",
-	"cfg.intree.buildFlags": "in-tree 建置的額外開關，原樣傳遞給 cargo xtask（例如 --no-timestamp、--no-verify）。",
+	"cfg.intree.buildFlags": "in-tree 建置的額外開關，傳遞給 cargo xtask。前導的 -- 可選：no-verify 和 --no-verify 都可以。",
 	"cfg.title.flashing": "Baochip - 燒錄",
 	"cfg.title.outOfTree": "Baochip - Out-of-Tree 建置",
 	"cfg.outOfTree.kernelMode": "out-of-tree 燒錄從何處取得 loader.uf2 和 xous.uf2。in-tree 建置會自行產生這些檔案。",

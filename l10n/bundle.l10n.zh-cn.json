@@ -300,6 +300,7 @@
 	"Board type read from {0}.": "板类型读取自 {0}。",
 	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} 处的板子类型为 {1}，但硬件目标是 {2}。确定要继续烧录吗？",
 	"invalid for {0}": "对 {0} 无效",
+	"service or library": "服务或库",
 	"not in this project": "不在本项目中",
 	"These do not declare the board-{0} feature: {1}": "以下未声明 board-{0} 特性：{1}",
 	"No apps here declare the board-{0} feature.": "此处没有声明 board-{0} 特性的应用。",

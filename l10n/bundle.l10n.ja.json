@@ -300,6 +300,7 @@
 	"Board type read from {0}.": "ボードタイプは {0} から読み取りました。",
 	"The board at {0} is type {1}, but the hardware target is {2}. Are you sure you want to continue flashing?": "{0} のボードはタイプ {1} ですが、ハードウェアターゲットは {2} です。フラッシュを続行してもよろしいですか?",
 	"invalid for {0}": "{0} では無効",
+	"service or library": "サービスまたはライブラリ",
 	"not in this project": "このプロジェクトにありません",
 	"These do not declare the board-{0} feature: {1}": "board-{0} 機能を宣言していません: {1}",
 	"No apps here declare the board-{0} feature.": "board-{0} 機能を宣言しているアプリはここにありません。",

@@ -1,7 +1,7 @@
 ## [1.2.0] - 2026-08-22
 
 ### Added
-- In-tree builds can pass extra arguments to cargo xtask: features, kernel features, and switches, set in Baochip > In Tree settings
+- In-tree builds can pass extra arguments to cargo xtask: features, kernel features, and switches, set under Baochip > In Tree in settings. Switches work with or without the leading --
 - Out-of-tree projects can build and flash for baosec: the build produces swap.uf2 rather than apps.uf2, and kernel sync fetches from the board's own CI directory
 - New kernel mode app-only, which flashes just the image your project builds and leaves the kernel already on the board in place
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor
@@ -19,6 +19,7 @@
 - Flashing now sends only the images the selected hardware target builds - loader/xous/apps for dabao, loader/xous/swap for baosec
 
 ### Fixed
+- The app list can include service and library crates (not just apps) in in-tree build configurations.
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
 - New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch and failed to build
 - Builds and cleans now wait for the terminal to be ready, so a Python environment activating in it can no longer kill them on startup

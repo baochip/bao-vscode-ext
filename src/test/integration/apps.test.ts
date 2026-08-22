@@ -914,4 +914,46 @@ members = ["crates/*"]
 		assert.equal(result, '');
 		assert.equal(cfg().get<string>('xousAppName') || '', '', 'unchecking cleared them');
 	});
+
+	/* ------------------------------ services as app specs ------------------------------ */
+
+	test('a service in the app list builds and is labelled, not reported missing', async () => {
+		// xtask accepts a service crate as an app spec - dc34-console~flash is how the badge is built.
+		const { root } = makeFakeXousCore(tmpDir(), {
+			apps: ['my_app'],
+			services: ['dc34-console'],
+		});
+		await setCfg('buildMode', 'xous-core');
+		await setCfg('buildTarget', 'dabao');
+		await setCfg('xousAppName', 'dc34-console~flash my_app');
+		sandbox.stub(xousCoreService, 'resolveXousRootOrNotify').resolves(root);
+		sandbox.stub(workspaceService, 'ensureXousWorkspaceOpen').resolves(root);
+		const pick = sandbox.stub(vscode.window, 'showQuickPick') as unknown as sinon.SinonStub;
+		pick.resolves(undefined);
+
+		const problems = appService.appProblems(root, 'dc34-console~flash my_app', 'dabao');
+		assert.deepEqual(
+			problems,
+			[{ name: 'dc34-console~flash', status: 'not-an-app' }],
+			'a real crate that is not an app, region suffix and all',
+		);
+		assert.deepEqual(appService.blockingAppProblems(problems), [], 'nothing here stops a build');
+
+		await appService.promptAndSaveApp();
+		const items = pick.firstCall.args[0] as { label: string; description?: string }[];
+		const service = items.find((i) => i.label === 'dc34-console~flash');
+		assert.ok(service, 'it stays visible so it can be unchecked');
+		assert.ok(
+			String(service.description).includes('service'),
+			`labelled as a service rather than missing: ${service.description}`,
+		);
+	});
+
+	test('a name that is nowhere in the tree is still reported missing', async () => {
+		const { root } = makeFakeXousCore(tmpDir(), { apps: ['my_app'], services: ['dc34-console'] });
+
+		assert.deepEqual(appService.appProblems(root, 'ghost~flash', 'dabao'), [
+			{ name: 'ghost~flash', status: 'missing' },
+		]);
+	});
 });

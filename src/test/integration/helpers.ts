@@ -71,6 +71,8 @@ export interface FakeXousCoreOptions {
 	apps?: string[];
 	/** Apps created without a board-<target> feature, i.e. ones cargo could not build here. */
 	unsupportedApps?: string[];
+	/** Service crates under services/, which xtask accepts as app specs but are not apps. */
+	services?: string[];
 	/** Also create target/<triple>/release/{loader,xous,apps}.uf2 dummy artifacts. */
 	withArtifacts?: boolean;
 }
@@ -105,7 +107,20 @@ export function makeFakeXousCore(root: string, opts: FakeXousCoreOptions = {}): 
 	for (const app of apps) writeApp(app, true);
 	for (const app of opts.unsupportedApps ?? []) writeApp(app, false);
 
-	const members = apps.map((a) => `  "${appsDirName}/${a}",`).join('\n');
+	for (const service of opts.services ?? []) {
+		const dir = path.join(root, 'services', service);
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(
+			path.join(dir, 'Cargo.toml'),
+			`[package]\nname = "${service}"\nversion = "0.1.0"\n\n[features]\nboard-${target} = []\n`,
+			'utf8',
+		);
+	}
+
+	const members = [
+		...apps.map((a) => `  "${appsDirName}/${a}",`),
+		...(opts.services ?? []).map((s) => `  "services/${s}",`),
+	].join('\n');
 	fs.writeFileSync(
 		path.join(root, 'Cargo.toml'),
 		`[workspace]\nmembers = [\n${members}\n]\n`,

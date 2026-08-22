@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { ALL_APPS_DIRS, BUILD_TARGETS, getAppsDir } from '@constants';
+import { ALL_APPS_DIRS, BUILD_TARGETS, boardFeature, getAppsDir } from '@constants';
 import { ensureBuildTarget } from '@services/buildTargetService';
 import {
 	getBuildTarget,
@@ -18,7 +18,7 @@ import {
 import { getExtensionRoot } from '@services/uvService';
 import { ensureXousWorkspaceOpen } from '@services/workspaceService';
 import { resolveXousRootOrNotify } from '@services/xousCoreService';
-import { splitAppNames } from '@util/appName';
+import { crateNameOf, splitAppNames } from '@util/appName';
 import {
 	addWorkspaceMemberToToml,
 	discoverOutOfTreeCrates,
@@ -41,16 +41,26 @@ export function hasCrateChoice(): boolean {
 	return crates.length > 1 || wildcardMembers.length > 0 || unreadableMembers.length > 0;
 }
 
-export type AppStatus = 'ok' | 'wrong-board' | 'missing';
+export type AppStatus = 'ok' | 'not-an-app' | 'wrong-board' | 'missing';
 export type AppProblem = { name: string; status: Exclude<AppStatus, 'ok'> };
 
+/** Statuses that stop a build; a service or library is a valid thing to hand xtask. */
+const BLOCKING: AppProblem['status'][] = ['wrong-board', 'missing'];
+
+type CrateInfo = { manifestPath: string; isApp: boolean };
+
 /**
- * Every app in the tree, split by whether its manifest declares the target's board feature.
- * Apps live under any of the apps-* directories; which one is not the authority, the feature is,
- * because that is what cargo is handed (`--features board-<target>`) and will reject.
+ * Every crate in the tree by name, marking which are apps. Apps come from the apps-* directories;
+ * the rest are workspace members, which xtask accepts too - dc34-console is a service.
  */
-function classifyApps(xousRoot: string, target: string): { ok: string[]; wrongBoard: string[] } {
-	const declares = new Map<string, boolean>();
+function workspaceCrates(xousRoot: string): Map<string, CrateInfo> {
+	const crates = new Map<string, CrateInfo>();
+
+	for (const member of readWorkspaceMembers(xousRoot)) {
+		const dir = path.join(xousRoot, member);
+		const name = readCargoPackageName(dir);
+		if (name) crates.set(name, { manifestPath: path.join(dir, 'Cargo.toml'), isApp: false });
+	}
 
 	for (const appsDir of ALL_APPS_DIRS) {
 		const dir = path.join(xousRoot, appsDir);
@@ -59,18 +69,34 @@ function classifyApps(xousRoot: string, target: string): { ok: string[]; wrongBo
 			if (!entry.isDirectory()) continue;
 			const appDir = path.join(dir, entry.name);
 			if (!hasCargoToml(appDir)) continue;
-			const ok = readCargoFeatures(path.join(appDir, 'Cargo.toml')).includes(`board-${target}`);
-			// the same name under two apps-* dirs counts as buildable if either copy declares it
-			declares.set(entry.name, ok || declares.get(entry.name) === true);
+			crates.set(entry.name, { manifestPath: path.join(appDir, 'Cargo.toml'), isApp: true });
 		}
 	}
 
-	const sorted = (names: string[]) => names.sort((a, b) => a.localeCompare(b));
-	return {
-		ok: sorted([...declares].filter(([, ok]) => ok).map(([name]) => name)),
-		wrongBoard: sorted([...declares].filter(([, ok]) => !ok).map(([name]) => name)),
-	};
+	return crates;
 }
+
+/** Where a name stands for `target`: buildable, buildable but not an app, wrong board, or absent. */
+function appStatus(crates: Map<string, CrateInfo>, name: string, target: string): AppStatus {
+	const info = crates.get(crateNameOf(name));
+	if (!info) return 'missing';
+	if (!readCargoFeatures(info.manifestPath).includes(boardFeature(target))) return 'wrong-board';
+	return info.isApp ? 'ok' : 'not-an-app';
+}
+
+/** Apps this target can build, for the picker's offered list. */
+function classifyApps(xousRoot: string, target: string): { ok: string[]; wrongBoard: string[] } {
+	const crates = workspaceCrates(xousRoot);
+	const ok: string[] = [];
+	const wrongBoard: string[] = [];
+	for (const [name, info] of crates) {
+		if (!info.isApp) continue;
+		(appStatus(crates, name, target) === 'ok' ? ok : wrongBoard).push(name);
+	}
+	const sorted = (names: string[]) => names.sort((a, b) => a.localeCompare(b));
+	return { ok: sorted(ok), wrongBoard: sorted(wrongBoard) };
+}
+
 type Classified = { ok: string[]; wrongBoard: string[] };
 
 /** Out-of-tree crates, split the same way: by whether the manifest declares the board feature. */
@@ -78,7 +104,7 @@ function classifyCrates(root: string, target: string): Classified {
 	const ok: string[] = [];
 	const wrongBoard: string[] = [];
 	for (const crate of discoverOutOfTreeCrates(root).crates) {
-		const declares = readCargoFeatures(crate.manifestPath).includes(`board-${target}`);
+		const declares = readCargoFeatures(crate.manifestPath).includes(boardFeature(target));
 		(declares ? ok : wrongBoard).push(crate.name);
 	}
 	const sorted = (names: string[]) => names.sort((a, b) => a.localeCompare(b));
@@ -95,9 +121,17 @@ function problemsFrom({ ok, wrongBoard }: Classified, appNames: string): AppProb
 		}));
 }
 
-/** Why each configured name cannot be built for `target` in a xous-core tree. */
+/** How each configured name stands for `target` in a xous-core tree, ok ones omitted. */
 export function appProblems(xousRoot: string, appNames: string, target: string): AppProblem[] {
-	return problemsFrom(classifyApps(xousRoot, target), appNames);
+	const crates = workspaceCrates(xousRoot);
+	return splitAppNames(appNames)
+		.map((name) => ({ name, status: appStatus(crates, name, target) }))
+		.filter((entry): entry is AppProblem => entry.status !== 'ok');
+}
+
+/** The subset that stops a build: a service or library is something xtask can build. */
+export function blockingAppProblems(problems: AppProblem[]): AppProblem[] {
+	return problems.filter((problem) => BLOCKING.includes(problem.status));
 }
 
 /** Why each configured name cannot be built for `target` out of tree. */
@@ -174,7 +208,7 @@ export async function ensureOutOfTreeAppSelection(root: string): Promise<string[
 	const selected = splitAppNames(getXousAppName());
 	if (selected.length > 0) {
 		// Checked here so a stale name gets this message rather than cargo's package-ID error.
-		const problems = currentAppProblems();
+		const problems = blockingAppProblems(currentAppProblems());
 		if (problems.length > 0) {
 			vscode.window.showErrorMessage(describeAppProblems(problems, getBuildTarget()));
 			return undefined;
@@ -226,10 +260,7 @@ async function pickAndSaveApps(
 			...problems.map((problem) => ({
 				label: problem.name,
 				picked: true,
-				description:
-					problem.status === 'wrong-board'
-						? vscode.l10n.t('invalid for {0}', target)
-						: vscode.l10n.t('not in this project'),
+				description: describeAppStatus(problem.status, target),
 			})),
 		],
 		{ placeHolder, canPickMany: true },
@@ -246,11 +277,17 @@ async function pickAndSaveApps(
 	return selection;
 }
 
+/** What to show beside a selected name that is not a plain app of this target. */
+function describeAppStatus(status: AppProblem['status'], target: string): string {
+	if (status === 'wrong-board') return vscode.l10n.t('invalid for {0}', target);
+	if (status === 'not-an-app') return vscode.l10n.t('service or library');
+	return vscode.l10n.t('not in this project');
+}
 /** Note what was left out of the picker, so an app missing from the list is still explainable. */
 function logUnbuildable(names: string[], target: string): void {
 	if (names.length === 0) return;
 	getBaochipChannel().appendLine(
-		`[bao] not offered for ${target} (no board-${target} feature): ${names.join(', ')}`,
+		`[bao] not offered for ${target} (no ${boardFeature(target)} feature): ${names.join(', ')}`,
 	);
 }
 

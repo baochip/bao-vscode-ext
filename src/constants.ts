@@ -22,6 +22,11 @@ const BOARD_TYPE_TARGETS: Record<string, string> = {
 	baosec: 'baosec',
 };
 
+/** The cargo feature a target builds with. */
+export function boardFeature(target: string): string {
+	return `board-${target}`;
+}
+
 /** The hardware target a reported board type corresponds to, or undefined when there is no mapping. */
 export function targetForBoardType(boardType: string): string | undefined {
 	return BOARD_TYPE_TARGETS[boardType.toLowerCase()];

@@ -75,9 +75,16 @@ export const getExtraFeatures = (): string[] => {
 };
 
 /** Entries of a string-array setting that pass `ok`, warning about the ones dropped. */
-function validEntries(key: string, ok: (v: string) => boolean, whatIsDropped: string): string[] {
+function validEntries(
+	key: string,
+	ok: (v: string) => boolean,
+	whatIsDropped: string,
+	normalise: (v: string) => string = (v) => v,
+): string[] {
 	const raw = cfg().get<unknown>(key);
-	const all = Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : [];
+	const all = (Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : []).map(
+		normalise,
+	);
 	const valid = all.filter(ok);
 	if (valid.length < all.length) {
 		warn(`${whatIsDropped}: ${all.filter((v) => !ok(v)).join(', ')}`);
@@ -101,12 +108,13 @@ export const getInTreeKernelFeatures = (): string[] =>
 		vscode.l10n.t('Ignoring invalid in-tree kernel features'),
 	);
 
-/** Extra switches for an in-tree build, passed to cargo xtask as written. */
+/** Extra switches for an in-tree build. The leading -- is optional: no-verify means --no-verify. */
 export const getInTreeBuildFlags = (): string[] =>
 	validEntries(
 		'inTree.buildFlags',
 		isValidBuildFlag,
 		vscode.l10n.t('Ignoring invalid in-tree build flags'),
+		(flag) => (flag.startsWith('--') ? flag : `--${flag}`),
 	);
 
 export const getMonitorFlags = () => ({

@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { XOUS_CORE_REPO } from '@constants';
+import { boardFeature as boardFeatureFor, XOUS_CORE_REPO } from '@constants';
 
 /** Extract the package name (first top-level `name = "..."`) from Cargo.toml contents, or null if absent. */
 export function parseCargoPackageName(toml: string): string | null {
@@ -244,10 +244,10 @@ export function isValidCrateName(name: string): boolean {
 
 /** Build the cargo `--features` args for an out-of-tree Baochip build: the board feature, fixed defaults, then any extras. */
 export function buildOutOfTreeFeatures(target: string, extraFeatures: string[]): string[] {
-	const boardFeature = `board-${target}`;
+	const board = boardFeatureFor(target);
 	return [
 		'--features',
-		boardFeature,
+		board,
 		'--features',
 		'bao1x',
 		'--features',

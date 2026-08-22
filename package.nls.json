@@ -42,7 +42,7 @@
 	"cfg.intree.appName": "Crates to build, space-separated (e.g. 'helloworld demo_app'). Apps in a xous-core checkout, workspace crates out-of-tree. Leave blank in xous-core for the base system image only.",
 	"cfg.intree.features": "Extra features for in-tree builds, passed to cargo xtask as --feature <name>.",
 	"cfg.intree.kernelFeatures": "Extra kernel features for in-tree builds, passed to cargo xtask as --kernel-feature <name>.",
-	"cfg.intree.buildFlags": "Extra switches for in-tree builds, passed to cargo xtask as written (e.g. --no-timestamp, --no-verify).",
+	"cfg.intree.buildFlags": "Extra switches for in-tree builds, passed to cargo xtask. The leading -- is optional: no-verify and --no-verify both work.",
 	"cfg.title.flashing": "Baochip - Flashing",
 	"cfg.title.outOfTree": "Baochip - Out-of-Tree Builds",
 	"cfg.outOfTree.kernelMode": "Where out-of-tree flashing gets loader.uf2 and xous.uf2. In-tree builds create these files themselves.",

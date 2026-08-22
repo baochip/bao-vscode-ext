@@ -1,6 +1,7 @@
 import { BUILD_TARGETS, XOUS_TARGET_TRIPLE } from '@constants';
 import {
 	appProblems,
+	blockingAppProblems,
 	describeAppProblems,
 	ensureOutOfTreeAppSelection,
 } from '@services/appService';
@@ -61,7 +62,7 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 
 	const app = (getXousAppName() || '').trim();
 	if (app) {
-		const problems = appProblems(root, app, target);
+		const problems = blockingAppProblems(appProblems(root, app, target));
 		if (problems.length > 0) {
 			vscode.window.showErrorMessage(describeAppProblems(problems, target));
 			return;
