@@ -224,6 +224,11 @@ export function rewriteXousGitDepsToPaths(
 }
 
 /** Whether a string is a plausible cargo feature name (defense-in-depth for values that become CLI args). */
+/** Whether a string is a switch cargo xtask could accept: two hyphens, then lowercase and hyphens. */
+export function isValidBuildFlag(flag: string): boolean {
+	return /^--[a-z][a-z0-9-]*$/.test(flag);
+}
+
 export function isValidFeatureName(name: string): boolean {
 	return /^[A-Za-z0-9_][A-Za-z0-9_./+-]*$/.test(name);
 }

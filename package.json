@@ -298,6 +298,33 @@
 						"default": "",
 						"description": "%cfg.intree.appName%",
 						"order": 2
+					},
+					"baochip.inTree.features": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [],
+						"description": "%cfg.intree.features%",
+						"order": 3
+					},
+					"baochip.inTree.kernelFeatures": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [],
+						"description": "%cfg.intree.kernelFeatures%",
+						"order": 4
+					},
+					"baochip.inTree.buildFlags": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [],
+						"description": "%cfg.intree.buildFlags%",
+						"order": 5
 					}
 				}
 			},

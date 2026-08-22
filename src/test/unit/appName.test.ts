@@ -37,3 +37,15 @@ test('splitAppNames: keeps a region suffix intact', () => {
 		'dc34-vault',
 	]);
 });
+
+test('isLikelyValidAppName: accepts an xtask memory region suffix', () => {
+	assert.equal(isLikelyValidAppName('dc34-console~flash'), true);
+	assert.equal(isLikelyValidAppName('my_app~swap'), true);
+	assert.equal(isLikelyValidAppName('my_app~ram'), true);
+});
+
+test('isLikelyValidAppName: rejects an unknown region and a bare tilde', () => {
+	assert.equal(isLikelyValidAppName('dc34-console~elsewhere'), false);
+	assert.equal(isLikelyValidAppName('dc34-console~'), false);
+	assert.equal(isLikelyValidAppName('~flash'), false);
+});

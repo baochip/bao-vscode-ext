@@ -445,6 +445,40 @@ suite('Build service', () => {
 		assert.deepEqual(sent, ['cargo xtask dabao hello world']);
 	});
 
+	test('runBuildInTerminal appends the configured xtask features and flags', async () => {
+		// The badge is built this way: an app list plus features, a kernel feature, and switches.
+		await setCfg('inTree.features', ['usb']);
+		await setCfg('inTree.kernelFeatures', ['debug-proc']);
+		await setCfg('inTree.buildFlags', ['--no-timestamp', '--no-verify']);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		await buildService.runBuildInTerminal(
+			'C:\fake\root',
+			'baosec',
+			'dc34-console~flash dc34-vault',
+		);
+
+		assert.deepEqual(sent, [
+			// the region suffix is quoted so no shell can read the tilde as a home directory
+			'cargo xtask baosec "dc34-console~flash" dc34-vault --feature usb --kernel-feature debug-proc --no-timestamp --no-verify',
+		]);
+	});
+
+	test('runBuildInTerminal drops settings entries that could carry another argument', async () => {
+		await setCfg('inTree.features', ['usb', 'usb; rm -rf /']);
+		await setCfg('inTree.buildFlags', ['--no-verify', '--feature usb', 'no-verify']);
+		sandbox.stub(vscode.window, 'showInformationMessage');
+		sandbox.stub(logService, 'warn');
+		const { sent, term } = fakeTerminal();
+		sandbox.stub(terminalService, 'ensureNamedTerminal').returns(term);
+
+		await buildService.runBuildInTerminal('C:\fake\root', 'dabao', 'hello');
+
+		assert.deepEqual(sent, ['cargo xtask dabao hello --feature usb --no-verify']);
+	});
+
 	test('runBuildInTerminal rejects a build target outside the known list', async () => {
 		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
 		const ensure = sandbox.stub(terminalService, 'ensureNamedTerminal');

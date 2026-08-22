@@ -9,6 +9,7 @@ import {
 	discoverOutOfTreeCrates,
 	hasPackageTable,
 	hasWorkspaceTable,
+	isValidBuildFlag,
 	isValidCrateName,
 	isValidFeatureName,
 	parseCargoFeatures,
@@ -506,4 +507,25 @@ test('parseXousCoreRev: null when xous-core is pinned by branch instead', () => 
 		'[dependencies]\nbao1x-api = { git = "https://github.com/betrusted-io/xous-core", branch = "main" }\n';
 
 	assert.equal(parseXousCoreRev(toml), null);
+});
+
+/* ------------------------------ isValidBuildFlag ------------------------------ */
+
+test('isValidBuildFlag: accepts the switches cargo xtask documents', () => {
+	for (const flag of ['--no-timestamp', '--no-verify', '--app']) {
+		assert.equal(isValidBuildFlag(flag), true, flag);
+	}
+});
+
+test('isValidBuildFlag: rejects anything that could carry a second argument', () => {
+	for (const flag of [
+		'--feature usb',
+		'-no-verify',
+		'no-verify',
+		'--No-Verify',
+		'--x;rm -rf /',
+		'',
+	]) {
+		assert.equal(isValidBuildFlag(flag), false, JSON.stringify(flag));
+	}
 });

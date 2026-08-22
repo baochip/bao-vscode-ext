@@ -1,5 +1,5 @@
 import { warn } from '@services/logService';
-import { isValidFeatureName } from '@util/cargo';
+import { isValidBuildFlag, isValidFeatureName } from '@util/cargo';
 import * as vscode from 'vscode';
 
 export const cfg = () => vscode.workspace.getConfiguration('baochip'); // scoped to the baochip.* section
@@ -73,6 +73,41 @@ export const getExtraFeatures = (): string[] => {
 	}
 	return valid;
 };
+
+/** Entries of a string-array setting that pass `ok`, warning about the ones dropped. */
+function validEntries(key: string, ok: (v: string) => boolean, whatIsDropped: string): string[] {
+	const raw = cfg().get<unknown>(key);
+	const all = Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : [];
+	const valid = all.filter(ok);
+	if (valid.length < all.length) {
+		warn(`${whatIsDropped}: ${all.filter((v) => !ok(v)).join(', ')}`);
+	}
+	return valid;
+}
+
+/** Extra features for an in-tree build, passed to cargo xtask as --feature <name>. */
+export const getInTreeFeatures = (): string[] =>
+	validEntries(
+		'inTree.features',
+		isValidFeatureName,
+		vscode.l10n.t('Ignoring invalid in-tree features'),
+	);
+
+/** Extra kernel features for an in-tree build, passed as --kernel-feature <name>. */
+export const getInTreeKernelFeatures = (): string[] =>
+	validEntries(
+		'inTree.kernelFeatures',
+		isValidFeatureName,
+		vscode.l10n.t('Ignoring invalid in-tree kernel features'),
+	);
+
+/** Extra switches for an in-tree build, passed to cargo xtask as written. */
+export const getInTreeBuildFlags = (): string[] =>
+	validEntries(
+		'inTree.buildFlags',
+		isValidBuildFlag,
+		vscode.l10n.t('Ignoring invalid in-tree build flags'),
+	);
 
 export const getMonitorFlags = () => ({
 	crlf: cfg().get<boolean>('monitor.crlf') ?? true,

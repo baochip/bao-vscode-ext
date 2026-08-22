@@ -1,6 +1,7 @@
 ## [1.2.0] - 2026-08-22
 
 ### Added
+- In-tree builds can pass extra arguments to cargo xtask: features, kernel features, and switches, set in Baochip > In Tree settings
 - Out-of-tree projects can build and flash for baosec: the build produces swap.uf2 rather than apps.uf2, and kernel sync fetches from the board's own CI directory
 - New kernel mode app-only, which flashes just the image your project builds and leaves the kernel already on the board in place
 - **Build • Flash • Boot** - builds, flashes, and restarts the board without opening a monitor

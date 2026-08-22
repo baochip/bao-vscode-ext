@@ -6,7 +6,14 @@ import {
 } from '@services/appService';
 import { projectImagePath, uf2ToolArgs } from '@services/artifactsService';
 import { ensureBuildTarget } from '@services/buildTargetService';
-import { getBuildTarget, getExtraFeatures, getXousAppName } from '@services/configService';
+import {
+	getBuildTarget,
+	getExtraFeatures,
+	getInTreeBuildFlags,
+	getInTreeFeatures,
+	getInTreeKernelFeatures,
+	getXousAppName,
+} from '@services/configService';
 import { checkUf2Size } from '@services/flashService';
 import { appendSeparator, getBaochipChannel } from '@services/logService';
 import { runProcess } from '@services/procService';
@@ -62,6 +69,15 @@ export async function ensureBuildPrereqs(): Promise<BuildPrereqs | undefined> {
 	}
 
 	return { mode: 'xous-core', root, target, app: app || undefined };
+}
+
+/** Extra cargo xtask arguments from settings, in the order the xtask docs use them. */
+function inTreeBuildArgs(): string[] {
+	return [
+		...getInTreeFeatures().flatMap((feature) => ['--feature', feature]),
+		...getInTreeKernelFeatures().flatMap((feature) => ['--kernel-feature', feature]),
+		...getInTreeBuildFlags(),
+	];
 }
 
 function outOfTreeFeatureArgs(): string[] {
@@ -190,7 +206,12 @@ export async function runBuildInTerminal(root: string, target: string, app?: str
 
 	await runInTerminal(
 		term,
-		`cargo xtask ${quoteArg(target)}${appArgs.length ? ` ${appArgs.map((a) => quoteArg(a)).join(' ')}` : ''}`,
+		[
+			'cargo xtask',
+			quoteArg(target),
+			...appArgs.map((a) => quoteArg(a)),
+			...inTreeBuildArgs().map((a) => quoteArg(a)),
+		].join(' '),
 	);
 	checkUf2SizeAfterBuild(term, projectImagePath('xous-core', root, target));
 	term.show(true);
@@ -270,7 +291,7 @@ export async function runBuildAndWait(
 	app?: string,
 ): Promise<number | null> {
 	const appArgs = splitAppNames(app);
-	const args = ['xtask', target, ...appArgs];
+	const args = ['xtask', target, ...appArgs, ...inTreeBuildArgs()];
 
 	announceBuilding(target, appArgs);
 	if (appArgs.length === 0) {
