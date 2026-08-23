@@ -14,6 +14,7 @@ import {
 	containedUvEnv,
 	installerScriptUrl,
 	knownUvLocations,
+	requirementModules,
 	uvPathIn,
 	venvPlan,
 } from '@util/uvInstall';
@@ -592,6 +593,33 @@ export async function getBaoRunner(
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 
+/**
+ * Whether the venv can import what requirements.txt asks for. The stored hash only says an
+ * install once succeeded, so a venv that later lost its packages leaves every bao.py command
+ * failing while the extension believes the deps are there.
+ */
+async function requirementsImportable(reqPath: string): Promise<boolean> {
+	const modules = requirementModules(fs.readFileSync(reqPath, 'utf8'));
+	if (modules.length === 0) return true;
+
+	try {
+		const uv = await resolveUvBinary();
+		const probe = modules.map((m) => `import ${m}`).join('; ');
+		// runProcess rather than run(): a failed import is the answer here, not an error to raise.
+		const r = await runProcess(uv, ['run', 'python', '-c', probe], {
+			cwd: getGlobalVenvRoot(),
+			env: { ...uvEnv(), UV_PYTHON_DOWNLOADS: 'never' },
+		});
+		if (r.error) return true;
+		if (r.code !== 0) log(`dependency check failed: ${(r.stderr || '').trim().slice(0, 200)}`);
+		return r.code === 0;
+	} catch (e: unknown) {
+		// No usable uv to check with; leave the decision to the install path rather than blocking.
+		log(`dependency check could not run: ${toMessage(e)}`);
+		return true;
+	}
+}
+
 export async function ensureBaoPythonDeps(opts: { quiet?: boolean } = {}): Promise<void> {
 	// Memoized so a resolved run is the "already done" fast path and concurrent first-run
 	// commands share one install; cleared on failure so the next command retries.
@@ -628,8 +656,8 @@ async function ensureBaoPythonDepsUncached({
 	// remake it and reinstall everything.
 	const venvMissing = !fs.existsSync(venvDir) || !fs.existsSync(path.join(venvDir, 'pyvenv.cfg'));
 
-	if (!venvMissing && prevHash === currentHash) {
-		log('requirements unchanged and venv present; skipping install.');
+	if (!venvMissing && prevHash === currentHash && (await requirementsImportable(reqPath))) {
+		log('requirements unchanged and importable; skipping install.');
 		return;
 	}
 

@@ -3,7 +3,6 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from tomlkit import parse as toml_parse, dumps as toml_dumps
 
 
 def read_file(path: Path) -> str:
@@ -51,8 +50,12 @@ def navigate(node, keys: list[str]):
 
 
 def read_toml(path: Path):
+    from tomlkit import parse as toml_parse
+
     return toml_parse(read_file(path))
 
 
 def write_toml(path: Path, doc) -> None:
+    from tomlkit import dumps as toml_dumps
+
     write_file(path, toml_dumps(doc))

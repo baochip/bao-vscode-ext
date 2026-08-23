@@ -118,7 +118,8 @@ suite('uv service orchestration', () => {
 		assert.ok(run.notCalled, 'a saved usable uv is used directly, nothing is installed');
 	});
 
-	test('ensureBaoPythonDeps skips reinstall when the hash is unchanged and the venv exists', async () => {
+	test('ensureBaoPythonDeps checks the deps import, and installs nothing when they do', async () => {
+		await state.update(KEY_UV_PATH, process.execPath);
 		const run = sandbox.stub(procService, 'runProcess').resolves(OK);
 		const venvDir = path.join(tmpStorage, '.venv');
 		fs.mkdirSync(venvDir, { recursive: true });
@@ -127,9 +128,34 @@ suite('uv service orchestration', () => {
 
 		await ensureBaoPythonDeps();
 
+		const commands = run.getCalls().map((c) => (c.args[1] as string[]).join(' '));
+		assert.deepEqual(
+			commands,
+			['run python -c import serial; import tomlkit'],
+			'one import check, no install',
+		);
+	});
+
+	test('ensureBaoPythonDeps reinstalls when the venv can no longer import the deps', async () => {
+		// The hash says the install succeeded once, but the venv has since lost a package - which
+		// is invisible to the hash and leaves every bao.py command failing on import.
+		await state.update(KEY_UV_PATH, process.execPath);
+		const venvDir = path.join(tmpStorage, '.venv');
+		fs.mkdirSync(venvDir, { recursive: true });
+		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+		await state.update(KEY_REQ_HASH, bundledReqHash(realExtUri.fsPath));
+		const run = sandbox.stub(procService, 'runProcess');
+		run
+			.onFirstCall()
+			.resolves({ ...OK, code: 1, stderr: "ModuleNotFoundError: No module named 'tomlkit'" });
+		run.resolves(OK);
+
+		await ensureBaoPythonDeps();
+
+		const commands = run.getCalls().map((c) => (c.args[1] as string[]).join(' '));
 		assert.ok(
-			run.notCalled,
-			'no uv commands run when requirements are unchanged and the venv is present',
+			commands.some((c) => c.startsWith('pip install -r')),
+			`the failed check triggers a reinstall: ${commands.join(' | ')}`,
 		);
 	});
 

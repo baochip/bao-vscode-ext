@@ -5,6 +5,7 @@ import {
 	containedUvEnv,
 	installerScriptUrl,
 	knownUvLocations,
+	requirementModules,
 	uvBinaryName,
 	uvPathIn,
 	venvPlan,
@@ -113,4 +114,26 @@ test('classifyPipFailure: detects network/proxy failures', () => {
 test('classifyPipFailure: falls back to generic for unrecognized output', () => {
 	assert.equal(classifyPipFailure('something completely different'), 'generic');
 	assert.equal(classifyPipFailure(''), 'generic');
+});
+
+test('requirementModules: maps distributions to the names Python imports', () => {
+	const requirements = ['pyserial>=3.5', 'tomlkit>=0.13.3'].join('\n');
+
+	assert.deepEqual(requirementModules(requirements), ['serial', 'tomlkit']);
+});
+
+test('requirementModules: ignores comments and blank lines', () => {
+	const requirements = ['# needed for the monitor', '', 'pyserial>=3.5', '   '].join('\n');
+
+	assert.deepEqual(requirementModules(requirements), ['serial']);
+});
+
+test('requirementModules: strips version specifiers, extras and markers', () => {
+	const requirements = [
+		'tomlkit',
+		'requests[socks]==2.31.0',
+		'importlib-metadata; python_version < "3.10"',
+	].join('\n');
+
+	assert.deepEqual(requirementModules(requirements), ['tomlkit', 'requests', 'importlib_metadata']);
 });

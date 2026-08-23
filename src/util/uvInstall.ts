@@ -1,3 +1,22 @@
+/** Import name for a distribution, where the two differ. */
+const IMPORT_NAMES: Record<string, string> = { pyserial: 'serial' };
+
+/** The module names a requirements.txt expects to be importable. */
+export function requirementModules(contents: string): string[] {
+	return contents
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0 && !line.startsWith('#'))
+		.map((line) =>
+			line
+				.split(/[<>=!~[;]/)[0]
+				.trim()
+				.toLowerCase(),
+		)
+		.filter(Boolean)
+		.map((dist) => IMPORT_NAMES[dist] ?? dist.replace(/-/g, '_'));
+}
+
 import * as path from 'node:path';
 
 /** URL of Astral's uv standalone install script for the platform (always the latest release). */
