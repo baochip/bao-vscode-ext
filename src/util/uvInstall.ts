@@ -37,6 +37,17 @@ export function uvPathIn(dir: string, platform: NodeJS.Platform = process.platfo
 	return p.join(dir, uvBinaryName(platform));
 }
 
+/** The interpreter inside a venv, which sits in a different subdirectory per platform. */
+export function venvPythonIn(
+	venvDir: string,
+	platform: NodeJS.Platform = process.platform,
+): string {
+	const p = platform === 'win32' ? path.win32 : path.posix;
+	return platform === 'win32'
+		? p.join(venvDir, 'Scripts', 'python.exe')
+		: p.join(venvDir, 'bin', 'python');
+}
+
 /**
  * Standard locations a uv installed by the user (not by us) may already live: the standalone
  * installer's default target (~/.local/bin) and the legacy cargo bin (~/.cargo/bin). Probed by

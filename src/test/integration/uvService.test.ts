@@ -12,6 +12,7 @@ import {
 	resetUvSetup,
 	setExtensionContext,
 } from '@services/uvService';
+import { venvPythonIn } from '@util/uvInstall';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { activateExtension, EXT_ID, useSandbox } from './helpers';
@@ -103,6 +104,16 @@ suite('uv service orchestration', () => {
 		setExtensionContext(makeUvContext(realExtUri, realStoragePath).context);
 	});
 
+	/** A venv with an interpreter present, which is what the dependency check looks for. */
+	function makeVenv(): string {
+		const venvDir = path.join(tmpStorage, '.venv');
+		const python = venvPythonIn(venvDir);
+		fs.mkdirSync(path.dirname(python), { recursive: true });
+		fs.writeFileSync(python, '', 'utf8');
+		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake', 'utf8');
+		return python;
+	}
+
 	test('getBaoRunner returns the uv runner and memoizes the resolved binary', async () => {
 		// process.execPath (node) stands in for a usable uv: uvUsable only checks that --version exits 0.
 		await state.update(KEY_UV_PATH, process.execPath);
@@ -121,9 +132,7 @@ suite('uv service orchestration', () => {
 	test('ensureBaoPythonDeps checks the deps import, and installs nothing when they do', async () => {
 		await state.update(KEY_UV_PATH, process.execPath);
 		const run = sandbox.stub(procService, 'runProcess').resolves(OK);
-		const venvDir = path.join(tmpStorage, '.venv');
-		fs.mkdirSync(venvDir, { recursive: true });
-		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+		makeVenv();
 		await state.update(KEY_REQ_HASH, bundledReqHash(realExtUri.fsPath));
 
 		await ensureBaoPythonDeps();
@@ -131,7 +140,7 @@ suite('uv service orchestration', () => {
 		const commands = run.getCalls().map((c) => (c.args[1] as string[]).join(' '));
 		assert.deepEqual(
 			commands,
-			['run python -c import serial; import tomlkit'],
+			['-c import serial; import tomlkit'],
 			'one import check, no install',
 		);
 	});
@@ -140,9 +149,7 @@ suite('uv service orchestration', () => {
 		// The hash says the install succeeded once, but the venv has since lost a package - which
 		// is invisible to the hash and leaves every bao.py command failing on import.
 		await state.update(KEY_UV_PATH, process.execPath);
-		const venvDir = path.join(tmpStorage, '.venv');
-		fs.mkdirSync(venvDir, { recursive: true });
-		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+		makeVenv();
 		await state.update(KEY_REQ_HASH, bundledReqHash(realExtUri.fsPath));
 		const run = sandbox.stub(procService, 'runProcess');
 		run
@@ -215,9 +222,7 @@ suite('uv service orchestration', () => {
 		// RESOLVED promise - the stale state a naive reset would then join, silently skipping reinstall.
 		await state.update(KEY_UV_PATH, process.execPath);
 		await state.update(KEY_REQ_HASH, bundledReqHash(realExtUri.fsPath));
-		const venvDir = path.join(tmpStorage, '.venv');
-		fs.mkdirSync(venvDir, { recursive: true });
-		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+		makeVenv();
 
 		const run = sandbox.stub(procService, 'runProcess').resolves(OK);
 		// rerunExtensionSetup gates on a modal confirmation.
@@ -259,9 +264,7 @@ suite('uv service orchestration', () => {
 		await state.update(KEY_UV_PATH, process.execPath);
 		await state.update(KEY_UV_PYTHON, 'py -3');
 		await state.update(KEY_REQ_HASH, 'somehash');
-		const venvDir = path.join(tmpStorage, '.venv');
-		fs.mkdirSync(venvDir, { recursive: true });
-		fs.writeFileSync(path.join(venvDir, 'pyvenv.cfg'), 'home = fake\n', 'utf8');
+		const python = makeVenv();
 		showInfo.resolves('Delete .venv');
 
 		await resetUvSetup();
@@ -269,6 +272,9 @@ suite('uv service orchestration', () => {
 		assert.equal(state.get(KEY_UV_PATH), undefined, 'saved uv path cleared');
 		assert.equal(state.get(KEY_UV_PYTHON), undefined, 'saved bootstrap python cleared');
 		assert.equal(state.get(KEY_REQ_HASH), undefined, 'requirements hash cleared');
-		assert.ok(!fs.existsSync(venvDir), 'cached venv deleted after confirming the prompt');
+		assert.ok(
+			!fs.existsSync(path.dirname(python)),
+			'cached venv deleted after confirming the prompt',
+		);
 	});
 });

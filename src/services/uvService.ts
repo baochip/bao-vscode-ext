@@ -17,6 +17,7 @@ import {
 	requirementModules,
 	uvPathIn,
 	venvPlan,
+	venvPythonIn,
 } from '@util/uvInstall';
 import * as vscode from 'vscode';
 
@@ -598,26 +599,24 @@ export async function getBaoRunner(
  * install once succeeded, so a venv that later lost its packages leaves every bao.py command
  * failing while the extension believes the deps are there.
  */
-async function requirementsImportable(reqPath: string): Promise<boolean> {
+async function requirementsImportable(reqPath: string, venvDir: string): Promise<boolean> {
 	const modules = requirementModules(fs.readFileSync(reqPath, 'utf8'));
 	if (modules.length === 0) return true;
 
-	try {
-		const uv = await resolveUvBinary();
-		const probe = modules.map((m) => `import ${m}`).join('; ');
-		// runProcess rather than run(): a failed import is the answer here, not an error to raise.
-		const r = await runProcess(uv, ['run', 'python', '-c', probe], {
-			cwd: getGlobalVenvRoot(),
-			env: { ...uvEnv(), UV_PYTHON_DOWNLOADS: 'never' },
-		});
-		if (r.error) return true;
-		if (r.code !== 0) log(`dependency check failed: ${(r.stderr || '').trim().slice(0, 200)}`);
-		return r.code === 0;
-	} catch (e: unknown) {
-		// No usable uv to check with; leave the decision to the install path rather than blocking.
-		log(`dependency check could not run: ${toMessage(e)}`);
-		return true;
+	// The venv interpreter, not uv: this runs on the skip path, where resolving uv could install it
+	// just to answer a question about packages.
+	const python = venvPythonIn(venvDir, process.platform);
+	if (!fs.existsSync(python)) {
+		log(`no interpreter at ${python}; treating the venv as unusable`);
+		return false;
 	}
+
+	const probe = modules.map((m) => `import ${m}`).join('; ');
+	const r = await runProcess(python, ['-c', probe], { env: uvEnv() });
+	// Could not start it at all: let the install path decide rather than blocking here.
+	if (r.error) return true;
+	if (r.code !== 0) log(`dependency check failed: ${(r.stderr || '').trim().slice(0, 200)}`);
+	return r.code === 0;
 }
 
 export async function ensureBaoPythonDeps(opts: { quiet?: boolean } = {}): Promise<void> {
@@ -656,7 +655,11 @@ async function ensureBaoPythonDepsUncached({
 	// remake it and reinstall everything.
 	const venvMissing = !fs.existsSync(venvDir) || !fs.existsSync(path.join(venvDir, 'pyvenv.cfg'));
 
-	if (!venvMissing && prevHash === currentHash && (await requirementsImportable(reqPath))) {
+	if (
+		!venvMissing &&
+		prevHash === currentHash &&
+		(await requirementsImportable(reqPath, venvDir))
+	) {
 		log('requirements unchanged and importable; skipping install.');
 		return;
 	}

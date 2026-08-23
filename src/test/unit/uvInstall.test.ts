@@ -9,6 +9,7 @@ import {
 	uvBinaryName,
 	uvPathIn,
 	venvPlan,
+	venvPythonIn,
 } from '../../util/uvInstall';
 
 test('installerScriptUrl: PowerShell script on Windows, shell script elsewhere', () => {
@@ -136,4 +137,15 @@ test('requirementModules: strips version specifiers, extras and markers', () => 
 	].join('\n');
 
 	assert.deepEqual(requirementModules(requirements), ['tomlkit', 'requests', 'importlib_metadata']);
+});
+
+test('venvPythonIn: the interpreter lives in Scripts on Windows and bin elsewhere', () => {
+	assert.equal(
+		venvPythonIn('C:\\storage\\.venv', 'win32'),
+		'C:\\storage\\.venv\\Scripts\\python.exe',
+	);
+	assert.equal(
+		venvPythonIn('/home/me/storage/.venv', 'linux'),
+		'/home/me/storage/.venv/bin/python',
+	);
 });
