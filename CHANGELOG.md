@@ -20,6 +20,7 @@
 - Flashing now sends only the images the selected hardware target builds - loader/xous/apps for dabao, loader/xous/swap for baosec
 
 ### Fixed
+- The manual kernel files folder can be a relative path, taken from the project folder, so a workspace setting shared with the repository works on every machine. Relative paths used to be resolved against whatever directory the editor was started from, and silently found nothing
 - The app list can include service and library crates (not just apps) in in-tree build configurations.
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
 - New app template now pins `getrandom = "=0.2.12"`; unpinned, it resolved past the patch and failed to build

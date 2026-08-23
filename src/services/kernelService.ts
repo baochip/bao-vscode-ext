@@ -12,6 +12,7 @@ import {
 } from '@services/configService';
 import { downloadFile, fetchETag, fetchJson } from '@services/httpService';
 import { errorToast } from '@services/logService';
+import { getOutOfTreeRoot } from '@services/projectModeService';
 import { getGlobalVenvRoot } from '@services/uvService';
 import { discoverOutOfTreeCrates } from '@util/cargo';
 import { toMessage } from '@util/error';
@@ -152,14 +153,31 @@ export async function resolveKernelFiles(): Promise<KernelResolution | null> {
 	if (mode === 'app-only') return 'app-only';
 
 	if (mode === 'manual') {
-		const folder = getKernelFilesPath();
-		if (!folder) {
+		const configured = getKernelFilesPath();
+		if (!configured) {
 			vscode.window.showErrorMessage(
 				vscode.l10n.t(
 					'No kernel files folder configured. Set baochip.outOfTree.kernelFilesPath in Settings.',
 				),
 			);
 			return null;
+		}
+
+		// A relative setting is taken from the project folder, so a workspace setting shared with
+		// the repository works on every machine.
+		let folder = configured;
+		if (!path.isAbsolute(configured)) {
+			const root = getOutOfTreeRoot();
+			if (!root) {
+				vscode.window.showErrorMessage(
+					vscode.l10n.t(
+						'Cannot resolve the relative kernel files path {0}: no project folder is open.',
+						configured,
+					),
+				);
+				return null;
+			}
+			folder = path.resolve(root, configured);
 		}
 		const loader = path.join(folder, 'loader.uf2');
 		const xous = path.join(folder, 'xous.uf2');

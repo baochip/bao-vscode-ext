@@ -7,6 +7,7 @@ import * as httpService from '@services/httpService';
 import * as kernelService from '@services/kernelService';
 import * as logService from '@services/logService';
 import * as procService from '@services/procService';
+import * as projectModeService from '@services/projectModeService';
 import * as uvService from '@services/uvService';
 import type * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -246,6 +247,39 @@ suite('Kernel files service', () => {
 			loader: path.join(folder, 'loader.uf2'),
 			xous: path.join(folder, 'xous.uf2'),
 		});
+	});
+
+	test('resolveKernelFiles (manual) resolves a relative folder from the project', async () => {
+		// A path like ../kernel in a shared workspace setting has to mean the same thing on
+		// every machine, so it is taken from the project rather than the host's working directory.
+		const project = tmpDir();
+		const folder = path.join(project, 'kernel');
+		fs.mkdirSync(folder, { recursive: true });
+		fs.writeFileSync(path.join(folder, 'loader.uf2'), 'loader', 'utf8');
+		fs.writeFileSync(path.join(folder, 'xous.uf2'), 'xous', 'utf8');
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(project);
+		await setCfg('outOfTree.kernelMode', 'manual');
+		await setCfg('outOfTree.kernelFilesPath', 'kernel');
+
+		const files = await kernelService.resolveKernelFiles();
+
+		assert.deepEqual(files, {
+			loader: path.join(folder, 'loader.uf2'),
+			xous: path.join(folder, 'xous.uf2'),
+		});
+	});
+
+	test('resolveKernelFiles (manual) says so when a relative path has no project to resolve from', async () => {
+		sandbox.stub(projectModeService, 'getOutOfTreeRoot').returns(undefined);
+		await setCfg('outOfTree.kernelMode', 'manual');
+		await setCfg('outOfTree.kernelFilesPath', 'kernel');
+		const errors = sandbox.stub(vscode.window, 'showErrorMessage') as unknown as sinon.SinonStub;
+
+		assert.equal(await kernelService.resolveKernelFiles(), null);
+		assert.ok(
+			String(errors.firstCall.args[0]).includes('kernel'),
+			`the message names the path: ${errors.firstCall.args[0]}`,
+		);
 	});
 
 	test('resolveKernelFiles (ci-sync) fetches each board from its own CI directory', async () => {

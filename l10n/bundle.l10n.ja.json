@@ -154,6 +154,7 @@
 	"Unexpected response from GitHub API.": "GitHub API から予期しないレスポンスを受信しました。",
 	"Baochip: Downloading kernel files...": "Baochip: カーネルファイルをダウンロード中...",
 	"No kernel files folder configured. Set baochip.outOfTree.kernelFilesPath in Settings.": "カーネルファイルのフォルダーが設定されていません。設定で baochip.outOfTree.kernelFilesPath を設定してください。",
+	"Cannot resolve the relative kernel files path {0}: no project folder is open.": "相対パスのカーネルファイルパス {0} を解決できません: プロジェクトフォルダーが開いていません。",
 	"Kernel files not found in {0}. Ensure loader.uf2 and xous.uf2 are present.": "{0} にカーネルファイルが見つかりません。loader.uf2 と xous.uf2 が存在することを確認してください。",
 	"Baochip: Failed to download kernel files.\n{0}": "Baochip: カーネルファイルのダウンロードに失敗しました。\n{0}",
 	"Set Up Kernel Files for Out-of-Tree Build": "アウトオブツリービルド用カーネルファイルの設定",

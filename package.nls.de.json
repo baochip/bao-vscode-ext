@@ -50,7 +50,7 @@
 	"cfg.outOfTree.kernelMode.ciSync": "Die neueste xous-core-Revision von GitHub holen, Cargo.toml entsprechend aktualisieren und passende Kernel-Dateien aus der CI herunterladen.",
 	"cfg.outOfTree.kernelMode.manual": "loader.uf2 und xous.uf2 aus dem in baochip.outOfTree.kernelFilesPath festgelegten Ordner verwenden.",
 	"cfg.outOfTree.kernelMode.appOnly": "Nur das Abbild flashen, das Ihr Projekt baut, und den Kernel auf dem Board unverändert lassen.",
-	"cfg.outOfTree.kernelFilesPath": "Ordner mit loader.uf2 und xous.uf2 für manuelles Out-of-Tree-Flashing. Wird nur verwendet, wenn baochip.outOfTree.kernelMode auf 'manual' gesetzt ist.",
+	"cfg.outOfTree.kernelFilesPath": "Ordner mit loader.uf2 und xous.uf2 für manuelles Out-of-Tree-Flashing. Wird nur verwendet, wenn baochip.outOfTree.kernelMode auf 'manual' gesetzt ist. Ein relativer Pfad wird vom Projektordner aus aufgelöst.",
 	"cfg.outOfTree.extraFeatures": "Zusätzliche Cargo-Feature-Flags für Out-of-Tree-Builds, über das Standard-Set board-dabao/bao1x hinaus (z. B. [\"usb\", \"my-feature\"]). Nur für Out-of-Tree-Builds.",
 	"cfg.flashing.location": "Speicherort des eingehängten Baochip-UF2-Laufwerks (D:\\ oder ein anderes Laufwerksbuchstaben-Laufwerk unter Windows, /Volumes/BAOCHIP unter macOS, /media/$(whoami)/BAOCHIP unter Linux).",
 	"cfg.flashing.checkBoardType": "Vor dem Flashen den Bootloader nach dem angeschlossenen Board fragen und warnen, wenn es nicht zum Hardware-Ziel passt.",

@@ -154,6 +154,7 @@
 	"Unexpected response from GitHub API.": "GitHub API 返回了意外响应。",
 	"Baochip: Downloading kernel files...": "Baochip：正在下载内核文件...",
 	"No kernel files folder configured. Set baochip.outOfTree.kernelFilesPath in Settings.": "未配置内核文件夹。请在设置中配置 baochip.outOfTree.kernelFilesPath。",
+	"Cannot resolve the relative kernel files path {0}: no project folder is open.": "无法解析相对的内核文件路径 {0}：未打开项目文件夹。",
 	"Kernel files not found in {0}. Ensure loader.uf2 and xous.uf2 are present.": "{0} 中未找到内核文件。请确保 loader.uf2 和 xous.uf2 存在。",
 	"Baochip: Failed to download kernel files.\n{0}": "Baochip：下载内核文件失败。\n{0}",
 	"Set Up Kernel Files for Out-of-Tree Build": "配置 Out-of-Tree 构建的内核文件",
