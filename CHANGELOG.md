@@ -1,4 +1,4 @@
-## [1.2.0] - 2026-08-26
+## [1.2.0] - 2026-08-29
 
 ### Added
 - Defcon 34 badge as a hardware target. Picking it fills in the crates, features and flags the badge build needs, so Build sends the documented cargo xtask baosec-lite command. It is offered for in-tree builds only for now.
