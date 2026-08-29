@@ -60,12 +60,10 @@ export async function openMonitorTTY(mode?: 'run' | 'bootloader'): Promise<void>
 	// prepared here or a fresh install hits ModuleNotFoundError inside the terminal.
 	await ensureBaoDepsQuietly();
 
-	const { cmd, args } = await getBaoRunner(); // uv + ['run','python']
-	// uv finds the venv via --project instead of cwd, so the terminal itself can live in the
-	// user's project root - after Ctrl+C the prompt should land somewhere useful, not in the
-	// extension's storage directory.
+	const { cmd, args } = await getBaoRunner();
+	// Only the uv fallback needs --project; the terminal stays in the user's project root.
 	const venvRoot = getGlobalVenvRoot();
-	const runnerArgs = [args[0], '--project', venvRoot, ...args.slice(1)];
+	const runnerArgs = args.length > 0 ? [args[0], '--project', venvRoot, ...args.slice(1)] : args;
 	const monitorArgs = buildBaoArgs(runnerArgs, resolveBaoPy(), 'monitor', port, baud, flags);
 	const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? venvRoot;
 

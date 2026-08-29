@@ -114,6 +114,18 @@ suite('uv service orchestration', () => {
 		return python;
 	}
 
+	test('getBaoRunner runs the venv interpreter directly when there is one', async () => {
+		// uv would land on another interpreter here, where nothing we installed exists.
+		const python = makeVenv();
+		const run = sandbox.stub(procService, 'runProcess').resolves(OK);
+
+		const runner = await getBaoRunner();
+		// the drive letter differs in case between the fake storage path and the resolved one
+		assert.equal(runner.cmd.toLowerCase(), python.toLowerCase());
+		assert.deepEqual(runner.args, []);
+		assert.ok(run.notCalled, 'no uv involved once the venv exists');
+	});
+
 	test('getBaoRunner returns the uv runner and memoizes the resolved binary', async () => {
 		// process.execPath (node) stands in for a usable uv: uvUsable only checks that --version exits 0.
 		await state.update(KEY_UV_PATH, process.execPath);

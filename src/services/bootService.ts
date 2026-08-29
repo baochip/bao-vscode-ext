@@ -19,7 +19,7 @@ async function sendBootOnce(port: string, baud: number): Promise<boolean> {
 	const root = getGlobalVenvRoot();
 	const chan = getBaochipChannel();
 
-	const { cmd, args } = await getBaoRunner(); // e.g., uv + ['run','python']
+	const { cmd, args } = await getBaoRunner();
 	const fullArgs = buildBaoArgs(args, bao, 'boot', port, baud);
 
 	const r = await runProcess(cmd, fullArgs, {

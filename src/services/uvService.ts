@@ -586,11 +586,19 @@ async function resolveUvBinaryUncached(): Promise<string> {
 /* ------------------------------ public API ------------------------------ */
 
 /** Returns `{ cmd: <uv binary>, args: ['run','python'] }`. Quiet skips the routine log line. */
+/** The interpreter that runs bao.py: uv only finds a venv through a project file, which we have none of. */
 export async function getBaoRunner(
 	opts: { quiet?: boolean } = {},
 ): Promise<{ cmd: string; args: string[] }> {
+	const python = venvPythonIn(path.join(getGlobalVenvRoot(), '.venv'));
+	if (fs.existsSync(python)) {
+		if (!opts.quiet) log(`Bao runner: ${python}`);
+		return { cmd: python, args: [] };
+	}
+
+	// No venv yet (or it was removed): fall back to uv so a first run still works.
 	const uvPath = await resolveUvBinary();
-	if (!opts.quiet) log(`Bao runner: ${uvPath} run python`);
+	if (!opts.quiet) log(`Bao runner: ${uvPath} run python (no venv interpreter yet)`);
 	return { cmd: uvPath, args: ['run', 'python'] };
 }
 

@@ -61,7 +61,7 @@ export async function runBaoCmd(
 	// their routine log lines flood the channel and make the extension look stuck, so quiet
 	// suppresses them. Failures below always log.
 	const quiet = opts.quiet === true;
-	const { cmd, args } = await getBaoRunner({ quiet }); // uv + ['run','python']
+	const { cmd, args } = await getBaoRunner({ quiet });
 	const baoPath = resolveBaoPy({ quiet });
 
 	// Ensure deps before we run anything

@@ -1,4 +1,4 @@
-## [1.2.0] - 2026-08-22
+## [1.2.0] - 2026-08-26
 
 ### Added
 - Defcon 34 badge as a hardware target. Picking it fills in the crates, features and flags the badge build needs, so Build sends the documented cargo xtask baosec-lite command. It is offered for in-tree builds only for now.
@@ -20,6 +20,7 @@
 - Flashing now sends only the images the selected hardware target builds - loader/xous/apps for dabao, loader/xous/swap for baosec
 
 ### Fixed
+- Python tools now run with the extension virtual environment interpreter directly. uv only finds a virtual environment through a project file, which the storage folder does not have, so uv run fell back to another Python and every command failed with ModuleNotFoundError even after a successful install
 - The manual kernel files folder can be a relative path, taken from the project folder, so a workspace setting shared with the repository works on every machine. Relative paths used to be resolved against whatever directory the editor was started from, and silently found nothing
 - The app list can include service and library crates (not just apps) in in-tree build configurations.
 - Boot after flashing sometimes did nothing while the log claimed success; it is now confirmed and resent if the board is still in the bootloader
